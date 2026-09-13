@@ -1,20 +1,8 @@
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  Image,
-} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {View, Text, TextInput, TouchableOpacity, Alert} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
+import AuthShell, {AUTH, authStyles} from '../components/auth/AuthShell';
 import {registerUser} from '../services/api';
 
 const CreateAccountScreen = ({navigation}) => {
@@ -68,249 +56,121 @@ const CreateAccountScreen = ({navigation}) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+    <AuthShell
+      navigation={navigation}
+      showBack
+      title={'Create\naccount'}
+      subtitle="Register to receive bookings and earn from your care work.">
       <Loader visible={loading} />
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.backButton}
-              onPress={() => navigation?.goBack()}>
-              <Icon name="arrow-back" size={22} color="#111820" />
-            </TouchableOpacity>
-            <Image source={require('../assets/auth.png')} style={styles.authImage} />
-          </View>
+      <Text style={authStyles.label}>Full Name</Text>
+      <View style={authStyles.inputRow}>
+        <Icon name="person-outline" size={18} color="#8A97A6" />
+        <TextInput
+          style={authStyles.input}
+          placeholder="Enter your full name"
+          placeholderTextColor="#B0BAC4"
+          value={form.name}
+          onChangeText={text => updateField('name', text)}
+          autoCapitalize="words"
+        />
+      </View>
 
-          <Text style={styles.title}>Join as a caregiver</Text>
-          <Text style={styles.subtitle}>
-            Register to receive bookings and earn from your care work
-          </Text>
+      <Text style={authStyles.label}>Email Address</Text>
+      <View style={authStyles.inputRow}>
+        <Icon name="mail-outline" size={18} color="#8A97A6" />
+        <TextInput
+          style={authStyles.input}
+          placeholder="Enter your email"
+          placeholderTextColor="#B0BAC4"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={form.email}
+          onChangeText={text => updateField('email', text)}
+        />
+      </View>
 
-          <Text style={styles.label}>Full name</Text>
-          <View style={styles.inputContainer}>
-            <Icon name="person-outline" size={20} color="#8190A7" />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your full name"
-              placeholderTextColor="#8190A7"
-              value={form.name}
-              onChangeText={text => updateField('name', text)}
-              autoCapitalize="words"
-            />
-          </View>
+      <Text style={authStyles.label}>Password</Text>
+      <View style={authStyles.inputRow}>
+        <Icon name="lock-closed-outline" size={18} color="#8A97A6" />
+        <TextInput
+          style={authStyles.input}
+          placeholder="Create a password"
+          placeholderTextColor="#B0BAC4"
+          secureTextEntry={!showPassword}
+          value={form.password}
+          onChangeText={text => updateField('password', text)}
+        />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setShowPassword(prev => !prev)}
+          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+          <Icon
+            name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+            size={18}
+            color="#8A97A6"
+          />
+        </TouchableOpacity>
+      </View>
 
-          <Text style={styles.label}>Email</Text>
-          <View style={styles.inputContainer}>
-            <Icon name="mail-outline" size={20} color="#8190A7" />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#8190A7"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={form.email}
-              onChangeText={text => updateField('email', text)}
-            />
-          </View>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => setAgreed(prev => !prev)}
+        style={styles.termsRow}>
+        <View style={[styles.checkbox, agreed && styles.checkboxActive]}>
+          {agreed ? <Icon name="checkmark" size={12} color="#FFFFFF" /> : null}
+        </View>
+        <Text style={styles.termsText}>
+          I agree to Nirapod's <Text style={styles.link}>Terms</Text> and{' '}
+          <Text style={styles.link}>Privacy Policy</Text>
+        </Text>
+      </TouchableOpacity>
 
-          <Text style={styles.label}>Password</Text>
-          <View style={styles.inputContainer}>
-            <Icon name="lock-closed-outline" size={20} color="#8190A7" />
-            <TextInput
-              style={styles.input}
-              placeholder="Create a password"
-              placeholderTextColor="#8190A7"
-              secureTextEntry={!showPassword}
-              value={form.password}
-              onChangeText={text => updateField('password', text)}
-            />
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setShowPassword(prev => !prev)}
-              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-              <Icon
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color="#8190A7"
-              />
-            </TouchableOpacity>
-          </View>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={authStyles.primaryButton}
+        disabled={loading}
+        onPress={handleRegister}>
+        <Icon name="arrow-forward" size={18} color="#FFFFFF" />
+        <Text style={authStyles.primaryButtonText}>Register</Text>
+      </TouchableOpacity>
 
-          <View style={styles.termsRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setAgreed(prev => !prev)}
-              style={[styles.checkbox, agreed && styles.checkboxActive]}>
-              {agreed && (
-                <Icon name="checkmark" size={14} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
-            <Text style={styles.termsText}>
-              I agree to Nirapod's{' '}
-              <Text style={styles.link}>Terms</Text>
-              {' '}and{' '}
-              <Text style={styles.link}>Privacy Policy</Text>
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.primaryButton}
-            disabled={loading}
-            onPress={handleRegister}>
-            <Text style={styles.primaryButtonText}>Create account</Text>
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account?</Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => navigation?.navigate('Login')}>
-              <Text style={styles.footerLink}> Login</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <View style={authStyles.footer}>
+        <Text style={authStyles.footerText}>Already have an account?</Text>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation?.navigate('Login')}>
+          <Text style={authStyles.footerLink}>Login  →</Text>
+        </TouchableOpacity>
+      </View>
+    </AuthShell>
   );
 };
 
 export default CreateAccountScreen;
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 24,
-    position: 'relative',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F6F6F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-    left: 0,
-  },
-  authImage: {
-    width: 40,
-    height: 40,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111820',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    marginTop: 8,
-    marginBottom: 28,
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#8190A7',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111820',
-    marginBottom: 8,
-  },
-  inputContainer: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#F6F6F6',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    fontSize: 15,
-    color: '#111820',
-    paddingVertical: 0,
-  },
+const styles = {
   termsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: 4,
-    marginBottom: 24,
+    marginBottom: 18,
+    gap: 8,
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     borderRadius: 6,
-    backgroundColor: '#E3E8F0',
+    backgroundColor: '#D7E4DF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
     marginTop: 1,
   },
-  checkboxActive: {
-    backgroundColor: '#008178',
-  },
+  checkboxActive: {backgroundColor: AUTH.teal},
   termsText: {
     flex: 1,
     fontSize: 13,
     lineHeight: 20,
-    color: '#8190A7',
+    color: AUTH.muted,
   },
-  link: {
-    color: '#008178',
-    fontWeight: '600',
-  },
-  primaryButton: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 28,
-  },
-  footerText: {
-    fontSize: 15,
-    color: '#8190A7',
-  },
-  footerLink: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#008178',
-  },
-});
+  link: {color: AUTH.teal, fontWeight: '700'},
+};

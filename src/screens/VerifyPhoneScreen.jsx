@@ -3,16 +3,14 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
   TouchableOpacity,
   TextInput,
   Keyboard,
   Alert,
-  Image,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
+import AuthShell, {AUTH, authStyles} from '../components/auth/AuthShell';
 import {verifyOtp, resendOtp, extractAuthPayload} from '../services/api';
 import {useAuth} from '../context/AuthContext';
 import notificationService from '../services/notificationService';
@@ -112,7 +110,6 @@ const VerifyPhoneScreen = ({navigation, route}) => {
         }
         console.log('✅ Auth tokens stored locally');
 
-        // Step 2: Initialize notification service
         console.log('🔔 Initializing notification service...');
         const notificationInitialized = await notificationService.initialize(
           token,
@@ -124,11 +121,9 @@ const VerifyPhoneScreen = ({navigation, route}) => {
           console.log('⚠️ Notification service initialization failed');
         }
 
-        // Step 3: Register FCM token with server
         console.log('📱 Registering FCM token with server...');
-        const tokenRegistered = await notificationService.registerTokenWithServer(
-          token,
-        );
+        const tokenRegistered =
+          await notificationService.registerTokenWithServer(token);
 
         if (tokenRegistered) {
           console.log('✅ FCM token registered successfully');
@@ -149,191 +144,111 @@ const VerifyPhoneScreen = ({navigation, route}) => {
   const isOtpComplete = otp.every(value => value !== '');
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+    <AuthShell
+      navigation={navigation}
+      showBack
+      title={'Verify\nemail'}
+      subtitle={`We sent a 6-digit code to ${email || 'your email'}.`}>
       <Loader visible={loading} />
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.backButton}
-            onPress={() => navigation?.goBack()}>
-            <Icon name="arrow-back" size={22} color="#111820" />
-          </TouchableOpacity>
-          <Image source={require('../assets/auth.png')} style={styles.authImage} />
-        </View>
+      <Text style={authStyles.label}>Enter OTP</Text>
+      <View style={styles.otpContainer}>
+        {otp.map((value, index) => (
+          <TextInput
+            key={index}
+            ref={ref => {
+              inputs.current[index] = ref;
+            }}
+            value={value}
+            onChangeText={text => handleOtpChange(text, index)}
+            onKeyPress={event => handleKeyPress(event, index)}
+            keyboardType="number-pad"
+            maxLength={1}
+            textAlign="center"
+            selectionColor={AUTH.teal}
+            style={[styles.otpInput, value ? styles.otpInputFilled : null]}
+          />
+        ))}
+      </View>
 
-        <Text style={styles.title}>Verify email</Text>
-        <Text style={styles.subtitle}>We sent a 6-digit code to</Text>
-        <Text style={styles.emailText}>{email}</Text>
-
-        <View style={styles.otpContainer}>
-          {otp.map((value, index) => (
-            <TextInput
-              key={index}
-              ref={ref => {
-                inputs.current[index] = ref;
-              }}
-              value={value}
-              onChangeText={text => handleOtpChange(text, index)}
-              onKeyPress={event => handleKeyPress(event, index)}
-              keyboardType="number-pad"
-              maxLength={1}
-              textAlign="center"
-              selectionColor="#008178"
-              style={[
-                styles.otpInput,
-                value ? styles.otpInputFilled : null,
-              ]}
-            />
-          ))}
-        </View>
-
-        <View style={styles.resendRow}>
-          <Text style={styles.resendText}>Didn't get the code? </Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            disabled={seconds > 0 || resending}
-            onPress={handleResend}>
-            <Text
-              style={[
-                styles.resendLink,
-                seconds > 0 && styles.resendLinkDisabled,
-              ]}>
-              {resending
-                ? 'Sending...'
-                : seconds > 0
-                  ? `Resend in 0:${String(seconds).padStart(2, '0')}`
-                  : 'Resend'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
+      <View style={styles.resendRow}>
+        <Text style={styles.resendText}>Didn't get the code? </Text>
         <TouchableOpacity
-          activeOpacity={0.85}
-          disabled={!isOtpComplete || loading}
-          onPress={handleVerify}
-          style={[
-            styles.primaryButton,
-            !isOtpComplete && styles.primaryButtonDisabled,
-          ]}>
-          <Text style={styles.primaryButtonText}>Verify</Text>
+          activeOpacity={0.7}
+          disabled={seconds > 0 || resending}
+          onPress={handleResend}>
+          <Text
+            style={[
+              styles.resendLink,
+              seconds > 0 && styles.resendLinkDisabled,
+            ]}>
+            {resending
+              ? 'Sending...'
+              : seconds > 0
+                ? `Resend in 0:${String(seconds).padStart(2, '0')}`
+                : 'Resend'}
+          </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      <TouchableOpacity
+        activeOpacity={0.85}
+        disabled={!isOtpComplete || loading}
+        onPress={handleVerify}
+        style={[
+          authStyles.primaryButton,
+          !isOtpComplete && authStyles.primaryButtonDisabled,
+        ]}>
+        <Icon name="arrow-forward" size={18} color="#FFFFFF" />
+        <Text style={authStyles.primaryButtonText}>Verify</Text>
+      </TouchableOpacity>
+    </AuthShell>
   );
 };
 
 export default VerifyPhoneScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    marginBottom: 24,
-    position: 'relative',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F6F6F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-    left: 0,
-  },
-  authImage: {
-    width: 40,
-    height: 40,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111820',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#8190A7',
-  },
-  emailText: {
-    marginTop: 4,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111820',
-  },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginTop: 32,
-    gap: 10,
+    marginBottom: 18,
   },
   otpInput: {
     width: 46,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#F6F6F6',
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F6F6F6',
+    borderColor: '#E3EDE8',
     textAlign: 'center',
     fontSize: 20,
     fontWeight: '700',
-    color: '#111820',
+    color: AUTH.title,
     padding: 0,
   },
   otpInputFilled: {
-    borderColor: '#008178',
-    backgroundColor: '#E6F4F3',
+    borderColor: AUTH.teal,
+    backgroundColor: '#E7F6F3',
   },
   resendRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
+    marginBottom: 18,
     flexWrap: 'wrap',
   },
   resendText: {
     fontSize: 14,
-    color: '#8190A7',
+    color: AUTH.muted,
   },
   resendLink: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#008178',
+    fontWeight: '700',
+    color: AUTH.teal,
   },
   resendLinkDisabled: {
-    color: '#8190A7',
-  },
-  primaryButton: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 32,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#B5C0D0',
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    color: AUTH.muted,
   },
 });
