@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Switch,
   Image,
   Alert,
   Modal,
@@ -272,17 +271,25 @@ const HomeScreen = ({navigation}) => {
             </View>
           </View>
           <View style={styles.availRight}>
-            <Switch
-              value={isAvailable}
-              onValueChange={toggleAvailability}
-              trackColor={{false: '#D5DEE6', true: '#2ECC71'}}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor="#D5DEE6"
-            />
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={updateProfile.isPending}
+              onPress={() => toggleAvailability(!isAvailable)}
+              style={[
+                styles.toggleTrack,
+                isAvailable ? styles.toggleTrackOn : styles.toggleTrackOff,
+              ]}>
+              <View
+                style={[
+                  styles.toggleKnob,
+                  isAvailable ? styles.toggleKnobOn : styles.toggleKnobOff,
+                ]}
+              />
+            </TouchableOpacity>
             <Text
               style={[
                 styles.availState,
-                {color: isAvailable ? '#2ECC71' : '#8A97A6'},
+                {color: isAvailable ? '#22C55E' : '#8A97A6'},
               ]}>
               {isAvailable ? 'Available' : 'Offline'}
             </Text>
@@ -562,8 +569,30 @@ const styles = StyleSheet.create({
   availCopy: {flex: 1},
   availTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
   availSub: {marginTop: 3, fontSize: 12, lineHeight: 16, color: '#6F7F8C'},
-  availRight: {alignItems: 'center'},
-  availState: {marginTop: 4, fontSize: 11, fontWeight: '700'},
+  availRight: {alignItems: 'center', minWidth: 64},
+  toggleTrack: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  toggleTrackOn: {backgroundColor: '#22C55E'},
+  toggleTrackOff: {backgroundColor: '#D5DEE6'},
+  toggleKnob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0B1F2A',
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 2,
+  },
+  toggleKnobOn: {alignSelf: 'flex-end'},
+  toggleKnobOff: {alignSelf: 'flex-start'},
+  availState: {marginTop: 6, fontSize: 11, fontWeight: '700'},
   statsRow: {flexDirection: 'row', gap: 10, marginTop: 14},
   statCard: {
     flex: 1,
