@@ -59,7 +59,7 @@ const CreateAccountScreen = ({navigation}) => {
     <AuthShell
       navigation={navigation}
       showBack
-      title={'Create\naccount'}
+      title="Create account"
       subtitle="Register to receive bookings and earn from your care work.">
       <Loader visible={loading} />
 
@@ -131,7 +131,6 @@ const CreateAccountScreen = ({navigation}) => {
         style={authStyles.primaryButton}
         disabled={loading}
         onPress={handleRegister}>
-        <Icon name="arrow-forward" size={18} color="#FFFFFF" />
         <Text style={authStyles.primaryButtonText}>Register</Text>
       </TouchableOpacity>
 
@@ -140,7 +139,7 @@ const CreateAccountScreen = ({navigation}) => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => navigation?.navigate('Login')}>
-          <Text style={authStyles.footerLink}>Login  →</Text>
+          <Text style={authStyles.footerLink}>Login </Text>
         </TouchableOpacity>
       </View>
     </AuthShell>

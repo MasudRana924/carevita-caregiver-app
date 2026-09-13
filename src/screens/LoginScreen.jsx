@@ -95,7 +95,7 @@ const LoginScreen = ({navigation}) => {
   return (
     <AuthShell
       navigation={navigation}
-      title={'Welcome\nback'}
+      title="Welcome back"
       subtitle="Sign in to manage bookings and your caregiver profile.">
       <Loader visible={loading} />
 
@@ -174,7 +174,7 @@ const LoginScreen = ({navigation}) => {
         style={authStyles.primaryButton}
         disabled={loading}
         onPress={handleLogin}>
-        <Icon name="arrow-forward" size={18} color="#FFFFFF" />
+
         <Text style={authStyles.primaryButtonText}>Login</Text>
       </TouchableOpacity>
 
@@ -183,7 +183,7 @@ const LoginScreen = ({navigation}) => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => navigation?.navigate('Register')}>
-          <Text style={authStyles.footerLink}>Register  →</Text>
+          <Text style={authStyles.footerLink}>Register </Text>
         </TouchableOpacity>
       </View>
     </AuthShell>

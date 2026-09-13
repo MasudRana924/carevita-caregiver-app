@@ -151,15 +151,18 @@ export const authStyles = StyleSheet.create({
     color: '#FFFFFF',
   },
   footer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
     marginTop: 22,
+    gap: 4,
   },
   footerText: {
     fontSize: 13,
     color: AUTH.muted,
   },
   footerLink: {
-    marginTop: 4,
     fontSize: 15,
     fontWeight: '700',
     color: AUTH.button,
@@ -197,9 +200,9 @@ const styles = StyleSheet.create({
     maxWidth: '46%',
   },
   logo: {
-    width: 52,
-    height: 52,
-    marginLeft: -6,
+    width: 120,
+    height: 120,
+
   },
   tagline: {
     marginTop: 2,
