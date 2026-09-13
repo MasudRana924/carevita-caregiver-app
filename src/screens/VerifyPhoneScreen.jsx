@@ -15,10 +15,10 @@ import {verifyOtp, resendOtp, extractAuthPayload} from '../services/api';
 import {useAuth} from '../context/AuthContext';
 import notificationService from '../services/notificationService';
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 4;
 
 const VerifyPhoneScreen = ({navigation, route}) => {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '']);
   const [seconds, setSeconds] = useState(42);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -147,8 +147,8 @@ const VerifyPhoneScreen = ({navigation, route}) => {
     <AuthShell
       navigation={navigation}
       showBack
-      title={'Verify\nemail'}
-      subtitle={`We sent a 6-digit code to ${email || 'your email'}.`}>
+      title="Verify email"
+      subtitle={`We sent a 4-digit code to ${email || 'your email'}.`}>
       <Loader visible={loading} />
 
       <Text style={authStyles.label}>Enter OTP</Text>
@@ -199,7 +199,7 @@ const VerifyPhoneScreen = ({navigation, route}) => {
           authStyles.primaryButton,
           !isOtpComplete && authStyles.primaryButtonDisabled,
         ]}>
-        <Icon name="arrow-forward" size={18} color="#FFFFFF" />
+
         <Text style={authStyles.primaryButtonText}>Verify</Text>
       </TouchableOpacity>
     </AuthShell>
@@ -216,9 +216,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   otpInput: {
-    width: 46,
-    height: 54,
-    borderRadius: 16,
+    width: 60,
+    height:60,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E3EDE8',

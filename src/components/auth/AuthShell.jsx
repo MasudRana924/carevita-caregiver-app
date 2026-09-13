@@ -187,8 +187,8 @@ const styles = StyleSheet.create({
   back: {
     width: 36,
     height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    // alignItems: 'center',
+    // justifyContent: 'center',
     marginBottom: 4,
   },
   brandRow: {
