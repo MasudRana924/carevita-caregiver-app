@@ -53,7 +53,7 @@ const AuthShell = ({
             <View style={styles.brandRow}>
               <View style={styles.brand}>
                 <Image
-                  source={require('../../assets/logo.png')}
+                  source={require('../../assets/auth.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
@@ -194,22 +194,25 @@ const styles = StyleSheet.create({
   brandRow: {
     minHeight: 150,
     justifyContent: 'flex-end',
+    alignItems: 'flex-start',
   },
   brand: {
+    alignItems: 'flex-start',
+    alignSelf: 'flex-start',
     zIndex: 2,
-    maxWidth: '46%',
+    maxWidth: '50%',
   },
   logo: {
-    width: 120,
-    height: 120,
-
+    width: 44,
+    height: 44,
   },
   tagline: {
-    marginTop: 2,
+    marginTop: 6,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '600',
     color: AUTH.teal,
+    textAlign: 'left',
   },
   heroImage: {
     position: 'absolute',
