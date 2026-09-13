@@ -99,7 +99,10 @@ function AppContent() {
 
   return (
     <>
-      <NavigationContainer ref={navigationRef} onReady={setupNotificationListeners}>
+      <NavigationContainer
+        key={userToken ? 'authed' : 'guest'}
+        ref={navigationRef}
+        onReady={setupNotificationListeners}>
         <AppNavigator />
       </NavigationContainer>
       <NotificationBanner

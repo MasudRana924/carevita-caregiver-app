@@ -12,20 +12,74 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../context/AuthContext';
 import {useUserProfile, useCaregiverProfile} from '../api/queries';
-import Toast from '../components/common/Toast';
+
+const TEAL = '#0B8A80';
+const PAGE_BG = '#F4F8F7';
+
+const getInitials = name => {
+  if (!name) {
+    return 'C';
+  }
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const getSettings = navigation => [
+  {
+    id: 'edit',
+    name: 'Edit account',
+    subtitle: 'Name, language, address & photo',
+    icon: 'person-outline',
+    onPress: () => navigation?.navigate('EditProfile'),
+  },
+  {
+    id: 'caregiver',
+    name: 'Caregiver profile',
+    subtitle: 'District, rate, availability',
+    icon: 'briefcase-outline',
+    onPress: () => navigation?.navigate('CaregiverProfile', {mode: 'edit'}),
+  },
+  {
+    id: 'password',
+    name: 'Change password',
+    subtitle: 'Update your login password',
+    icon: 'lock-closed-outline',
+    onPress: () => navigation?.navigate('ChangePassword'),
+  },
+  {
+    id: 'wallet',
+    name: 'Wallet',
+    subtitle: 'Earnings and transactions',
+    icon: 'wallet-outline',
+    onPress: () => navigation?.navigate('Wallet'),
+  },
+  {
+    id: 'bookings',
+    name: 'My bookings',
+    subtitle: 'Requests and history',
+    icon: 'calendar-outline',
+    onPress: () => navigation?.navigate('Bookings'),
+  },
+];
 
 const ProfileScreen = ({navigation}) => {
   const {logout, user} = useAuth();
   const {data: profileData, isLoading} = useUserProfile();
   const {data: caregiverData} = useCaregiverProfile();
-  const [toast, setToast] = useState({
-    visible: false,
-    message: '',
-    type: 'success',
-  });
+  useState(null);
 
   const authUser = profileData?.data || user || {};
   const caregiver = caregiverData?.data || {};
+  const photo = authUser.profile_photo || caregiver.profile_photo;
+  const isActive =
+    caregiver.verification_status === 'APPROVED' ||
+    caregiver.verification_status === 'VERIFIED' ||
+    authUser.is_verified === true;
+  const settings = getSettings(navigation);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -38,65 +92,8 @@ const ProfileScreen = ({navigation}) => {
     ]);
   };
 
-  const getInitials = name => {
-    if (!name) {
-      return 'C';
-    }
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const photo = authUser.profile_photo || caregiver.profile_photo;
-  const verification = caregiver.verification_status || 'PENDING';
-
-  const menuItems = [
-    {
-      id: 'edit',
-      name: 'Edit account',
-      subtitle: 'Name, language, address & photo',
-      icon: 'person-outline',
-      onPress: () => navigation?.navigate('EditProfile'),
-    },
-    {
-      id: 'caregiver',
-      name: 'Caregiver profile',
-      subtitle: 'District, rate, availability',
-      icon: 'medkit-outline',
-      onPress: () => navigation?.navigate('CaregiverProfile', {mode: 'edit'}),
-    },
-    {
-      id: 'password',
-      name: 'Change password',
-      subtitle: 'Update your login password',
-      icon: 'lock-closed-outline',
-      onPress: () => navigation?.navigate('ChangePassword'),
-    },
-    {
-      id: 'wallet',
-      name: 'Wallet',
-      subtitle: 'Earnings and transactions',
-      icon: 'wallet-outline',
-      onPress: () => navigation?.navigate('Wallet'),
-    },
-    {
-      id: 'bookings',
-      name: 'My bookings',
-      subtitle: 'Requests and history',
-      icon: 'calendar-outline',
-      onPress: () => navigation?.navigate('Bookings'),
-    },
-  ];
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My account</Text>
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
@@ -105,7 +102,9 @@ const ProfileScreen = ({navigation}) => {
             <Image source={{uri: photo}} style={styles.avatarImage} />
           ) : (
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials(authUser.name)}</Text>
+              <Text style={styles.avatarText}>
+                {getInitials(authUser.name)}
+              </Text>
             </View>
           )}
 
@@ -113,68 +112,89 @@ const ProfileScreen = ({navigation}) => {
             <Text style={styles.profileName} numberOfLines={1}>
               {isLoading ? 'Loading...' : authUser.name || 'Your profile'}
             </Text>
-            <Text style={styles.profileMeta} numberOfLines={1}>
-              {authUser.email || ''}
-            </Text>
-            <View style={styles.verifyBadge}>
-              <Text style={styles.verifyText}>
-                {String(verification).replace(/_/g, ' ')}
+            {!!authUser.email && (
+              <View style={styles.emailRow}>
+                <Icon name="mail-outline" size={13} color="#8A97A6" />
+                <Text style={styles.email} numberOfLines={1}>
+                  {authUser.email}
+                </Text>
+              </View>
+            )}
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusDot,
+                  {backgroundColor: isActive ? '#22C55E' : '#F59E0B'},
+                ]}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  {color: isActive ? '#22C55E' : '#F59E0B'},
+                ]}>
+                {isActive ? 'Active' : 'Pending'}
               </Text>
             </View>
           </View>
 
           <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.editIcon}
+            activeOpacity={0.75}
+            style={styles.editCircle}
             onPress={() => navigation?.navigate('EditProfile')}>
-            <Icon name="pencil-outline" size={18} color="#008178" />
+            <Icon name="pencil-outline" size={16} color={TEAL} />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Account</Text>
-        <View style={styles.menuContainer}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={item.id}
-              activeOpacity={0.75}
-              style={[
-                styles.menuItem,
-                index === menuItems.length - 1 && styles.menuItemLast,
-              ]}
-              onPress={item.onPress}>
-              <View style={styles.menuIconBg}>
-                <Icon name={item.icon} size={20} color="#008178" />
-              </View>
-              <View style={styles.menuTextBlock}>
-                <Text style={styles.menuText}>{item.name}</Text>
-                {!!item.subtitle && (
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                )}
-              </View>
-              <Icon name="chevron-forward" size={18} color="#8190A7" />
-            </TouchableOpacity>
-          ))}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.accountCard}
+          onPress={() =>
+            navigation?.navigate('CaregiverProfile', {mode: 'edit'})
+          }>
+          <View style={styles.accountIcon}>
+            <Icon name="person-outline" size={20} color={TEAL} />
+          </View>
+          <View style={styles.accountCopy}>
+            <Text style={styles.accountTitle}>Caregiver Account</Text>
+            <Text style={styles.accountSub}>
+              Manage your profile, preferences and account settings
+            </Text>
+          </View>
+          <Icon name="chevron-forward" size={18} color="#B7C2CC" />
+        </TouchableOpacity>
+
+        <View style={styles.sectionHead}>
+          <View style={styles.sectionBar} />
+          <Text style={styles.sectionTitle}>Account Settings</Text>
         </View>
 
-        <View style={styles.versionRow}>
-          <Text style={styles.versionText}>Nirapod Caregiver v1.0.0</Text>
-        </View>
+        {settings.map(item => (
+          <TouchableOpacity
+            key={item.id}
+            activeOpacity={0.8}
+            style={styles.settingCard}
+            onPress={item.onPress}>
+            <View style={styles.settingIcon}>
+              <Icon name={item.icon} size={18} color={TEAL} />
+            </View>
+            <View style={styles.settingCopy}>
+              <Text style={styles.settingTitle}>{item.name}</Text>
+              <Text style={styles.settingSub}>{item.subtitle}</Text>
+            </View>
+            <Icon name="chevron-forward" size={18} color="#C5CED6" />
+          </TouchableOpacity>
+        ))}
+
+        <Text style={styles.version}>Nirapod Caregiver v1.0.0</Text>
 
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.logoutButton}
           onPress={handleLogout}>
-          <Icon name="log-out-outline" size={20} color="#E74C3C" />
+          <Icon name="log-out-outline" size={18} color="#E74C3C" />
           <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={() => setToast({...toast, visible: false})}
-      />
     </SafeAreaView>
   );
 };
@@ -182,110 +202,120 @@ const ProfileScreen = ({navigation}) => {
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {flex: 1, backgroundColor: '#FFFFFF'},
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111820',
-    letterSpacing: -0.3,
-  },
-  scrollContent: {paddingHorizontal: 16, paddingBottom: 28},
+  safeArea: {flex: 1, backgroundColor: PAGE_BG},
+  scrollContent: {paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32},
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F6F6F6',
-    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 14,
-    marginBottom: 22,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#008178',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarImage: {width: 52, height: 52, borderRadius: 26},
-  avatarText: {fontSize: 18, fontWeight: '700', color: '#FFFFFF'},
+  avatarImage: {width: 56, height: 56, borderRadius: 28},
+  avatarText: {fontSize: 18, fontWeight: '800', color: '#FFFFFF'},
   profileInfo: {flex: 1, marginLeft: 12, marginRight: 8},
-  profileName: {fontSize: 16, fontWeight: '700', color: '#111820'},
-  profileMeta: {fontSize: 12, color: '#8190A7', marginTop: 2},
-  verifyBadge: {
-    alignSelf: 'flex-start',
+  profileName: {fontSize: 17, fontWeight: '800', color: '#15202B'},
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  email: {flex: 1, fontSize: 12, color: '#8A97A6'},
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 6,
-    backgroundColor: '#E6F4F3',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
   },
-  verifyText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#008178',
-    textTransform: 'capitalize',
-  },
-  editIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#E6F4F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#8190A7',
-    marginBottom: 10,
-    marginLeft: 4,
-  },
-  menuContainer: {
-    backgroundColor: '#F6F6F6',
+  statusDot: {width: 7, height: 7, borderRadius: 4},
+  statusText: {fontSize: 12, fontWeight: '700'},
+  editCircle: {
+    width: 36,
+    height: 36,
     borderRadius: 18,
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-  },
-  menuItemLast: {borderBottomWidth: 0},
-  menuIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#E6F4F3',
+    backgroundColor: '#F4F8F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuTextBlock: {flex: 1, marginLeft: 12, marginRight: 8},
-  menuText: {fontSize: 15, fontWeight: '600', color: '#111820'},
-  menuSubtitle: {fontSize: 12, color: '#8190A7', marginTop: 2},
-  versionRow: {alignItems: 'center', marginTop: 20},
-  versionText: {fontSize: 12, color: '#8190A7'},
-  logoutButton: {
+  accountCard: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  accountIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#E8F3F1',
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 14,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#FDF2F2',
-    borderWidth: 1,
-    borderColor: '#FCDEDE',
+    marginRight: 12,
+  },
+  accountCopy: {flex: 1, marginRight: 8},
+  accountTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
+  accountSub: {marginTop: 3, fontSize: 12, lineHeight: 16, color: '#8A97A6'},
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 22,
+    marginBottom: 12,
     gap: 8,
   },
-  logoutText: {fontSize: 16, fontWeight: '600', color: '#E74C3C'},
+  sectionBar: {
+    width: 18,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: TEAL,
+  },
+  sectionTitle: {fontSize: 16, fontWeight: '800', color: '#15202B'},
+  settingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E8F3F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  settingCopy: {flex: 1, marginRight: 8},
+  settingTitle: {fontSize: 14, fontWeight: '700', color: '#15202B'},
+  settingSub: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
+  version: {
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 12,
+    fontSize: 12,
+    color: '#8A97A6',
+  },
+  logoutButton: {
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: '#FDECEC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  logoutText: {fontSize: 15, fontWeight: '700', color: '#E74C3C'},
 });

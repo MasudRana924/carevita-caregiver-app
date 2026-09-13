@@ -204,34 +204,36 @@ const BookingsScreen = ({navigation, route}) => {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}>
-        {FILTERS.map(filter => {
-          const active = status === filter.key;
-          const count = countByStatus(allBookings, filter.key);
-          return (
-            <TouchableOpacity
-              key={filter.key || 'all'}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setStatus(filter.key)}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {filter.label}
-              </Text>
-              <View style={[styles.count, active && styles.countActive]}>
-                <Text
-                  style={[
-                    styles.countText,
-                    active && styles.countTextActive,
-                  ]}>
-                  {count}
+      <View style={styles.filtersWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filters}>
+          {FILTERS.map(filter => {
+            const active = status === filter.key;
+            const count = countByStatus(allBookings, filter.key);
+            return (
+              <TouchableOpacity
+                key={filter.key || 'all'}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setStatus(filter.key)}>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {filter.label}
                 </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+                <View style={[styles.count, active && styles.countActive]}>
+                  <Text
+                    style={[
+                      styles.countText,
+                      active && styles.countTextActive,
+                    ]}>
+                    {count}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -264,12 +266,7 @@ const BookingsScreen = ({navigation, route}) => {
                     })
                   }>
                 {isNew && (
-                  <View style={styles.newTop}>
-                    <Text style={styles.newLabel}>New Booking Request</Text>
-                    <Text style={styles.bookingId}>
-                      Booking #{booking.booking_number || booking.id?.slice(0, 8)}
-                    </Text>
-                  </View>
+                  <Text style={styles.newLabel}>New Booking Request</Text>
                 )}
 
                 <View style={styles.row}>
@@ -402,32 +399,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filters: {paddingHorizontal: 16, paddingBottom: 10, gap: 8},
+  filtersWrap: {
+    height: 36,
+    marginBottom: 4,
+  },
+  filters: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
   chip: {
+    height: 32,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingLeft: 12,
-    paddingRight: 6,
-    paddingVertical: 6,
+    borderRadius: 16,
+    paddingLeft: 10,
+    paddingRight: 5,
     marginRight: 8,
-    gap: 6,
   },
   chipActive: {backgroundColor: TEAL},
-  chipText: {fontSize: 13, fontWeight: '600', color: '#5E6B76'},
+  chipText: {fontSize: 12, fontWeight: '600', color: '#5E6B76'},
   chipTextActive: {color: '#FFFFFF'},
   count: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#EEF2F5',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
+    marginLeft: 6,
   },
   countActive: {backgroundColor: 'rgba(255,255,255,0.22)'},
-  countText: {fontSize: 11, fontWeight: '700', color: '#5E6B76'},
+  countText: {fontSize: 10, fontWeight: '700', color: '#5E6B76'},
   countTextActive: {color: '#FFFFFF'},
   scrollView: {flex: 1},
   scrollContent: {padding: 16, paddingTop: 6},
@@ -445,14 +449,12 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
-  newTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  newLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15202B',
+    marginBottom: 10,
   },
-  newLabel: {fontSize: 12, fontWeight: '700', color: '#15202B'},
-  bookingId: {fontSize: 11, color: '#8A97A6', fontWeight: '600'},
   row: {flexDirection: 'row', alignItems: 'flex-start'},
   avatar: {width: 42, height: 42, borderRadius: 21, marginRight: 10},
   avatarFallback: {
