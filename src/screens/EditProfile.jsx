@@ -18,9 +18,11 @@ import {useUserProfile} from '../api/queries';
 import {useUpdateProfile, useUploadProfilePhoto} from '../api/mutations';
 import {launchImageLibrary} from 'react-native-image-picker';
 import Toast from '../components/common/Toast';
-import Header from '../components/common/Header';
 import {requestGalleryPermission} from '../utils/permissions';
 import {useAuth} from '../context/AuthContext';
+
+const TEAL = '#0B8A80';
+const PAGE_BG = '#F4F8F7';
 
 const EditProfile = ({navigation}) => {
   const {data: profileData} = useUserProfile();
@@ -129,7 +131,8 @@ const EditProfile = ({navigation}) => {
         if (photoRes?.profile_photo || photoRes?.data?.profile_photo) {
           await updateUser({
             ...(response?.user || response?.data || {}),
-            profile_photo: photoRes.profile_photo || photoRes.data.profile_photo,
+            profile_photo:
+              photoRes.profile_photo || photoRes.data.profile_photo,
           });
         }
       } else {
@@ -145,14 +148,34 @@ const EditProfile = ({navigation}) => {
   };
 
   const saving = updateMutation.isPending || photoMutation.isPending;
+  const lang = formData.language_preference === 'bn' ? 'bn' : 'en';
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <Loader visible={saving} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
-        <Header title="Edit profile" onBack={() => navigation?.goBack()} />
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation?.goBack()}>
+            <Icon name="arrow-back" size={22} color="#15202B" />
+          </TouchableOpacity>
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerTitle}>Edit Profile</Text>
+            <Text style={styles.headerSub}>
+              Keep your information up to date
+            </Text>
+          </View>
+          <View style={styles.langBadge}>
+            <Icon name="globe-outline" size={14} color={TEAL} />
+            <Text style={styles.langBadgeText}>
+              {lang === 'bn' ? 'বাংলা' : 'English'}
+            </Text>
+            <Icon name="chevron-down" size={12} color={TEAL} />
+          </View>
+        </View>
 
         <ScrollView
           style={styles.flex}
@@ -160,88 +183,123 @@ const EditProfile = ({navigation}) => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.photoWrap}
+            activeOpacity={0.85}
+            style={styles.photoCard}
             onPress={handleImagePick}>
-            {imageUri ? (
-              <Image source={{uri: imageUri}} style={styles.photo} />
-            ) : (
-              <View style={styles.photoEmpty}>
-                <Icon name="camera-outline" size={28} color="#008178" />
+            <View style={styles.photoCircle}>
+              {imageUri ? (
+                <Image source={{uri: imageUri}} style={styles.photo} />
+              ) : (
+                <Icon name="camera-outline" size={26} color={TEAL} />
+              )}
+              <View style={styles.pencilBadge}>
+                <Icon name="pencil" size={10} color="#FFFFFF" />
               </View>
-            )}
-            <View style={styles.cameraBadge}>
-              <Icon name="pencil" size={12} color="#FFFFFF" />
+            </View>
+            <View>
+              <Text style={styles.photoTitle}>Profile Photo</Text>
+              <Text style={styles.photoHint}>Tap to change your photo</Text>
             </View>
           </TouchableOpacity>
-          <Text style={styles.photoHint}>Tap to change photo</Text>
 
-          <Text style={styles.label}>Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.name}
-            onChangeText={text => setFormData({...formData, name: text})}
-            placeholder="Enter name"
-            placeholderTextColor="#8190A7"
-          />
-
-          <Text style={styles.label}>Language</Text>
-          <View style={styles.langRow}>
-            {[
-              {key: 'en', label: 'English'},
-              {key: 'bn', label: 'বাংলা'},
-            ].map(option => (
-              <TouchableOpacity
-                key={option.key}
-                style={[
-                  styles.langChip,
-                  formData.language_preference === option.key &&
-                    styles.langChipActive,
-                ]}
-                onPress={() =>
-                  setFormData({...formData, language_preference: option.key})
-                }>
-                <Text
-                  style={[
-                    styles.langText,
-                    formData.language_preference === option.key &&
-                      styles.langTextActive,
-                  ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.labelRow}>
+            <Icon name="person-outline" size={14} color="#8A97A6" />
+            <Text style={styles.label}>Name *</Text>
+          </View>
+          <View style={styles.inputRow}>
+            <Icon name="person-outline" size={18} color="#8A97A6" />
+            <TextInput
+              style={styles.input}
+              value={formData.name}
+              onChangeText={text => setFormData({...formData, name: text})}
+              placeholder="Enter name"
+              placeholderTextColor="#B0BAC4"
+            />
           </View>
 
-          <Text style={styles.label}>Emergency contact</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.emergency_contact}
-            onChangeText={text =>
-              setFormData({...formData, emergency_contact: text})
-            }
-            placeholder="01XXXXXXXXX"
-            placeholderTextColor="#8190A7"
-            keyboardType="phone-pad"
-          />
+          <View style={styles.labelRow}>
+            <Icon name="globe-outline" size={14} color="#8A97A6" />
+            <Text style={styles.label}>Language</Text>
+          </View>
+          <View style={styles.langRow}>
+            <TouchableOpacity
+              style={[styles.langCard, lang === 'en' && styles.langCardActive]}
+              onPress={() =>
+                setFormData({...formData, language_preference: 'en'})
+              }>
+              <Icon
+                name="globe-outline"
+                size={16}
+                color={lang === 'en' ? TEAL : '#8A97A6'}
+              />
+              <Text
+                style={[styles.langText, lang === 'en' && styles.langTextActive]}>
+                English
+              </Text>
+              <Icon
+                name={lang === 'en' ? 'checkmark-circle' : 'ellipse-outline'}
+                size={18}
+                color={lang === 'en' ? TEAL : '#C5CED6'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.langCard, lang === 'bn' && styles.langCardActive]}
+              onPress={() =>
+                setFormData({...formData, language_preference: 'bn'})
+              }>
+              <Text
+                style={[styles.langText, lang === 'bn' && styles.langTextActive]}>
+                বাংলা
+              </Text>
+              <Icon
+                name={lang === 'bn' ? 'checkmark-circle' : 'ellipse-outline'}
+                size={18}
+                color={lang === 'bn' ? TEAL : '#C5CED6'}
+              />
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.label}>Address</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.address}
-            onChangeText={text => setFormData({...formData, address: text})}
-            placeholder="Enter address"
-            placeholderTextColor="#8190A7"
-          />
+          <View style={styles.labelRow}>
+            <Icon name="call-outline" size={14} color="#8A97A6" />
+            <Text style={styles.label}>Emergency contact</Text>
+          </View>
+          <View style={styles.inputRow}>
+            <Icon name="call-outline" size={18} color="#8A97A6" />
+            <TextInput
+              style={styles.input}
+              value={formData.emergency_contact}
+              onChangeText={text =>
+                setFormData({...formData, emergency_contact: text})
+              }
+              placeholder="01XXXXXXXXX"
+              placeholderTextColor="#B0BAC4"
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.labelRow}>
+            <Icon name="location-outline" size={14} color="#8A97A6" />
+            <Text style={styles.label}>Address</Text>
+          </View>
+          <View style={styles.inputRow}>
+            <Icon name="home-outline" size={18} color="#8A97A6" />
+            <TextInput
+              style={styles.input}
+              value={formData.address}
+              onChangeText={text => setFormData({...formData, address: text})}
+              placeholder="Enter address"
+              placeholderTextColor="#B0BAC4"
+            />
+          </View>
         </ScrollView>
 
-        <View style={styles.bottomContainer}>
+        <View style={styles.bottom}>
           <TouchableOpacity
             activeOpacity={0.85}
-            style={styles.submitButton}
+            style={styles.saveBtn}
             onPress={handleSaveProfile}
             disabled={saving}>
-            <Text style={styles.submitButtonText}>Save changes</Text>
+            <Text style={styles.saveText}>Save changes</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -259,89 +317,129 @@ const EditProfile = ({navigation}) => {
 export default EditProfile;
 
 const styles = StyleSheet.create({
-  safeArea: {flex: 1, backgroundColor: '#FFFFFF'},
+  safeArea: {flex: 1, backgroundColor: PAGE_BG},
   flex: {flex: 1},
-  scrollContent: {paddingHorizontal: 20, paddingBottom: 24},
-  photoWrap: {
-    width: 96,
-    height: 96,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 14,
   },
-  photo: {width: 96, height: 96, borderRadius: 48},
-  photoEmpty: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#E6F4F3',
+  backBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  headerCopy: {flex: 1},
+  headerTitle: {fontSize: 20, fontWeight: '800', color: '#15202B'},
+  headerSub: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
+  langBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    height: 32,
+    gap: 4,
+  },
+  langBadgeText: {fontSize: 12, fontWeight: '700', color: TEAL},
+  scrollContent: {paddingHorizontal: 16, paddingBottom: 24},
+  photoCard: {
+    backgroundColor: '#E7F6F3',
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 20,
+  },
+  photoCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cameraBadge: {
+  photo: {width: 64, height: 64, borderRadius: 32},
+  pencilBadge: {
     position: 'absolute',
-    right: 2,
-    bottom: 2,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#008178',
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#E7F6F3',
   },
-  photoHint: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: '#8190A7',
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111820',
+  photoTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
+  photoHint: {marginTop: 3, fontSize: 12, color: '#6F7F8C'},
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 8,
   },
-  input: {
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#15202B',
+  },
+  inputRow: {
     height: 52,
-    backgroundColor: '#F6F6F6',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: '#111820',
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E3E8F0',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginBottom: 16,
   },
-  langRow: {flexDirection: 'row', gap: 10, marginBottom: 16},
-  langChip: {
+  input: {
     flex: 1,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F6F6F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 15,
+    color: '#15202B',
+    paddingVertical: 0,
+  },
+  langRow: {flexDirection: 'row', gap: 10, marginBottom: 16},
+  langCard: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E3E8F0',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
   },
-  langChipActive: {backgroundColor: '#E6F4F3', borderColor: '#008178'},
-  langText: {fontSize: 14, fontWeight: '600', color: '#8190A7'},
-  langTextActive: {color: '#008178'},
-  bottomContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+  langCardActive: {
+    backgroundColor: '#E7F6F3',
+    borderColor: TEAL,
+  },
+  langText: {flex: 1, fontSize: 13, fontWeight: '700', color: '#8A97A6'},
+  langTextActive: {color: TEAL},
+  bottom: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F2F5',
-    backgroundColor: '#FFFFFF',
   },
-  submitButton: {
+  saveBtn: {
     height: 52,
-    backgroundColor: '#008178',
-    borderRadius: 14,
+    borderRadius: 16,
+    backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  submitButtonText: {fontSize: 16, fontWeight: '600', color: '#FFFFFF'},
+  saveText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
 });

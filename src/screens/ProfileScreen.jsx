@@ -50,20 +50,6 @@ const getSettings = navigation => [
     icon: 'lock-closed-outline',
     onPress: () => navigation?.navigate('ChangePassword'),
   },
-  {
-    id: 'wallet',
-    name: 'Wallet',
-    subtitle: 'Earnings and transactions',
-    icon: 'wallet-outline',
-    onPress: () => navigation?.navigate('Wallet'),
-  },
-  {
-    id: 'bookings',
-    name: 'My bookings',
-    subtitle: 'Requests and history',
-    icon: 'calendar-outline',
-    onPress: () => navigation?.navigate('Bookings'),
-  },
 ];
 
 const ProfileScreen = ({navigation}) => {
