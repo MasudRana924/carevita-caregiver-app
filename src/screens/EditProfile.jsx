@@ -9,6 +9,8 @@ import {
   Image,
   Alert,
   KeyboardAvoidingView,
+  Modal,
+  Pressable,
   Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -42,6 +44,7 @@ const EditProfile = ({navigation}) => {
     emergency_contact: '',
     address: '',
   });
+  const [langOpen, setLangOpen] = useState(false);
 
   const user = profileData?.data || {};
 
@@ -151,7 +154,9 @@ const EditProfile = ({navigation}) => {
   const lang = formData.language_preference === 'bn' ? 'bn' : 'en';
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top', 'left', 'right', 'bottom']}>
       <Loader visible={saving} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -164,17 +169,9 @@ const EditProfile = ({navigation}) => {
           </TouchableOpacity>
           <View style={styles.headerCopy}>
             <Text style={styles.headerTitle}>Edit Profile</Text>
-            <Text style={styles.headerSub}>
-              Keep your information up to date
-            </Text>
+
           </View>
-          <View style={styles.langBadge}>
-            <Icon name="globe-outline" size={14} color={TEAL} />
-            <Text style={styles.langBadgeText}>
-              {lang === 'bn' ? 'বাংলা' : 'English'}
-            </Text>
-            <Icon name="chevron-down" size={12} color={TEAL} />
-          </View>
+
         </View>
 
         <ScrollView
@@ -215,48 +212,6 @@ const EditProfile = ({navigation}) => {
               placeholder="Enter name"
               placeholderTextColor="#B0BAC4"
             />
-          </View>
-
-          <View style={styles.labelRow}>
-            <Icon name="globe-outline" size={14} color="#8A97A6" />
-            <Text style={styles.label}>Language</Text>
-          </View>
-          <View style={styles.langRow}>
-            <TouchableOpacity
-              style={[styles.langCard, lang === 'en' && styles.langCardActive]}
-              onPress={() =>
-                setFormData({...formData, language_preference: 'en'})
-              }>
-              <Icon
-                name="globe-outline"
-                size={16}
-                color={lang === 'en' ? TEAL : '#8A97A6'}
-              />
-              <Text
-                style={[styles.langText, lang === 'en' && styles.langTextActive]}>
-                English
-              </Text>
-              <Icon
-                name={lang === 'en' ? 'checkmark-circle' : 'ellipse-outline'}
-                size={18}
-                color={lang === 'en' ? TEAL : '#C5CED6'}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.langCard, lang === 'bn' && styles.langCardActive]}
-              onPress={() =>
-                setFormData({...formData, language_preference: 'bn'})
-              }>
-              <Text
-                style={[styles.langText, lang === 'bn' && styles.langTextActive]}>
-                বাংলা
-              </Text>
-              <Icon
-                name={lang === 'bn' ? 'checkmark-circle' : 'ellipse-outline'}
-                size={18}
-                color={lang === 'bn' ? TEAL : '#C5CED6'}
-              />
-            </TouchableOpacity>
           </View>
 
           <View style={styles.labelRow}>
@@ -304,6 +259,55 @@ const EditProfile = ({navigation}) => {
         </View>
       </KeyboardAvoidingView>
 
+      <Modal
+        visible={langOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLangOpen(false)}>
+        <SafeAreaView style={styles.langModalRoot} edges={['top', 'right']}>
+          <Pressable
+            style={styles.langBackdrop}
+            onPress={() => setLangOpen(false)}
+          />
+          <View style={styles.langMenu}>
+            <TouchableOpacity
+              style={[styles.langOption, lang === 'en' && styles.langOptionActive]}
+              onPress={() => {
+                setFormData({...formData, language_preference: 'en'});
+                setLangOpen(false);
+              }}>
+              <Text
+                style={[
+                  styles.langOptionText,
+                  lang === 'en' && styles.langOptionTextActive,
+                ]}>
+                English
+              </Text>
+              {lang === 'en' ? (
+                <Icon name="checkmark" size={16} color={TEAL} />
+              ) : null}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.langOption, lang === 'bn' && styles.langOptionActive]}
+              onPress={() => {
+                setFormData({...formData, language_preference: 'bn'});
+                setLangOpen(false);
+              }}>
+              <Text
+                style={[
+                  styles.langOptionText,
+                  lang === 'bn' && styles.langOptionTextActive,
+                ]}>
+                বাংলা
+              </Text>
+              {lang === 'bn' ? (
+                <Icon name="checkmark" size={16} color={TEAL} />
+              ) : null}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -334,7 +338,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerCopy: {flex: 1},
-  headerTitle: {fontSize: 20, fontWeight: '800', color: '#15202B'},
+  headerTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
   headerSub: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
   langBadge: {
     flexDirection: 'row',
@@ -346,6 +350,36 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   langBadgeText: {fontSize: 12, fontWeight: '700', color: TEAL},
+  langModalRoot: {flex: 1},
+  langBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+  },
+  langMenu: {
+    position: 'absolute',
+    top: 58,
+    right: 16,
+    width: 148,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 6,
+    elevation: 8,
+    shadowColor: '#15202B',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: {width: 0, height: 6},
+  },
+  langOption: {
+    height: 40,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langOptionActive: {backgroundColor: '#E7F6F3'},
+  langOptionText: {fontSize: 13, fontWeight: '700', color: '#5B6773'},
+  langOptionTextActive: {color: TEAL},
   scrollContent: {paddingHorizontal: 16, paddingBottom: 24},
   photoCard: {
     backgroundColor: '#E7F6F3',
@@ -409,30 +443,10 @@ const styles = StyleSheet.create({
     color: '#15202B',
     paddingVertical: 0,
   },
-  langRow: {flexDirection: 'row', gap: 10, marginBottom: 16},
-  langCard: {
-    flex: 1,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  langCardActive: {
-    backgroundColor: '#E7F6F3',
-    borderColor: TEAL,
-  },
-  langText: {flex: 1, fontSize: 13, fontWeight: '700', color: '#8A97A6'},
-  langTextActive: {color: TEAL},
   bottom: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 16,
+    paddingBottom: 8,
   },
   saveBtn: {
     height: 52,

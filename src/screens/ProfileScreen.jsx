@@ -32,7 +32,7 @@ const getSettings = navigation => [
   {
     id: 'edit',
     name: 'Edit account',
-    subtitle: 'Name, language, address & photo',
+    subtitle: 'Name, address & photo',
     icon: 'person-outline',
     onPress: () => navigation?.navigate('EditProfile'),
   },
@@ -150,7 +150,6 @@ const ProfileScreen = ({navigation}) => {
         </TouchableOpacity>
 
         <View style={styles.sectionHead}>
-          <View style={styles.sectionBar} />
           <Text style={styles.sectionTitle}>Account Settings</Text>
         </View>
 

@@ -248,7 +248,7 @@ const HomeScreen = ({navigation}) => {
 
         <View style={styles.availCard}>
           <View style={styles.availLeft}>
-            <View
+            {/* <View
               style={[
                 styles.checkCircle,
                 !isAvailable && styles.checkCircleOff,
@@ -258,7 +258,7 @@ const HomeScreen = ({navigation}) => {
                 size={16}
                 color="#FFFFFF"
               />
-            </View>
+            </View> */}
             <View style={styles.availCopy}>
               <Text style={styles.availTitle}>
                 {isAvailable ? "You're available" : "You're unavailable"}
@@ -332,9 +332,9 @@ const HomeScreen = ({navigation}) => {
               <View style={styles.requestBadge}>
                 <Text style={styles.requestBadgeText}>NEW BOOKING REQUEST</Text>
               </View>
-              <Text style={styles.bookingNumber}>
+              {/* <Text style={styles.bookingNumber}>
                 Booking #{featured.booking_number || featured.id?.slice(0, 8)}
-              </Text>
+              </Text> */}
             </View>
 
             <TouchableOpacity
@@ -366,7 +366,7 @@ const HomeScreen = ({navigation}) => {
                   </Text>
                 </View>
               </View>
-              <Icon name="chevron-forward" size={18} color="#B7C2CC" />
+              <Icon name="chevron-forward" size={18} color="#27df0b" />
             </TouchableOpacity>
 
             <View style={styles.actionRow}>
@@ -513,11 +513,11 @@ const HomeScreen = ({navigation}) => {
 const SectionHeader = ({icon, title, onPress}) => (
   <View style={styles.sectionHead}>
     <View style={styles.sectionTitleRow}>
-      <Icon name={icon} size={16} color={TEAL} />
+
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
     <TouchableOpacity onPress={onPress} hitSlop={8}>
-      <Text style={styles.viewAll}>View all ›</Text>
+      <Text style={styles.viewAll}>View all </Text>
     </TouchableOpacity>
   </View>
 );
@@ -525,8 +525,8 @@ const SectionHeader = ({icon, title, onPress}) => (
 const StatCard = ({icon, value, label, onPress}) => (
   <TouchableOpacity style={styles.statCard} activeOpacity={0.85} onPress={onPress}>
     <View style={styles.statTop}>
-      <Icon name={icon} size={16} color="#7A8B9A" />
-      <Icon name="chevron-forward" size={14} color="#C5CED6" />
+      <Icon name={icon} size={16} color="#07d84d" />
+      <Icon name="chevron-forward" size={18} color="#07d84d" />
     </View>
     <Text style={styles.statValue} numberOfLines={1}>
       {value}
@@ -600,11 +600,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     minHeight: 108,
-    shadowColor: '#0B1F2A',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: {width: 0, height: 2},
-    elevation: 1,
+    width: 308,
   },
   statTop: {
     flexDirection: 'row',
@@ -619,7 +615,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     marginTop: 4,
-    fontSize: 11,
+    fontSize: 10,
     lineHeight: 15,
     color: '#8A97A6',
   },
@@ -637,11 +633,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
-    shadowColor: '#0B1F2A',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: {width: 0, height: 3},
-    elevation: 2,
+
   },
   requestTop: {
     flexDirection: 'row',
