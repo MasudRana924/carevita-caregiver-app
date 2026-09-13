@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "307579445706",
+    "project_id": "nirapod-7b15a",
+    "storage_bucket": "nirapod-7b15a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:307579445706:android:159c9b7e6346f358f0ef33",
+        "android_client_info": {
+          "package_name": "com.nirapod"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd5XCY_YPwDh0_KEe2Q8_xfxGO8NUewMU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
