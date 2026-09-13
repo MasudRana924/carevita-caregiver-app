@@ -1,5 +1,4 @@
-import React, {useState} from 'react';
-
+import React from 'react';
 import {
   View,
   Text,
@@ -7,36 +6,36 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  Platform,
+  ScrollView,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-
-import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {requestAppPermissions} from '../utils/permissions';
 
-const WelcomeScreen = ({navigation}) => {
-  const [currentStep, setCurrentStep] = useState(0);
+const TEAL = '#0B8A80';
+const BUTTON = '#0B5F4E';
+const TITLE = '#0E2A24';
 
-  const steps = [
-    {
-      heading: 'Get booked,',
-      headingBlue: 'Care for families',
-      description:
-        'Receive booking requests from families nearby and accept the ones that fit your schedule.',
-    },
-    {
-      heading: 'Accept requests',
-      headingBlue: 'On your terms',
-      description:
-        'See patient details, hospital, and timing — then accept or reject with one tap.',
-    },
-    {
-      heading: 'Get paid',
-      headingBlue: 'To your wallet',
-      description:
-        'When a family pays, 95% is credited to your caregiver wallet automatically.',
-    },
-  ];
+const FEATURES = [
+  {
+    icon: 'calendar-outline',
+    title: 'Easy Bookings',
+    text: 'Get assigned to families quickly and easily.',
+  },
+  {
+    icon: 'heart-outline',
+    title: 'Trusted Families',
+    text: 'Work with respectful and caring families.',
+  },
+  {
+    icon: 'trending-up-outline',
+    title: 'Grow Your Income',
+    text: 'More opportunities, more stability.',
+  },
+];
+
+const WelcomeScreen = ({navigation}) => {
+  const goLogin = () => navigation?.navigate('Login');
 
   const handleGetStarted = async () => {
     try {
@@ -44,348 +43,166 @@ const WelcomeScreen = ({navigation}) => {
     } catch (error) {
       console.error('Permission error:', error);
     } finally {
-      navigation?.navigate('Login');
+      goLogin();
     }
   };
 
-  const handleNext = () => {
-    if (currentStep < 2) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleSkip = () => {
-    setCurrentStep(2);
-  };
-
-  const currentStepData = steps[currentStep];
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        bounces={false}>
+        <View style={styles.hero}>
+          <Image
+            source={require('../assets/welcome-caregiver.png')}
+            style={styles.heroImage}
+            resizeMode="contain"
+          />
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Better{'\n'}Care</Text>
+            <View style={styles.badgeRow}>
+              <Text style={styles.badgeText}>Together</Text>
+              <Icon name="heart-outline" size={11} color={TEAL} />
+            </View>
+          </View>
+        </View>
 
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#FFFFFF"
-        translucent={false}
-      />
+        <Text style={styles.title}>Welcome,{'\n'}Caregiver!</Text>
+        <Text style={styles.subtitle}>
+          You’re here to make a difference. Let’s help you provide the best
+          care, with the right support.
+        </Text>
 
-      {/* Step Indicators and Skip */}
-      <View style={styles.stepIndicatorsTop} pointerEvents="box-none">
-        <View style={styles.stepIndicatorsRow}>
-          {[0, 1, 2].map(step => (
-            <View
-              key={step}
-              style={[
-                styles.stepIndicator,
-                step === currentStep && styles.stepIndicatorActive,
-              ]}
-            />
+        <View style={styles.features}>
+          {FEATURES.map(item => (
+            <View key={item.title} style={styles.feature}>
+              <Icon name={item.icon} size={22} color={TEAL} />
+              <Text style={styles.featureTitle}>{item.title}</Text>
+              <Text style={styles.featureText}>{item.text}</Text>
+            </View>
           ))}
         </View>
-        {currentStep < 2 ? (
+
+        <View style={styles.bottom}>
           <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.skipButtonTop}
-            onPress={handleSkip}>
-            <Text style={styles.skipText}>Skip</Text>
+            activeOpacity={0.85}
+            style={styles.primaryButton}
+            onPress={handleGetStarted}>
+            <Text style={styles.primaryButtonText}>Get Started</Text>
+
           </TouchableOpacity>
-        ) : (
-          <View style={styles.skipPlaceholder} />
-        )}
-      </View>
-
-      {/* Background Image */}
-      <Image
-        source={require('../assets/welcome-family.jpg')}
-        style={styles.heroImage}
-        resizeMode="cover"
-      />
-
-      {/* Image Fade */}
-      <LinearGradient
-        colors={[
-          'rgba(248,249,252,0)',
-          'rgba(248,249,252,0.25)',
-          'rgba(248,249,252,0.75)',
-          '#F8F9FC',
-        ]}
-        locations={[0, 0.35, 0.7, 1]}
-        style={styles.imageFade}
-      />
-
-      {/* Content */}
-      <SafeAreaView style={styles.content}>
-        <View style={styles.contentInner}>
-
-          {/* Heading */}
-          <View style={styles.textSection}>
-
-            <Text style={styles.heading}>
-              {currentStepData.heading}
-            </Text>
-
-            <Text style={styles.headingBlue}>
-              {currentStepData.headingBlue}
-            </Text>
-
-            <Text style={styles.description}>
-              {currentStepData.description}
-            </Text>
-          </View>
-
-          {/* Buttons */}
-          <View style={styles.buttonSection}>
-            {currentStep === 2 ? (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={styles.primaryButton}
-                onPress={handleGetStarted}>
-                <Text style={styles.primaryButtonText}>
-                  Get Started
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={styles.primaryButton}
-                onPress={handleNext}>
-                <Text style={styles.primaryButtonText}>
-                  Next
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {currentStep === 2 && (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={styles.secondaryButton}
-                onPress={() => navigation?.navigate('Login')}>
-                <Text style={styles.secondaryButtonText}>
-                  I already have an account
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Terms */}
-          {currentStep === 2 && (
-            <View style={styles.termsContainer}>
-              <Text style={styles.termsText}>
-                By continuing, you agree to our{' '}
-                <Text style={styles.linkText}>
-                  Terms of Service
-                </Text>
-                {' '}and
-              </Text>
-
-              <Text style={styles.privacyText}>
-                <Text style={styles.linkText}>
-                  Privacy Policy
-                </Text>
-              </Text>
-            </View>
-          )}
 
         </View>
-      </SafeAreaView>
-
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 export default WelcomeScreen;
 
 const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-  },
-
-  heroImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-
-    width: '100%',
-    height: '100%',
-  },
-
-  imageFade: {
-    position: 'absolute',
-
-    left: 0,
-    right: 0,
-    bottom: 0,
-
-    height: '65%',
-  },
-
-  content: {
-    flex: 1,
-
-    justifyContent: 'flex-end',
-
-    width: '100%',
-  },
-
-  contentInner: {
-    width: '90%',
-    alignSelf: 'center',
-
-    paddingBottom: 26,
-  },
-
-  // Step Indicators - left; Skip - right (with clear gap)
-  stepIndicatorsTop: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  safeArea: {flex: 1, backgroundColor: '#FFFFFF'},
+  scroll: {
+    flexGrow: 1,
     paddingHorizontal: 24,
-    zIndex: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
-
-  stepIndicatorsRow: {
-    flexDirection: 'row',
+  hero: {
     alignItems: 'center',
-    flexShrink: 1,
-    marginRight: 16,
-  },
-
-  stepIndicators: {
-    flexDirection: 'row',
     justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  heroImage: {
+    width: '100%',
+    height: 230,
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 0,
+    alignItems: 'flex-start',
+  },
+  badgeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 4,
   },
-
-  stepIndicator: {
-    width: 56,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D1D5DB',
-    marginRight: 8,
-  },
-
-  stepIndicatorActive: {
-    backgroundColor: '#008178',
-    width: 56,
-  },
-
-  skipButtonTop: {
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    minWidth: 48,
-    alignItems: 'flex-end',
-  },
-
-  skipPlaceholder: {
-    minWidth: 48,
-  },
-
-  skipButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-  },
-
-  skipText: {
-    fontSize: 16,
+  badgeText: {
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '600',
-    color: '#000000',
+    color: TEAL,
   },
-
-  textSection: {
-    marginBottom: 22,
+  title: {
+    marginTop: 8,
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '800',
+    color: TITLE,
+    textAlign: 'center',
+    letterSpacing: -0.6,
   },
-
-  heading: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '700',
-    color: '#000000',
-    letterSpacing: -0.5,
-  },
-
-  headingBlue: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '700',
-    color: '#000000',
-    letterSpacing: -0.5,
-  },
-
-  description: {
+  subtitle: {
     marginTop: 12,
-    fontSize: 17,
-    lineHeight: 27,
-    fontWeight: '400',
-    color: '#000000',
-    letterSpacing: 0.1,
+    marginHorizontal: 8,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#6F7F8C',
+    textAlign: 'center',
   },
-
-  buttonSection: {
-    width: '100%',
-    gap: 14,
+  features: {
+    flexDirection: 'row',
+    marginTop: 28,
+    gap: 10,
   },
-
+  feature: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  featureTitle: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '800',
+    color: TITLE,
+    textAlign: 'center',
+  },
+  featureText: {
+    marginTop: 6,
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#8A97A6',
+    textAlign: 'center',
+  },
+  bottom: {
+    marginTop: 'auto',
+    paddingTop: 28,
+  },
   primaryButton: {
-    height: 52,
-    width: '100%',
-    borderRadius: 17,
-    backgroundColor: '#008178',
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: BUTTON,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
-
   primaryButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-
-  secondaryButton: {
-    height: 52,
-    width: '100%',
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderWidth: 1.5,
-    borderColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
+  skipBtn: {
+    alignSelf: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-
-  secondaryButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#000000',
-  },
-
-  termsContainer: {
-    marginTop: 22,
-    alignItems: 'center',
-  },
-
-  termsText: {
+  skipText: {
     fontSize: 14,
-    lineHeight: 21,
-    color: '#000000',
-    textAlign: 'center',
-  },
-
-  privacyText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#000000',
-    textAlign: 'center',
-  },
-
-  linkText: {
-    color: '#000000',
     fontWeight: '500',
+    color: '#8A97A6',
   },
-
 });
