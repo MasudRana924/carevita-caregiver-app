@@ -62,7 +62,7 @@ const AuthShell = ({
                 </Text>
               </View>
               <Image
-                source={require('../../assets/welcome-caregiver.png')}
+                source={require('../../assets/welcome-caregiver.jpg')}
                 style={styles.heroImage}
                 resizeMode="contain"
               />

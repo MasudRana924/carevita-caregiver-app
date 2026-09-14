@@ -56,7 +56,7 @@ const WelcomeScreen = ({navigation}) => {
         bounces={false}>
         <View style={styles.hero}>
           <Image
-            source={require('../assets/welcome-caregiver.png')}
+            source={require('../assets/welcome-caregiver.jpg')}
             style={styles.heroImage}
             resizeMode="contain"
           />
