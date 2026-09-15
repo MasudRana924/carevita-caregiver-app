@@ -1,8 +1,10 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
+import Loader from '../components/common/Loader';
 import {useWallet} from '../api/queries';
 
 const formatAmount = value => {
@@ -31,11 +33,34 @@ const formatDate = value => {
 
 const WalletScreen = ({navigation, route}) => {
   const showBack = route?.params?.showBack === true;
-  const {data, isLoading} = useWallet({limit: 20, offset: 0});
+  const {data, isLoading, refetch} = useWallet({limit: 20, offset: 0});
   const wallet = data?.data || {};
   const transactions = Array.isArray(wallet.transactions)
     ? wallet.transactions
     : [];
+  const [showBalance, setShowBalance] = useState(false);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = navigation?.addListener('focus', () => {
+      setShowBalance(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const handleToggleBalance = async () => {
+    if (!showBalance) {
+      setBalanceLoading(true);
+      try {
+        await refetch();
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+      } finally {
+        setBalanceLoading(false);
+      }
+    }
+    setShowBalance(!showBalance);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
@@ -44,15 +69,28 @@ const WalletScreen = ({navigation, route}) => {
         showBack={showBack}
         onBack={() => navigation?.goBack()}
       />
+      <Loader visible={balanceLoading} />
 
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Available balance</Text>
+          <View style={styles.balanceHeader}>
+            <Text style={styles.balanceLabel}>Available balance</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleToggleBalance}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+              <Icon
+                name={showBalance ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#D7F0ED"
+              />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.balanceValue}>
-            ৳{formatAmount(wallet.balance ?? 0)}
+            {showBalance ? `৳${formatAmount(wallet.balance ?? 0)}` : '৳****'}
           </Text>
           <Text style={styles.currency}>
             {wallet.currency || 'BDT'} · {wallet.owner_type || 'CAREGIVER'}
@@ -135,6 +173,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 20,
     marginBottom: 22,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   balanceLabel: {fontSize: 13, color: '#D7F0ED'},
   balanceValue: {

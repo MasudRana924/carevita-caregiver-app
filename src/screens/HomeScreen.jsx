@@ -296,28 +296,6 @@ const HomeScreen = ({navigation}) => {
           </View>
         </View>
 
-        <View style={styles.statsRow}>
-          <StatCard
-            icon="document-text-outline"
-            value={String(assigned.length)}
-            label={'New Requests\nNeeds your action'}
-            onPress={() =>
-              navigation.navigate('Bookings', {status: 'PROVIDER_ASSIGNED'})
-            }
-          />
-          <StatCard
-            icon="calendar-outline"
-            value={String(todayBookings.length)}
-            label={"Today's Bookings\nScheduled"}
-            onPress={() => navigation.navigate('Bookings')}
-          />
-          <StatCard
-            icon="wallet-outline"
-            value={`৳${formatAmount(wallet.balance ?? 0)}`}
-            label={'Wallet Balance\nAvailable'}
-            onPress={() => navigation.navigate('Wallet')}
-          />
-        </View>
 
         <SectionHeader
           icon="flash"
@@ -627,7 +605,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
-  sectionTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
+  sectionTitle: {fontSize: 15, fontWeight: '400', color: '#15202B'},
   viewAll: {fontSize: 12, fontWeight: '600', color: TEAL},
   requestCard: {
     backgroundColor: '#FFFFFF',
