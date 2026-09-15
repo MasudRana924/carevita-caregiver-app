@@ -118,9 +118,13 @@ const getStatusMeta = status => {
   switch (status) {
     case 'PROVIDER_ACCEPTED':
     case 'CONFIRMED':
-    case 'COMPLETED':
-    case 'IN_PROGRESS':
       return {label: 'Accepted', bg: '#E6F7F2', text: '#0B8A80'};
+    case 'IN_PROGRESS':
+    case 'SERVICE_IN_PROGRESS':
+      return {label: 'In progress', bg: '#E6F7F2', text: '#0B8A80'};
+    case 'COMPLETED':
+    case 'SERVICE_COMPLETED':
+      return {label: 'Completed', bg: '#E6F7F2', text: '#0B8A80'};
     case 'PROVIDER_ASSIGNED':
       return {label: 'Assigned', bg: '#FFF4E5', text: '#E67E22'};
     case 'CANCELLED':

@@ -26,6 +26,8 @@ export const ENDPOINTS = {
     BOOKINGS: '/caregiver/bookings/my',
     ACCEPT: id => `/caregiver/bookings/${id}/accept`,
     REJECT: id => `/caregiver/bookings/${id}/reject`,
+    START: id => `/caregiver/bookings/${id}/start`,
+    COMPLETE: id => `/caregiver/bookings/${id}/complete`,
     WALLET: '/caregiver/wallet',
   },
 

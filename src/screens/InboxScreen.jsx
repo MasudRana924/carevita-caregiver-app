@@ -58,6 +58,10 @@ const InboxScreen = ({navigation}) => {
       case 'PAYMENT':
       case 'PAYMENT_RECEIVED':
         return 'card-outline';
+      case 'SERVICE_START_REMINDER':
+        return 'alarm-outline';
+      case 'EARNING_SETTLED':
+        return 'wallet-outline';
       case 'CAREGIVER':
         return 'person-outline';
       default:
@@ -89,20 +93,13 @@ const InboxScreen = ({navigation}) => {
       }
 
       const nested = parseNotificationData(detail.data);
-      const bookingId = resolveInboxBookingId(detail);
-
-      if (bookingId) {
-        navigation.navigate('BookingDetails', {
-          bookingId,
-          inboxId: detail.id || notification.id,
-        });
-        return;
-      }
-
       handleNotificationClick(
         {
           ...nested,
-          type: detail.type || nested.type,
+          type: nested.type || detail.type,
+          action: nested.action,
+          screen: nested.screen,
+          booking_id: resolveInboxBookingId(detail) || nested.booking_id,
           inbox_id: detail.id || notification.id,
         },
         navigation,

@@ -106,7 +106,7 @@ const WalletScreen = ({navigation, route}) => {
             <Icon name="wallet-outline" size={40} color="#008178" />
             <Text style={styles.emptyTitle}>No transactions yet</Text>
             <Text style={styles.emptyText}>
-              Earnings are credited here when a family pays (95% of the booking).
+              Earnings are credited here when you complete a booking.
             </Text>
           </View>
         ) : (

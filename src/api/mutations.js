@@ -57,6 +57,28 @@ export const useCancelBooking = () => {
   });
 };
 
+export const useStartBooking = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: id => bookingService.startBooking(id),
+    onSuccess: (_data, id) => {
+      invalidateBookings(queryClient, id);
+    },
+  });
+};
+
+export const useCompleteBooking = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: id => bookingService.completeBooking(id),
+    onSuccess: (_data, id) => {
+      invalidateBookings(queryClient, id);
+    },
+  });
+};
+
 export const useMarkInboxRead = () => {
   const queryClient = useQueryClient();
 
@@ -159,6 +181,8 @@ export default {
   useAcceptBooking,
   useRejectBooking,
   useCancelBooking,
+  useStartBooking,
+  useCompleteBooking,
   useMarkInboxRead,
   useMarkAllInboxRead,
   useLogin,

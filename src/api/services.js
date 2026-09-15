@@ -313,6 +313,11 @@ export const bookingService = {
     apiRequest(`/bookings/${id}/cancel`, 'POST', {
       reason: reason || 'Emergency',
     }),
+
+  startBooking: id => apiRequest(`/caregiver/bookings/${id}/start`, 'POST'),
+
+  completeBooking: id =>
+    apiRequest(`/caregiver/bookings/${id}/complete`, 'POST'),
 };
 
 export const hospitalService = {

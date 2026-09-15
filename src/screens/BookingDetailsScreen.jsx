@@ -17,6 +17,8 @@ import {
   useAcceptBooking,
   useRejectBooking,
   useCancelBooking,
+  useStartBooking,
+  useCompleteBooking,
 } from '../api/mutations';
 import Header from '../components/common/Header';
 import BookingDetailsSkeleton from '../components/home/BookingDetailsSkeleton';
@@ -28,7 +30,9 @@ const STATUS_STYLES = {
   PROVIDER_ACCEPTED: {bg: '#E6F4F3', text: '#008178'},
   CONFIRMED: {bg: '#E6F4F3', text: '#008178'},
   IN_PROGRESS: {bg: '#E6F4F3', text: '#008178'},
+  SERVICE_IN_PROGRESS: {bg: '#E6F4F3', text: '#008178'},
   COMPLETED: {bg: '#E6F4F3', text: '#008178'},
+  SERVICE_COMPLETED: {bg: '#E6F4F3', text: '#008178'},
   CANCELLED: {bg: '#FEECEC', text: '#DC2626'},
 };
 
@@ -38,6 +42,8 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const acceptBooking = useAcceptBooking();
   const rejectBooking = useRejectBooking();
   const cancelBooking = useCancelBooking();
+  const startBooking = useStartBooking();
+  const completeBooking = useCompleteBooking();
   const booking = bookingData?.data;
   const [reasonModal, setReasonModal] = useState(null);
   const [reason, setReason] = useState('');
@@ -75,13 +81,19 @@ const BookingDetailsScreen = ({navigation, route}) => {
     STATUS_STYLES[booking?.status] || {bg: '#F0F2F5', text: '#8190A7'};
   const statusLabel = (booking?.status || '').replace(/_/g, ' ');
   const canRespond = booking?.status === 'PROVIDER_ASSIGNED';
+  const canStart = booking?.can_start === true;
+  const canComplete = booking?.can_complete === true;
   const canCancel =
     booking?.status &&
-    !['CANCELLED', 'COMPLETED'].includes(booking.status) &&
-    !canRespond;
-  const paymentReceived =
-    booking?.payment_status === 'PAID' &&
-    !['CANCELLED', 'COMPLETED'].includes(booking?.status);
+    ![
+      'CANCELLED',
+      'COMPLETED',
+      'SERVICE_COMPLETED',
+      'SERVICE_IN_PROGRESS',
+    ].includes(booking.status) &&
+    !canRespond &&
+    !canStart &&
+    !canComplete;
 
   const familyName =
     booking?.family_member_name || booking?.family_member?.name;
@@ -100,6 +112,50 @@ const BookingDetailsScreen = ({navigation, route}) => {
     .filter(Boolean)
     .join(', ');
   const hospitalName = booking?.hospital_name || booking?.hospital?.name;
+
+  const handleStart = () => {
+    Alert.alert('Start service', 'Start this booking now?', [
+      {text: 'Not now', style: 'cancel'},
+      {
+        text: 'Start',
+        onPress: async () => {
+          try {
+            await startBooking.mutateAsync(bookingId);
+            Alert.alert('Started', 'Service started');
+            refetch();
+          } catch (error) {
+            Alert.alert('Error', error?.message || 'Failed to start booking');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleComplete = () => {
+    Alert.alert('End service', 'Mark this booking as completed?', [
+      {text: 'Not now', style: 'cancel'},
+      {
+        text: 'End',
+        onPress: async () => {
+          try {
+            const response = await completeBooking.mutateAsync(bookingId);
+            const earning =
+              response?.data?.caregiver_earning ??
+              response?.caregiver_earning;
+            Alert.alert(
+              'Completed',
+              earning != null
+                ? `Service completed. ৳${earning} is now in your wallet.`
+                : 'Service completed. Earnings settled to your wallet.',
+            );
+            refetch();
+          } catch (error) {
+            Alert.alert('Error', error?.message || 'Failed to complete booking');
+          }
+        },
+      },
+    ]);
+  };
 
   const handleAccept = () => {
     Alert.alert('Accept booking', 'Accept this booking request?', [
@@ -189,7 +245,9 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const busy =
     acceptBooking.isPending ||
     rejectBooking.isPending ||
-    cancelBooking.isPending;
+    cancelBooking.isPending ||
+    startBooking.isPending ||
+    completeBooking.isPending;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
@@ -200,13 +258,24 @@ const BookingDetailsScreen = ({navigation, route}) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {paymentReceived && (
+        {canStart && (
           <View style={styles.startBanner}>
-            <Icon name="checkmark-circle" size={22} color="#008178" />
+            <Icon name="play-circle" size={22} color="#008178" />
             <View style={styles.startBannerText}>
               <Text style={styles.startTitle}>Payment received</Text>
               <Text style={styles.startSub}>
                 The family paid. You can start this booking now.
+              </Text>
+            </View>
+          </View>
+        )}
+        {canComplete && (
+          <View style={styles.startBanner}>
+            <Icon name="time" size={22} color="#008178" />
+            <View style={styles.startBannerText}>
+              <Text style={styles.startTitle}>Service in progress</Text>
+              <Text style={styles.startSub}>
+                Tap End when the booking is finished. Earnings go to your wallet.
               </Text>
             </View>
           </View>
@@ -333,7 +402,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
         )}
       </ScrollView>
 
-      {(canRespond || canCancel) && (
+      {(canRespond || canCancel || canStart || canComplete) && (
         <View style={styles.bottomContainer}>
           {canRespond && (
             <>
@@ -355,6 +424,22 @@ const BookingDetailsScreen = ({navigation, route}) => {
                 <Text style={styles.payButtonText}>Accept</Text>
               </TouchableOpacity>
             </>
+          )}
+          {canStart && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.actionButton, styles.payButton]}
+              onPress={handleStart}>
+              <Text style={styles.payButtonText}>Start</Text>
+            </TouchableOpacity>
+          )}
+          {canComplete && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.actionButton, styles.payButton]}
+              onPress={handleComplete}>
+              <Text style={styles.payButtonText}>End</Text>
+            </TouchableOpacity>
           )}
           {canCancel && (
             <TouchableOpacity

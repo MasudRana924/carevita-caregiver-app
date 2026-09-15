@@ -14,7 +14,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useBookings} from '../api/queries';
-import {useAcceptBooking, useRejectBooking} from '../api/mutations';
+import {useAcceptBooking, useRejectBooking, useStartBooking, useCompleteBooking} from '../api/mutations';
 import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
 
@@ -107,8 +107,10 @@ const getStatusMeta = status => {
     case 'CONFIRMED':
       return {label: 'Accepted', color: '#22C55E', icon: 'checkmark-circle'};
     case 'IN_PROGRESS':
-      return {label: 'Assigned', color: '#3B82F6', icon: 'ellipse'};
+    case 'SERVICE_IN_PROGRESS':
+      return {label: 'In progress', color: '#3B82F6', icon: 'ellipse'};
     case 'COMPLETED':
+    case 'SERVICE_COMPLETED':
       return {label: 'Completed', color: '#22C55E', icon: 'checkmark-circle'};
     case 'CANCELLED':
       return {label: 'Cancelled', color: '#E74C3C', icon: 'close-circle'};
@@ -121,11 +123,28 @@ const getStatusMeta = status => {
   }
 };
 
+const matchesFilter = (item, key) => {
+  if (!key) {
+    return true;
+  }
+  if (key === 'IN_PROGRESS') {
+    return (
+      item.status === 'IN_PROGRESS' || item.status === 'SERVICE_IN_PROGRESS'
+    );
+  }
+  if (key === 'COMPLETED') {
+    return (
+      item.status === 'COMPLETED' || item.status === 'SERVICE_COMPLETED'
+    );
+  }
+  return item.status === key;
+};
+
 const countByStatus = (list, key) => {
   if (!key) {
     return list.length;
   }
-  return list.filter(item => item.status === key).length;
+  return list.filter(item => matchesFilter(item, key)).length;
 };
 
 const BookingsScreen = ({navigation, route}) => {
@@ -145,14 +164,56 @@ const BookingsScreen = ({navigation, route}) => {
   });
   const acceptBooking = useAcceptBooking();
   const rejectBooking = useRejectBooking();
+  const startBooking = useStartBooking();
+  const completeBooking = useCompleteBooking();
 
   const allBookings = unwrapBookings(bookingsData);
   const bookings = useMemo(() => {
     if (!status) {
       return allBookings;
     }
-    return allBookings.filter(item => item.status === status);
+    return allBookings.filter(item => matchesFilter(item, status));
   }, [allBookings, status]);
+
+  const handleStart = bookingId => {
+    Alert.alert('Start service', 'Start this booking now?', [
+      {text: 'Not now', style: 'cancel'},
+      {
+        text: 'Start',
+        onPress: async () => {
+          try {
+            await startBooking.mutateAsync(bookingId);
+          } catch (error) {
+            Alert.alert('Error', error?.message || 'Failed to start booking');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleComplete = bookingId => {
+    Alert.alert('End service', 'Mark this booking as completed?', [
+      {text: 'Not now', style: 'cancel'},
+      {
+        text: 'End',
+        onPress: async () => {
+          try {
+            const response = await completeBooking.mutateAsync(bookingId);
+            const earning =
+              response?.data?.caregiver_earning ?? response?.caregiver_earning;
+            Alert.alert(
+              'Completed',
+              earning != null
+                ? `Service completed. ৳${earning} is now in your wallet.`
+                : 'Service completed. Earnings settled to your wallet.',
+            );
+          } catch (error) {
+            Alert.alert('Error', error?.message || 'Failed to complete booking');
+          }
+        },
+      },
+    ]);
+  };
 
   const handleAccept = bookingId => {
     Alert.alert('Accept booking', 'Accept this booking request?', [
@@ -186,7 +247,11 @@ const BookingsScreen = ({navigation, route}) => {
     }
   };
 
-  const busy = acceptBooking.isPending || rejectBooking.isPending;
+  const busy =
+    acceptBooking.isPending ||
+    rejectBooking.isPending ||
+    startBooking.isPending ||
+    completeBooking.isPending;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -334,6 +399,28 @@ const BookingsScreen = ({navigation, route}) => {
                       }}>
                       <Icon name="close" size={16} color="#E74C3C" />
                       <Text style={styles.rejectText}>Reject</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {!isNew && booking.can_start && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.acceptBtn}
+                      activeOpacity={0.85}
+                      onPress={() => handleStart(booking.id)}>
+                      <Icon name="play" size={16} color="#FFFFFF" />
+                      <Text style={styles.acceptText}>Start</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {!isNew && booking.can_complete && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.acceptBtn}
+                      activeOpacity={0.85}
+                      onPress={() => handleComplete(booking.id)}>
+                      <Icon name="checkmark-done" size={16} color="#FFFFFF" />
+                      <Text style={styles.acceptText}>End</Text>
                     </TouchableOpacity>
                   </View>
                 )}

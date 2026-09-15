@@ -5,7 +5,7 @@ const getBookingId = data =>
 
 const getInboxId = data => data?.inbox_id || data?.inboxId || data?.id || null;
 
-const getType = data => data?.type || data?.action;
+const normalize = value => String(value || '').toUpperCase();
 
 export const parseNotificationData = data => {
   if (typeof data === 'string') {
@@ -34,8 +34,25 @@ const goToBookingDetails = (navigation, bookingId, inboxId) => {
   navigateRoot(navigation, 'BookingDetails', {bookingId, inboxId});
 };
 
+const goToWallet = navigation => {
+  navigateRoot(navigation, 'Wallet');
+};
+
+const shouldOpenWallet = (type, action, screen) =>
+  action === 'OPEN_WALLET' ||
+  type === 'EARNING_SETTLED' ||
+  screen === 'wallet';
+
+const shouldOpenBooking = (type, action, screen) =>
+  action === 'START_BOOKING' ||
+  type === 'PAYMENT_RECEIVED' ||
+  type === 'SERVICE_START_REMINDER' ||
+  type === 'BOOKING_CREATED' ||
+  type === 'BOOKING_CANCELLED' ||
+  screen === 'booking_details';
+
 /**
- * Handle notification click / FCM data and navigate by type + booking_id
+ * Handle notification click / FCM data and navigate by type + action
  */
 export const handleNotificationClick = (rawData, navigation) => {
   const data = parseNotificationData(rawData);
@@ -43,40 +60,30 @@ export const handleNotificationClick = (rawData, navigation) => {
 
   const bookingId = getBookingId(data);
   const inboxId = getInboxId(data);
-  const type = getType(data);
+  const type = normalize(data?.type);
+  const action = normalize(data?.action);
+  const screen = String(data?.screen || '').toLowerCase();
 
-  switch (type) {
-    case 'BOOKING_CREATED':
-      if (bookingId) {
-        goToBookingDetails(navigation, bookingId, inboxId);
-      } else {
-        navigateRoot(navigation, 'Inbox', {inboxId});
-      }
-      break;
-
-    case 'PAYMENT_RECEIVED':
-      if (bookingId) {
-        goToBookingDetails(navigation, bookingId, inboxId);
-      } else {
-        navigateRoot(navigation, 'Bookings');
-      }
-      break;
-
-    case 'BOOKING_CANCELLED':
-      if (bookingId) {
-        goToBookingDetails(navigation, bookingId, inboxId);
-      } else {
-        navigateRoot(navigation, 'Bookings');
-      }
-      break;
-
-    default:
-      if (bookingId) {
-        goToBookingDetails(navigation, bookingId, inboxId);
-      } else {
-        navigateRoot(navigation, 'Inbox', {inboxId});
-      }
+  if (shouldOpenWallet(type, action, screen)) {
+    goToWallet(navigation);
+    return;
   }
+
+  if (shouldOpenBooking(type, action, screen)) {
+    if (bookingId) {
+      goToBookingDetails(navigation, bookingId, inboxId);
+    } else {
+      navigateRoot(navigation, type === 'BOOKING_CREATED' ? 'Inbox' : 'Bookings');
+    }
+    return;
+  }
+
+  if (bookingId) {
+    goToBookingDetails(navigation, bookingId, inboxId);
+    return;
+  }
+
+  navigateRoot(navigation, 'Inbox', {inboxId});
 };
 
 export const handleForegroundNotification = (remoteMessage, navigation) => {
