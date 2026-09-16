@@ -15,6 +15,8 @@ import {NavigationContainer} from '@react-navigation/native';
 import NotificationBanner from './src/components/common/NotificationBanner';
 import {handleNotificationClick, parseNotificationData} from './src/utils/notificationHandler';
 import {queryKeys} from './src/api/queryKeys';
+import {setPendingReview} from './src/utils/homeAlerts';
+import {parseRatingValue} from './src/utils/bookingTime';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +62,25 @@ function AppContent() {
         queryClient.invalidateQueries({queryKey: queryKeys.inbox.all});
         queryClient.invalidateQueries({queryKey: queryKeys.bookings.all});
         queryClient.invalidateQueries({queryKey: queryKeys.wallet.all});
+
+        const data = parseNotificationData(payload?.data);
+        const type = String(data?.type || '').toUpperCase();
+        if (type === 'REVIEW_RECEIVED') {
+          setPendingReview({
+            ...data,
+            type,
+            title: payload?.title || data.title || 'New rating received',
+            body:
+              payload?.body ||
+              data.body ||
+              'You received a new rating for your booking.',
+            rating: parseRatingValue(data, payload?.body || data.body),
+            booking_id: data.booking_id || data.bookingId,
+            booking_number: data.booking_number || data.bookingNumber,
+          });
+          return;
+        }
+
         setBanner({
           visible: true,
           title: payload?.title || 'Notification',

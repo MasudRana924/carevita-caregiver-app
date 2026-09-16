@@ -48,7 +48,7 @@ const InboxScreen = ({navigation}) => {
   };
 
   const getNotificationIcon = type => {
-    switch (type) {
+    switch (String(type || '').toUpperCase()) {
       case 'BOOKING':
       case 'BOOKING_CREATED':
       case 'BOOKING_ACCEPTED':
@@ -60,6 +60,8 @@ const InboxScreen = ({navigation}) => {
         return 'card-outline';
       case 'SERVICE_START_REMINDER':
         return 'alarm-outline';
+      case 'REVIEW_RECEIVED':
+        return 'star-outline';
       case 'EARNING_SETTLED':
         return 'wallet-outline';
       case 'CAREGIVER':
@@ -145,11 +147,13 @@ const InboxScreen = ({navigation}) => {
             </View>
             <Text style={styles.emptyTitle}>No notifications</Text>
             <Text style={styles.emptyText}>
-              Booking requests, payments, and cancellations will show up here
+              Booking requests, reminders, ratings, and payments will show up here
             </Text>
           </View>
         ) : (
           notifications.map(notification => {
+            const nested = parseNotificationData(notification.data);
+            const type = nested.type || notification.type;
             const isUnread = !notification.is_read;
             return (
               <TouchableOpacity
@@ -158,7 +162,7 @@ const InboxScreen = ({navigation}) => {
                 onPress={() => handleNotificationPress(notification)}>
                 <View style={styles.iconWrap}>
                   <Icon
-                    name={getNotificationIcon(notification.type)}
+                    name={getNotificationIcon(type)}
                     size={20}
                     color="#008178"
                   />

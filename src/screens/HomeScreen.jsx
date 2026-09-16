@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Alert,
   Modal,
   TextInput,
+  AppState,
+  DeviceEventEmitter,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -27,6 +29,15 @@ import {
   useRejectBooking,
   useUpdateCaregiverProfile,
 } from '../api/mutations';
+import {
+  findReminderBooking,
+  formatCountdown,
+} from '../utils/bookingTime';
+import {
+  REVIEW_RECEIVED_EVENT,
+  getPendingReview,
+  clearPendingReview,
+} from '../utils/homeAlerts';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#F4F8F7';
@@ -151,6 +162,8 @@ const HomeScreen = ({navigation}) => {
 
   const [rejectId, setRejectId] = useState(null);
   const [reason, setReason] = useState('Not available that day');
+  const [nowTs, setNowTs] = useState(Date.now);
+  const [reviewAlert, setReviewAlert] = useState(null);
 
   const profile = profileQuery.data?.data || {};
   const assigned = unwrapBookings(assignedQuery.data);
@@ -168,7 +181,48 @@ const HomeScreen = ({navigation}) => {
       ),
     [allBookings],
   );
+  const reminder = useMemo(
+    () => findReminderBooking(allBookings, nowTs),
+    [allBookings, nowTs],
+  );
   const recent = allBookings.slice(0, 4);
+
+  useEffect(() => {
+    const tick = () => setNowTs(Date.now());
+    const interval = setInterval(tick, 1000);
+    const appSub = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        tick();
+      }
+    });
+    return () => {
+      clearInterval(interval);
+      appSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadReview = async () => {
+      const pending = await getPendingReview();
+      if (mounted && pending) {
+        setReviewAlert(pending);
+      }
+    };
+    loadReview();
+    const eventSub = DeviceEventEmitter.addListener(
+      REVIEW_RECEIVED_EVENT,
+      payload => {
+        setReviewAlert(payload);
+      },
+    );
+    const focusSub = navigation.addListener('focus', loadReview);
+    return () => {
+      mounted = false;
+      eventSub.remove();
+      focusSub();
+    };
+  }, [navigation]);
 
   const refreshing =
     profileQuery.isRefetching ||
@@ -239,6 +293,22 @@ const HomeScreen = ({navigation}) => {
     navigation.navigate('BookingDetails', {bookingId});
   };
 
+  const dismissReview = async () => {
+    setReviewAlert(null);
+    await clearPendingReview();
+  };
+
+  const openReviewBooking = async () => {
+    const bookingId = reviewAlert?.booking_id || reviewAlert?.bookingId;
+    await dismissReview();
+    if (bookingId) {
+      openBooking(bookingId);
+    }
+  };
+
+  const reminderRemaining = reminder?.remaining ?? 0;
+  const reminderReady = reminderRemaining <= 0;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <Loader visible={busy} />
@@ -300,6 +370,38 @@ const HomeScreen = ({navigation}) => {
           </View>
         </View>
 
+        {reminder?.booking ? (
+          <TouchableOpacity
+            style={styles.timerCard}
+            activeOpacity={0.88}
+            onPress={() => openBooking(reminder.booking.id)}>
+            <View style={styles.timerTop}>
+              <View style={styles.timerBadge}>
+                <Icon name="alarm-outline" size={14} color={TEAL} />
+                <Text style={styles.timerBadgeText}>
+                  {reminderReady ? 'Ready to start' : 'Service starts in'}
+                </Text>
+              </View>
+              <Text style={styles.timerClock}>
+                {reminderReady ? '00:00:00' : formatCountdown(reminderRemaining)}
+              </Text>
+            </View>
+            <Text style={styles.timerTitle} numberOfLines={1}>
+              {getCustomerName(reminder.booking)}
+            </Text>
+            <Text style={styles.timerMeta} numberOfLines={1}>
+              {getHospitalName(reminder.booking)}
+              {reminder.booking.start_time
+                ? ` · ${formatTime(reminder.booking.start_time)}`
+                : ''}
+            </Text>
+            <Text style={styles.timerHint}>
+              {reminderReady
+                ? 'Service time has started. Open details to tap Start.'
+                : 'Countdown follows the booking start time. Leaving the app will not reset it.'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <SectionHeader
           icon="flash"
@@ -460,6 +562,52 @@ const HomeScreen = ({navigation}) => {
       </ScrollView>
 
       <Modal
+        visible={!!reviewAlert}
+        transparent
+        animationType="fade"
+        onRequestClose={dismissReview}>
+        <View style={styles.ratingBackdrop}>
+          <View style={styles.ratingCard}>
+            <View style={styles.ratingIconWrap}>
+              <Icon name="star" size={28} color="#F5B400" />
+            </View>
+            <Text style={styles.ratingEyebrow}>New rating received</Text>
+            <Text style={styles.ratingTitle}>
+              You received {reviewAlert?.rating || 5} stars
+            </Text>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <Icon
+                  key={star}
+                  name={star <= (reviewAlert?.rating || 5) ? 'star' : 'star-outline'}
+                  size={28}
+                  color="#F5B400"
+                />
+              ))}
+            </View>
+            <Text style={styles.ratingBody}>
+              {reviewAlert?.body ||
+                `You received ${reviewAlert?.rating || 5} stars for booking ${
+                  reviewAlert?.booking_number || 'this visit'
+                }.`}
+            </Text>
+            <TouchableOpacity
+              style={styles.ratingPrimary}
+              activeOpacity={0.85}
+              onPress={openReviewBooking}>
+              <Text style={styles.ratingPrimaryText}>View booking</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.ratingGhost}
+              activeOpacity={0.8}
+              onPress={dismissReview}>
+              <Text style={styles.ratingGhostText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={!!rejectId}
         transparent
         animationType="fade"
@@ -575,6 +723,109 @@ const styles = StyleSheet.create({
   toggleKnobOn: {alignSelf: 'flex-end'},
   toggleKnobOff: {alignSelf: 'flex-start'},
   availState: {marginTop: 6, fontSize: 11, fontWeight: '700'},
+  timerCard: {
+    marginTop: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#D7EFE8',
+  },
+  timerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  timerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EAF7F4',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    height: 28,
+  },
+  timerBadgeText: {fontSize: 11, fontWeight: '700', color: TEAL},
+  timerClock: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0E2A24',
+    letterSpacing: 0.6,
+    fontVariant: ['tabular-nums'],
+  },
+  timerTitle: {fontSize: 16, fontWeight: '800', color: '#15202B'},
+  timerMeta: {marginTop: 4, fontSize: 13, color: '#8A97A6'},
+  timerHint: {marginTop: 10, fontSize: 12, lineHeight: 18, color: '#6F7F8C'},
+  ratingBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(14, 42, 36, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  ratingCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 18,
+    alignItems: 'center',
+  },
+  ratingIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFF6D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  ratingEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEAL,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  ratingTitle: {
+    marginTop: 6,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0E2A24',
+    textAlign: 'center',
+  },
+  starRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  ratingBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#6F7F8C',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  ratingPrimary: {
+    width: '100%',
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: TEAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingPrimaryText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+  ratingGhost: {
+    width: '100%',
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  ratingGhostText: {fontSize: 14, fontWeight: '600', color: '#8A97A6'},
   statsRow: {flexDirection: 'row', gap: 10, marginTop: 14},
   statCard: {
     flex: 1,

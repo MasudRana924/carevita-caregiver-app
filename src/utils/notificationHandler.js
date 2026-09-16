@@ -47,6 +47,7 @@ const shouldOpenBooking = (type, action, screen) =>
   action === 'START_BOOKING' ||
   type === 'PAYMENT_RECEIVED' ||
   type === 'SERVICE_START_REMINDER' ||
+  type === 'REVIEW_RECEIVED' ||
   type === 'BOOKING_CREATED' ||
   type === 'BOOKING_CANCELLED' ||
   screen === 'booking_details';
