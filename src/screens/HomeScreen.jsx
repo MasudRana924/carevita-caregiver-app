@@ -14,6 +14,7 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HomeHeader from '../components/home/HomeHeader';
 import Loader from '../components/common/Loader';
@@ -372,34 +373,53 @@ const HomeScreen = ({navigation}) => {
 
         {reminder?.booking ? (
           <TouchableOpacity
-            style={styles.timerCard}
             activeOpacity={0.88}
             onPress={() => openBooking(reminder.booking.id)}>
-            <View style={styles.timerTop}>
-              <View style={styles.timerBadge}>
-                <Icon name="alarm-outline" size={14} color={TEAL} />
-                <Text style={styles.timerBadgeText}>
-                  {reminderReady ? 'Ready to start' : 'Service starts in'}
-                </Text>
+            <LinearGradient
+              colors={['#EEFBF7', '#E3F6F0']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={styles.timerCard}>
+              <View style={styles.timerBlob} />
+              <View style={styles.timerBlobSmall} />
+              <View style={styles.timerTop}>
+                <View style={styles.timerCopy}>
+                  <View style={styles.timerBadge}>
+                    <Icon name="time-outline" size={14} color={TEAL} />
+                    <Text style={styles.timerBadgeText}>
+                      {reminderReady ? 'Ready to start' : 'Service starts in'}
+                    </Text>
+                  </View>
+                  <Text style={styles.timerClock}>
+                    {reminderReady
+                      ? '00:00:00'
+                      : formatCountdown(reminderRemaining)}
+                  </Text>
+                </View>
+                <ServiceClockArt />
               </View>
-              <Text style={styles.timerClock}>
-                {reminderReady ? '00:00:00' : formatCountdown(reminderRemaining)}
-              </Text>
-            </View>
-            <Text style={styles.timerTitle} numberOfLines={1}>
-              {getCustomerName(reminder.booking)}
-            </Text>
-            <Text style={styles.timerMeta} numberOfLines={1}>
-              {getHospitalName(reminder.booking)}
-              {reminder.booking.start_time
-                ? ` · ${formatTime(reminder.booking.start_time)}`
-                : ''}
-            </Text>
-            <Text style={styles.timerHint}>
-              {reminderReady
-                ? 'Service time has started. Open details to tap Start.'
-                : 'Countdown follows the booking start time. Leaving the app will not reset it.'}
-            </Text>
+              <View style={styles.timerPerson}>
+                <View style={styles.timerPlaceIcon}>
+                  <Icon name="business-outline" size={16} color={TEAL} />
+                </View>
+                <View style={styles.timerPersonCopy}>
+                  <Text style={styles.timerTitle} numberOfLines={1}>
+                    {getCustomerName(reminder.booking)}
+                  </Text>
+                  <Text style={styles.timerMeta} numberOfLines={1}>
+                    {getHospitalName(reminder.booking)}
+                    {reminder.booking.start_time
+                      ? ` · ${formatTime(reminder.booking.start_time)}`
+                      : ''}
+                  </Text>
+                </View>
+              </View>
+              {/* <Text style={styles.timerHint}>
+                {reminderReady
+                  ? 'Service time has started. Open details to tap Start.'
+                  : 'Countdown follows the booking start time. Leaving the app will not reset it.'}
+              </Text> */}
+            </LinearGradient>
           </TouchableOpacity>
         ) : null}
 
@@ -640,6 +660,31 @@ const HomeScreen = ({navigation}) => {
   );
 };
 
+const ServiceClockArt = () => (
+  <View style={styles.clockArt}>
+    <View style={styles.clockHalo} />
+    <View style={styles.clockOuter}>
+      <View style={styles.clockInner}>
+        <View style={[styles.tickV, {top: 6}]} />
+        <View style={[styles.tickV, {bottom: 6}]} />
+        <View style={[styles.tickH, {left: 6}]} />
+        <View style={[styles.tickH, {right: 6}]} />
+        <View style={[styles.handWrap, {transform: [{rotate: '-48deg'}]}]}>
+          <View style={styles.hourHand} />
+        </View>
+        <View style={[styles.handWrap, {transform: [{rotate: '38deg'}]}]}>
+          <View style={styles.minuteHand} />
+        </View>
+        <View style={styles.clockDot} />
+      </View>
+    </View>
+    <View style={styles.sparkle}>
+      <View style={styles.sparkleV} />
+      <View style={styles.sparkleH} />
+    </View>
+  </View>
+);
+
 const SectionHeader = ({icon, title, onPress}) => (
   <View style={styles.sectionHead}>
     <View style={styles.sectionTitleRow}>
@@ -725,38 +770,183 @@ const styles = StyleSheet.create({
   availState: {marginTop: 6, fontSize: 11, fontWeight: '700'},
   timerCard: {
     marginTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#D7EFE8',
+    borderRadius: 22,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    overflow: 'hidden',
+  },
+  timerBlob: {
+    position: 'absolute',
+    right: -36,
+    bottom: -48,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    backgroundColor: 'rgba(125, 217, 200, 0.28)',
+  },
+  timerBlobSmall: {
+    position: 'absolute',
+    right: 18,
+    top: 8,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(167, 230, 214, 0.35)',
   },
   timerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 16,
   },
+  timerCopy: {flex: 1, paddingRight: 8},
   timerBadge: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EAF7F4',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    height: 28,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    height: 30,
+    shadowColor: '#0B8A80',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 1,
   },
-  timerBadgeText: {fontSize: 11, fontWeight: '700', color: TEAL},
+  timerBadgeText: {fontSize: 12, fontWeight: '700', color: TEAL},
   timerClock: {
-    fontSize: 22,
+    marginTop: 10,
+    fontSize: 36,
+    lineHeight: 42,
     fontWeight: '800',
-    color: '#0E2A24',
+    color: '#0B3D32',
     letterSpacing: 0.6,
     fontVariant: ['tabular-nums'],
   },
-  timerTitle: {fontSize: 16, fontWeight: '800', color: '#15202B'},
-  timerMeta: {marginTop: 4, fontSize: 13, color: '#8A97A6'},
-  timerHint: {marginTop: 10, fontSize: 12, lineHeight: 18, color: '#6F7F8C'},
+  clockArt: {
+    width: 88,
+    height: 88,
+    marginTop: -4,
+    marginRight: -4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clockHalo: {
+    position: 'absolute',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(167, 230, 214, 0.55)',
+  },
+  clockOuter: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#63D1BA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0B8A80',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 3,
+  },
+  clockInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#E9FBF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  tickV: {
+    position: 'absolute',
+    width: 2,
+    height: 6,
+    borderRadius: 1,
+    backgroundColor: '#7BCDBB',
+    alignSelf: 'center',
+  },
+  tickH: {
+    position: 'absolute',
+    width: 6,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#7BCDBB',
+    top: 24,
+  },
+  handWrap: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+  },
+  hourHand: {
+    width: 3,
+    height: 14,
+    marginTop: 12,
+    borderRadius: 2,
+    backgroundColor: '#0E6B5C',
+  },
+  minuteHand: {
+    width: 2.5,
+    height: 18,
+    marginTop: 8,
+    borderRadius: 2,
+    backgroundColor: '#0E6B5C',
+  },
+  clockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0E6B5C',
+    zIndex: 2,
+  },
+  sparkle: {
+    position: 'absolute',
+    top: 6,
+    right: 4,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sparkleV: {
+    position: 'absolute',
+    width: 3,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: '#7ED9C8',
+  },
+  sparkleH: {
+    position: 'absolute',
+    width: 14,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#7ED9C8',
+  },
+  timerPerson: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  timerPlaceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  timerPersonCopy: {flex: 1, minWidth: 0},
+  timerTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
+  timerMeta: {marginTop: 2, fontSize: 12, color: '#7A8B9A'},
+  timerHint: {fontSize: 12, lineHeight: 18, color: '#8A97A6'},
   ratingBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(14, 42, 36, 0.45)',

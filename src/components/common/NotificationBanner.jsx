@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-const AUTO_HIDE_MS = 20 * 60 * 1000;
+const AUTO_HIDE_MS = 2000;
 
 const NotificationBanner = ({visible, title, body, onPress, onHide}) => {
   const insets = useSafeAreaInsets();
@@ -24,12 +24,12 @@ const NotificationBanner = ({visible, title, body, onPress, onHide}) => {
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 280,
+        duration: 220,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 280,
+        duration: 220,
         useNativeDriver: true,
       }),
     ]).start();
@@ -45,12 +45,12 @@ const NotificationBanner = ({visible, title, body, onPress, onHide}) => {
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: -140,
-        duration: 220,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 220,
+        duration: 180,
         useNativeDriver: true,
       }),
     ]).start(({finished}) => {
@@ -70,7 +70,7 @@ const NotificationBanner = ({visible, title, body, onPress, onHide}) => {
       style={[
         styles.wrap,
         {
-          top: Math.max(insets.top, 12) + 8,
+          top: Math.max(insets.top, 8) + 6,
           opacity,
           transform: [{translateY}],
         },
@@ -83,58 +83,63 @@ const NotificationBanner = ({visible, title, body, onPress, onHide}) => {
           }
         }}
         style={styles.card}>
-        <View style={styles.left}>
+        <View style={styles.iconWrap}>
           <Image
-            source={require('../../assets/logo.png')}
+            source={require('../../assets/auth.png')}
             style={styles.logo}
           />
-          <View style={styles.textCol}>
-            <Text style={styles.appName}>Nirapod</Text>
-            <Text style={styles.title} numberOfLines={1}>
-              {title || 'Notification'}
-            </Text>
-            {!!body && (
-              <Text style={styles.body} numberOfLines={2}>
-                {body}
-              </Text>
-            )}
-          </View>
         </View>
+        <View style={styles.textCol}>
+          <Text style={styles.appName} numberOfLines={1}>
+            Nirapod
+          </Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {title || body || 'Notification'}
+          </Text>
+        </View>
+        <Text style={styles.now}>now</Text>
       </Pressable>
     </Animated.View>
   );
 };
 
+export default NotificationBanner;
+
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 10,
+    right: 10,
     zIndex: 9999,
-    elevation: 20,
+    elevation: 24,
   },
   card: {
-    height: 80,
-    borderRadius: 20,
-    // borderWidth: 1,
-    // borderColor: '#0606063e',
-    backgroundColor: '#0606063e',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-   
-  },
-  left: {
-    flex: 1,
+    height: 58,
+    borderRadius: 28,
+    backgroundColor: '#3A3A3C',
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    shadowColor: '#000000',
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: {width: 0, height: 6},
+    elevation: 10,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#0B8A80',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    overflow: 'hidden',
   },
   logo: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
+    width: 20,
+    height: 20,
+    tintColor: '#FFFFFF',
   },
   textCol: {
     flex: 1,
@@ -142,22 +147,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   appName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#111820',
+    color: '#FFFFFF',
   },
-  title: {
-    marginTop: 4,
-    fontSize: 12,
+  subtitle: {
+    marginTop: 1,
+    fontSize: 13,
     fontWeight: '400',
-    color: '#111820',
+    color: '#C7C7CC',
   },
-  body: {
-    marginTop: 2,
-    fontSize: 12,
-    lineHeight: 16,
-    color: '#8190A7',
+  now: {
+    marginLeft: 8,
+    marginRight: 6,
+    fontSize: 13,
+    color: '#C7C7CC',
+    alignSelf: 'flex-start',
+    marginTop: 8,
   },
 });
-
-export default NotificationBanner;
