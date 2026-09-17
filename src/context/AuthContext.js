@@ -1,13 +1,23 @@
-import React, {createContext, useState, useEffect, useContext} from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useRef,
+} from 'react';
 import {Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import notificationService from '../services/notificationService';
 import {authService, caregiverService} from '../api/services';
+import {setSessionExpiredHandler} from '../api/session';
+import {isAuthFailure, unwrapData} from '../api/envelope';
+import {applyEkycStatus, isEkycApproved, normalizeAuthUser, EKYC_REDIRECT_URL} from '../utils/ekyc';
 
 const AuthContext = createContext();
 
 const hasProfilePayload = payload => {
-  const profile = payload?.data;
+  const profile = unwrapData(payload);
   return Boolean(payload?.success && profile && (profile.id || profile.user_id));
 };
 
@@ -18,6 +28,8 @@ export const AuthProvider = ({children}) => {
   const [caregiverProfile, setCaregiverProfile] = useState(null);
   const [hasCaregiverProfile, setHasCaregiverProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingEkyc, setPendingEkyc] = useState(null);
+  const logoutRef = useRef(async () => {});
 
   const persistUser = async userData => {
     if (userData) {
@@ -26,18 +38,44 @@ export const AuthProvider = ({children}) => {
     setUser(userData);
   };
 
-  const hydrateSession = async () => {
+  const clearSession = useCallback(async () => {
+    await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('refreshToken');
+    await AsyncStorage.removeItem('user');
+    setUserToken(null);
+    setRefreshToken(null);
+    setUser(null);
+    setCaregiverProfile(null);
+    setHasCaregiverProfile(false);
+    setPendingEkyc(null);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      console.log('🚪 Handling logout...');
+      await notificationService.handleLogout(userToken);
+      await clearSession();
+      console.log('✅ Logout completed successfully');
+    } catch (error) {
+      console.error('Failed to remove token:', error);
+      await clearSession();
+    }
+  }, [clearSession, userToken]);
+
+  logoutRef.current = logout;
+
+  const hydrateSession = useCallback(async () => {
     try {
       const authProfile = await authService.getAuthProfile();
-      const userData = authProfile?.user || authProfile?.data;
+      let userData = normalizeAuthUser(unwrapData(authProfile)) || unwrapData(authProfile);
       if (userData?.role && userData.role !== 'CAREGIVER') {
         return {ok: false, reason: 'wrong_role'};
       }
-      if (userData) {
+      if (userData?.id || userData?.email) {
         await persistUser(userData);
       }
     } catch (error) {
-      if (error?.status === 401) {
+      if (isAuthFailure(error?.payload, error?.status)) {
         return {ok: false, reason: 'unauthorized'};
       }
       console.log('Auth profile hydrate failed:', error?.message);
@@ -45,18 +83,18 @@ export const AuthProvider = ({children}) => {
 
     try {
       const profileRes = await caregiverService.getMyProfile();
-      if (profileRes?.status === 401) {
+      if (isAuthFailure(profileRes, profileRes?.status || profileRes?.statusCode)) {
         return {ok: false, reason: 'unauthorized'};
       }
       if (hasProfilePayload(profileRes)) {
-        setCaregiverProfile(profileRes.data);
+        setCaregiverProfile(unwrapData(profileRes));
         setHasCaregiverProfile(true);
       } else {
         setCaregiverProfile(null);
         setHasCaregiverProfile(false);
       }
     } catch (error) {
-      if (error?.status === 401) {
+      if (isAuthFailure(error?.payload, error?.status)) {
         return {ok: false, reason: 'unauthorized'};
       }
       setCaregiverProfile(null);
@@ -64,7 +102,14 @@ export const AuthProvider = ({children}) => {
     }
 
     return {ok: true};
-  };
+  }, []);
+
+  useEffect(() => {
+    setSessionExpiredHandler(async () => {
+      await logoutRef.current();
+    });
+    return () => setSessionExpiredHandler(null);
+  }, []);
 
   useEffect(() => {
     const loadToken = async () => {
@@ -98,24 +143,12 @@ export const AuthProvider = ({children}) => {
     };
 
     loadToken();
-    // Session hydrate is mount-only
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const clearSession = async () => {
-    await AsyncStorage.removeItem('userToken');
-    await AsyncStorage.removeItem('refreshToken');
-    await AsyncStorage.removeItem('user');
-    setUserToken(null);
-    setRefreshToken(null);
-    setUser(null);
-    setCaregiverProfile(null);
-    setHasCaregiverProfile(false);
-  };
+  }, [clearSession, hydrateSession]);
 
   const login = async (token, refresh, userData) => {
     try {
-      if (userData?.role && userData.role !== 'CAREGIVER') {
+      const authUser = normalizeAuthUser(userData) || userData;
+      if (authUser?.role && authUser.role !== 'CAREGIVER') {
         Alert.alert(
           'Caregiver app',
           'This account is not a caregiver. Please use the family app or register as a caregiver.',
@@ -127,12 +160,34 @@ export const AuthProvider = ({children}) => {
       if (refresh) {
         await AsyncStorage.setItem('refreshToken', refresh);
       }
-      if (userData) {
-        await persistUser(userData);
+      if (authUser) {
+        await persistUser(authUser);
       }
+
+      if (authUser?.ekyc_status !== true) {
+        try {
+          const ekycRes = await caregiverService.initiateEkyc(EKYC_REDIRECT_URL);
+          const ekycData = unwrapData(ekycRes);
+          if (ekycData.ekyc_status === true) {
+            setPendingEkyc(null);
+            await persistUser(applyEkycStatus(authUser, ekycData));
+          } else {
+            setPendingEkyc(ekycData);
+            await persistUser(applyEkycStatus(authUser, ekycData));
+          }
+        } catch (error) {
+          console.log('eKYC initiate after login failed:', error?.message);
+          setPendingEkyc({error: error?.message || 'eKYC start failed'});
+        }
+      } else {
+        setPendingEkyc(null);
+      }
+
       setUserToken(token);
       setRefreshToken(refresh);
-      await hydrateSession();
+      if (authUser?.ekyc_status === true) {
+        await hydrateSession();
+      }
       return true;
     } catch (error) {
       console.error('Failed to save token:', error);
@@ -146,20 +201,17 @@ export const AuthProvider = ({children}) => {
   };
 
   const updateUser = async userData => {
-    const next = {...(user || {}), ...(userData || {})};
-    await persistUser(next);
-  };
-
-  const logout = async () => {
+    let previous = user;
     try {
-      console.log('🚪 Handling logout...');
-      await notificationService.handleLogout(userToken);
-      await clearSession();
-      console.log('✅ Logout completed successfully');
+      const stored = await AsyncStorage.getItem('user');
+      if (stored) {
+        previous = JSON.parse(stored);
+      }
     } catch (error) {
-      console.error('Failed to remove token:', error);
-      await clearSession();
+      previous = user;
     }
+    const next = {...(previous || {}), ...(userData || {})};
+    await persistUser(next);
   };
 
   return (
@@ -171,6 +223,9 @@ export const AuthProvider = ({children}) => {
         caregiverProfile,
         hasCaregiverProfile,
         isLoading,
+        isEkycVerified: isEkycApproved(user),
+        pendingEkyc,
+        setPendingEkyc,
         login,
         logout,
         updateUser,

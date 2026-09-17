@@ -45,6 +45,32 @@ export const queryKeys = {
   wallet: {
     all: ['wallet'],
     current: params => ['wallet', 'current', params],
+    withdrawals: params => ['wallet', 'withdrawals', params],
+  },
+
+  availability: {
+    all: ['availability'],
+    current: () => ['availability', 'current'],
+  },
+
+  reviews: {
+    all: ['reviews'],
+    mine: params => ['reviews', 'mine', params],
+  },
+
+  notificationPreferences: {
+    all: ['notificationPreferences'],
+    current: () => ['notificationPreferences', 'current'],
+  },
+
+  disputes: {
+    all: ['disputes'],
+    list: bookingId => ['disputes', bookingId],
+  },
+
+  ekyc: {
+    all: ['ekyc'],
+    status: () => ['ekyc', 'status'],
   },
 
   hospitals: {

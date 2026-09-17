@@ -13,6 +13,7 @@ import {useMarkAllInboxRead} from '../api/mutations';
 import Header from '../components/common/Header';
 import NotificationSkeleton from '../components/home/NotificationSkeleton';
 import {apiRequest} from '../services/api';
+import {unwrapList} from '../api/envelope';
 import {
   parseNotificationData,
   handleNotificationClick,
@@ -26,9 +27,7 @@ const InboxScreen = ({navigation}) => {
   });
   const unreadQuery = useInboxUnreadCount();
   const markAll = useMarkAllInboxRead();
-  const notifications = Array.isArray(notificationsData?.data)
-    ? notificationsData.data
-    : [];
+  const notifications = unwrapList(notificationsData);
   const unread = unreadQuery.data?.unread ?? unreadQuery.data?.data?.unread ?? 0;
 
   const formatTime = dateString => {
@@ -63,7 +62,10 @@ const InboxScreen = ({navigation}) => {
       case 'REVIEW_RECEIVED':
         return 'star-outline';
       case 'EARNING_SETTLED':
+      case 'WITHDRAWAL_UPDATED':
         return 'wallet-outline';
+      case 'DISPUTE_UPDATED':
+        return 'alert-circle-outline';
       case 'CAREGIVER':
         return 'person-outline';
       default:

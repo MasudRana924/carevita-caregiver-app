@@ -1,10 +1,21 @@
 /**
  * API Services
- * HTTP client and service functions for API calls
+ * HTTP client and service functions for CareMate envelope responses
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getFullUrl} from './endpoints';
+import {expireSession} from './session';
+import {
+  ApiError,
+  extractAuthData,
+  getEnvelopeMessage,
+  isAuthFailure,
+  normalizeEnvelope,
+  toApiError,
+  unwrapData,
+  unwrapList,
+} from './envelope';
 
 const AUTH_SKIP_REFRESH = [
   '/auth/login',
@@ -15,6 +26,10 @@ const AUTH_SKIP_REFRESH = [
   '/auth/refresh-token',
 ];
 
+export {ApiError, extractAuthData, unwrapData, unwrapList};
+
+export const extractAuthPayload = extractAuthData;
+
 const persistAuthTokens = async data => {
   if (data?.token) {
     await AsyncStorage.setItem('userToken', data.token);
@@ -24,13 +39,23 @@ const persistAuthTokens = async data => {
   }
 };
 
-const extractTokens = payload => {
-  const nested = payload?.data || {};
-  return {
-    token: nested.token || payload?.token,
-    refreshToken: nested.refreshToken || payload?.refreshToken,
-  };
+const persistEnvelopeTokens = async envelope => {
+  const tokens = extractAuthData(envelope);
+  if (tokens.token || tokens.refreshToken) {
+    await persistAuthTokens(tokens);
+  }
+  return tokens;
 };
+
+const parseResponseBody = async response => {
+  try {
+    return await response.json();
+  } catch (error) {
+    return null;
+  }
+};
+
+const getAuthToken = async () => AsyncStorage.getItem('userToken');
 
 const refreshAccessToken = async () => {
   const refreshToken = await AsyncStorage.getItem('refreshToken');
@@ -44,9 +69,10 @@ const refreshAccessToken = async () => {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({refreshToken}),
     });
-    const payload = await response.json();
-    const tokens = extractTokens(payload);
-    if (payload?.success && tokens.token) {
+    const payload = await parseResponseBody(response);
+    const envelope = normalizeEnvelope(payload, response.status);
+    const tokens = extractAuthData(envelope);
+    if (envelope.success && tokens.token) {
       await persistAuthTokens(tokens);
       return tokens.token;
     }
@@ -54,29 +80,6 @@ const refreshAccessToken = async () => {
     console.error('Refresh token error:', error);
   }
   return null;
-};
-
-const parseResponseBody = async response => {
-  try {
-    return await response.json();
-  } catch (error) {
-    return null;
-  }
-};
-
-const getErrorMessage = (payload, status) => {
-  if (payload?.message) {
-    return payload.message;
-  }
-  if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
-    const first = payload.errors[0];
-    return typeof first === 'string' ? first : first?.message || `HTTP error! status: ${status}`;
-  }
-  return `HTTP error! status: ${status}`;
-};
-
-const getAuthToken = async () => {
-  return await AsyncStorage.getItem('userToken');
 };
 
 export const apiRequest = async (
@@ -87,13 +90,11 @@ export const apiRequest = async (
   {retry = true, throwOnError = true} = {},
 ) => {
   const token = await getAuthToken();
-
   const headers = {};
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
@@ -109,10 +110,14 @@ export const apiRequest = async (
 
   try {
     const response = await fetch(getFullUrl(endpoint), config);
-    const data = await parseResponseBody(response);
+    const raw = await parseResponseBody(response);
+    const envelope = normalizeEnvelope(raw, response.status);
+    const failed =
+      !response.ok || envelope.success === false || isAuthFailure(raw, response.status);
 
     if (
-      response.status === 401 &&
+      failed &&
+      isAuthFailure(raw, response.status) &&
       retry &&
       token &&
       !AUTH_SKIP_REFRESH.some(path => endpoint.startsWith(path))
@@ -124,25 +129,25 @@ export const apiRequest = async (
           throwOnError,
         });
       }
+      await expireSession();
     }
 
-    if (!response.ok) {
-      const error = new Error(getErrorMessage(data, response.status));
-      error.status = response.status;
-      error.payload = data;
+    if (failed) {
+      const error = toApiError(raw || envelope, response.status);
+      error.message = envelope.message || getEnvelopeMessage(raw, response.status);
+      error.code = envelope.code || error.code;
       if (throwOnError) {
         throw error;
       }
-      return {
-        ...(data || {}),
-        success: false,
-        message: error.message,
-        status: response.status,
-      };
+      return envelope;
     }
 
-    return data;
+    await persistEnvelopeTokens(envelope);
+    return envelope;
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
     console.error('API Request Error:', error);
     throw error;
   }
@@ -157,25 +162,20 @@ export const authService = {
       role: 'CAREGIVER',
     }),
 
-  login: (email, password) => apiRequest('/auth/login', 'POST', {email, password}),
+  login: (email, password) =>
+    apiRequest('/auth/login', 'POST', {email, password}),
 
   sendOtp: email => apiRequest('/auth/send-otp', 'POST', {email}),
 
-  verifyOtp: (email, otp) => apiRequest('/auth/verify-otp', 'POST', {email, otp}),
+  verifyOtp: (email, otp) =>
+    apiRequest('/auth/verify-otp', 'POST', {email, otp}),
 
   resendOtp: email => apiRequest('/auth/resend-otp', 'POST', {email}),
 
   refreshToken: refreshToken =>
     apiRequest('/auth/refresh-token', 'POST', {refreshToken}),
 
-  getAuthProfile: async () => {
-    const res = await apiRequest('/auth/profile', 'GET');
-    return {
-      ...res,
-      data: res?.user || res?.data,
-      user: res?.user || res?.data,
-    };
-  },
+  getAuthProfile: () => apiRequest('/auth/profile', 'GET'),
 
   updateAuthProfile: payload => apiRequest('/auth/profile', 'PUT', payload),
 
@@ -201,6 +201,18 @@ const appendProfileFields = (formData, fields = {}) => {
     }
     formData.append(key, String(value));
   });
+};
+
+const toQuery = params => {
+  const queryParams = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+    queryParams.append(key, String(value));
+  });
+  const qs = queryParams.toString();
+  return qs ? `?${qs}` : '';
 };
 
 export const caregiverService = {
@@ -234,36 +246,47 @@ export const caregiverService = {
   },
 
   getWallet: (params = {}) => {
-    const {limit = 20, offset = 0} = params;
-    const queryParams = new URLSearchParams({
-      limit: String(limit),
-      offset: String(offset),
-    });
-    return apiRequest(`/caregiver/wallet?${queryParams.toString()}`, 'GET');
+    const {page, limit, offset} = params;
+    return apiRequest(`/caregiver/wallet${toQuery({page, limit, offset})}`, 'GET');
   },
+
+  getAvailability: () => apiRequest('/caregiver/availability', 'GET'),
+
+  updateAvailability: slots =>
+    apiRequest('/caregiver/availability', 'PUT', {slots}),
+
+  getWithdrawals: (params = {}) =>
+    apiRequest(`/caregiver/withdrawals${toQuery(params)}`, 'GET'),
+
+  createWithdrawal: payload =>
+    apiRequest('/caregiver/withdrawals', 'POST', payload),
+
+  getReviews: (params = {}) =>
+    apiRequest(`/caregiver/reviews/my${toQuery(params)}`, 'GET'),
+
+  initiateEkyc: redirectUrl =>
+    apiRequest('/caregiver/ekyc/initiate', 'POST', {
+      redirect_url: redirectUrl,
+    }),
+
+  getEkycStatus: () => apiRequest('/caregiver/ekyc/status', 'GET'),
 };
 
 export const inboxService = {
   getInbox: (params = {}) => {
     const {page = 1, limit = 20, is_read, type} = params;
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-    if (is_read !== undefined && is_read !== '') {
-      queryParams.append('is_read', String(is_read));
-    }
-    if (type) {
-      queryParams.append('type', type);
-    }
-    return apiRequest(`/inbox?${queryParams.toString()}`, 'GET');
+    return apiRequest(
+      `/inbox${toQuery({page, limit, is_read, type})}`,
+      'GET',
+    );
   },
 
   getInboxItem: id => apiRequest(`/inbox/${id}`, 'GET'),
 
   getUnreadCount: async () => {
     const res = await apiRequest('/inbox/unread-count', 'GET');
-    const unread = res?.unread ?? res?.data?.unread ?? 0;
+    const data = unwrapData(res);
+    const unread = data?.unread ?? 0;
     return {...res, unread, data: {unread}};
   },
 
@@ -280,24 +303,19 @@ export const notificationService = {
   markAllAsRead: () => inboxService.markAllAsRead(),
 };
 
+export const notificationPreferenceService = {
+  getPreferences: () => apiRequest('/notifications/preferences', 'GET'),
+  updatePreferences: payload =>
+    apiRequest('/notifications/preferences', 'PUT', payload),
+};
+
 export const bookingService = {
   getMyBookings: (params = {}) => {
     const {page, limit = 20, offset, status} = params;
-    const queryParams = new URLSearchParams();
-    if (page) {
-      queryParams.append('page', String(page));
-    }
-    if (limit) {
-      queryParams.append('limit', String(limit));
-    }
-    if (offset !== undefined && offset !== '') {
-      queryParams.append('offset', String(offset));
-    }
-    if (status) {
-      queryParams.append('status', status);
-    }
-    const qs = queryParams.toString();
-    return apiRequest(`/caregiver/bookings/my${qs ? `?${qs}` : ''}`, 'GET');
+    return apiRequest(
+      `/caregiver/bookings/my${toQuery({page, limit, offset, status})}`,
+      'GET',
+    );
   },
 
   getBookingDetails: id => apiRequest(`/bookings/${id}`, 'GET'),
@@ -318,6 +336,11 @@ export const bookingService = {
 
   completeBooking: id =>
     apiRequest(`/caregiver/bookings/${id}/complete`, 'POST'),
+
+  createDispute: (id, payload) =>
+    apiRequest(`/bookings/${id}/dispute`, 'POST', payload),
+
+  getDisputes: id => apiRequest(`/bookings/${id}/disputes`, 'GET'),
 };
 
 export const hospitalService = {
@@ -327,14 +350,7 @@ export const hospitalService = {
 
   searchHospitals: (params = {}) => {
     const {page = 1, limit = 20, district} = params;
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-    if (district) {
-      queryParams.append('district', district);
-    }
-    return apiRequest(`/hospitals?${queryParams.toString()}`, 'GET');
+    return apiRequest(`/hospitals${toQuery({page, limit, district})}`, 'GET');
   },
 };
 
@@ -356,5 +372,6 @@ export default {
   hospitalService,
   inboxService,
   notificationService,
+  notificationPreferenceService,
   pushTokenService,
 };

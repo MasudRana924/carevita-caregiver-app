@@ -15,6 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useBookings} from '../api/queries';
 import {useAcceptBooking, useRejectBooking, useStartBooking, useCompleteBooking} from '../api/mutations';
+import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
 
@@ -25,16 +26,12 @@ const FILTERS = [
   {key: '', label: 'All'},
   {key: 'PROVIDER_ASSIGNED', label: 'New'},
   {key: 'PROVIDER_ACCEPTED', label: 'Accepted'},
+  {key: 'PAYMENT_PAID', label: 'Paid'},
   {key: 'IN_PROGRESS', label: 'In progress'},
   {key: 'COMPLETED', label: 'Completed'},
 ];
 
-const unwrapBookings = payload =>
-  Array.isArray(payload?.data)
-    ? payload.data
-    : Array.isArray(payload?.data?.bookings)
-      ? payload.data.bookings
-      : [];
+const unwrapBookings = payload => unwrapList(payload);
 
 const formatDate = dateString => {
   if (!dateString) {
@@ -105,7 +102,9 @@ const getStatusMeta = status => {
       return {label: 'Needs your response', color: '#E74C3C', icon: 'ellipse'};
     case 'PROVIDER_ACCEPTED':
     case 'CONFIRMED':
-      return {label: 'Accepted', color: '#22C55E', icon: 'checkmark-circle'};
+      return {label: 'Waiting for pay', color: '#22C55E', icon: 'checkmark-circle'};
+    case 'PAYMENT_PAID':
+      return {label: 'Paid · Start', color: '#0B8A80', icon: 'play-circle'};
     case 'IN_PROGRESS':
     case 'SERVICE_IN_PROGRESS':
       return {label: 'In progress', color: '#3B82F6', icon: 'ellipse'};
@@ -224,7 +223,7 @@ const BookingsScreen = ({navigation, route}) => {
           try {
             await acceptBooking.mutateAsync(bookingId);
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to accept booking');
+            Alert.alert('Cannot accept', getAcceptConflictMessage(error));
           }
         },
       },

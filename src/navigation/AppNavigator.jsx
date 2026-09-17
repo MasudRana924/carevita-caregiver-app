@@ -21,6 +21,10 @@ import InboxScreen from '../screens/InboxScreen';
 import WalletScreen from '../screens/WalletScreen';
 import CaregiverProfileScreen from '../screens/CaregiverProfileScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import AvailabilityScreen from '../screens/AvailabilityScreen';
+import ReviewsScreen from '../screens/ReviewsScreen';
+import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
+import EkycVerificationScreen from '../screens/EkycVerificationScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -127,7 +131,7 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const {userToken, isLoading, hasCaregiverProfile} = useAuth();
+  const {userToken, isLoading, hasCaregiverProfile, isEkycVerified} = useAuth();
 
   if (isLoading) {
     return (
@@ -144,7 +148,13 @@ function AppNavigator() {
         animation: 'slide_from_right',
       }}>
       {userToken ? (
-        hasCaregiverProfile ? (
+        !isEkycVerified ? (
+          <Stack.Screen
+            name="EkycVerification"
+            component={EkycVerificationScreen}
+            options={{gestureEnabled: false}}
+          />
+        ) : hasCaregiverProfile ? (
           <>
             <Stack.Screen
               name="Main"
@@ -160,6 +170,12 @@ function AppNavigator() {
             <Stack.Screen
               name="ChangePassword"
               component={ChangePasswordScreen}
+            />
+            <Stack.Screen name="Availability" component={AvailabilityScreen} />
+            <Stack.Screen name="Reviews" component={ReviewsScreen} />
+            <Stack.Screen
+              name="NotificationPreferences"
+              component={NotificationPreferencesScreen}
             />
           </>
         ) : (

@@ -41,6 +41,7 @@ const goToWallet = navigation => {
 const shouldOpenWallet = (type, action, screen) =>
   action === 'OPEN_WALLET' ||
   type === 'EARNING_SETTLED' ||
+  type === 'WITHDRAWAL_UPDATED' ||
   screen === 'wallet';
 
 const shouldOpenBooking = (type, action, screen) =>
@@ -50,6 +51,7 @@ const shouldOpenBooking = (type, action, screen) =>
   type === 'REVIEW_RECEIVED' ||
   type === 'BOOKING_CREATED' ||
   type === 'BOOKING_CANCELLED' ||
+  type === 'DISPUTE_UPDATED' ||
   screen === 'booking_details';
 
 /**

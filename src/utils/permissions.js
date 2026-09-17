@@ -64,6 +64,20 @@ export const requestLocationPermission = async () => {
   }
 };
 
+export const requestMicrophonePermission = async () => {
+  try {
+    const permission =
+      Platform.OS === 'ios'
+        ? PERMISSIONS.IOS.MICROPHONE
+        : PERMISSIONS.ANDROID.RECORD_AUDIO;
+    const result = await request(permission);
+    return isGranted(result);
+  } catch (error) {
+    console.error('Microphone permission error:', error);
+    return false;
+  }
+};
+
 export const requestNotificationPermission = async () => {
   try {
     const permission =
@@ -83,5 +97,6 @@ export const requestAppPermissions = async () => {
   await requestLocationPermission();
   await requestCameraPermission();
   await requestGalleryPermission();
+  await requestMicrophonePermission();
   await requestNotificationPermission();
 };

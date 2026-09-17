@@ -4,7 +4,13 @@
  */
 
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {bookingService, authService, inboxService, caregiverService} from './services';
+import {
+  bookingService,
+  authService,
+  inboxService,
+  caregiverService,
+  notificationPreferenceService,
+} from './services';
 import {queryKeys} from './queryKeys';
 
 const invalidateBookings = (queryClient, id) => {
@@ -153,6 +159,61 @@ export const useUploadProfilePhoto = () => {
   });
 };
 
+export const useUpdateAvailability = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: slots => caregiverService.updateAvailability(slots),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: queryKeys.availability.all});
+      queryClient.invalidateQueries({queryKey: queryKeys.caregiverProfile.all});
+    },
+  });
+};
+
+export const useCreateWithdrawal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: payload => caregiverService.createWithdrawal(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: queryKeys.wallet.all});
+    },
+  });
+};
+
+export const useUpdateNotificationPreferences = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: payload =>
+      notificationPreferenceService.updatePreferences(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
+  });
+};
+
+export const useCreateDispute = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({id, reason, details}) =>
+      bookingService.createDispute(id, {
+        reason,
+        ...(details ? {details} : {}),
+      }),
+    onSuccess: (_data, variables) => {
+      invalidateBookings(queryClient, variables?.id);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.disputes.list(variables?.id),
+      });
+    },
+  });
+};
+
 export const useCreateCaregiverProfile = () => {
   const queryClient = useQueryClient();
 
@@ -192,4 +253,8 @@ export default {
   useUploadProfilePhoto,
   useCreateCaregiverProfile,
   useUpdateCaregiverProfile,
+  useUpdateAvailability,
+  useCreateWithdrawal,
+  useUpdateNotificationPreferences,
+  useCreateDispute,
 };

@@ -1,121 +1,33 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  apiRequest as request,
+  extractAuthPayload,
+  ApiError,
+} from '../api/services';
 
-// const BASE_URL = 'http://192.168.10.78:8000/api/v1';
-const BASE_URL = 'https://carevita-service.onrender.com/api/v1';
-
-const AUTH_SKIP_REFRESH = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/verify-otp',
-  '/auth/resend-otp',
-  '/auth/send-otp',
-  '/auth/refresh-token',
-];
-
-const persistAuthTokens = async data => {
-  if (data?.token) {
-    await AsyncStorage.setItem('userToken', data.token);
-  }
-  if (data?.refreshToken) {
-    await AsyncStorage.setItem('refreshToken', data.refreshToken);
-  }
-};
-
-const extractTokens = payload => {
-  const nested = payload?.data || {};
-  return {
-    token: nested.token || payload?.token,
-    refreshToken: nested.refreshToken || payload?.refreshToken,
-  };
-};
-
-const refreshAccessToken = async () => {
-  const refreshToken = await AsyncStorage.getItem('refreshToken');
-  if (!refreshToken) {
-    return null;
-  }
-
-  try {
-    const response = await fetch(`${BASE_URL}/auth/refresh-token`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({refreshToken}),
-    });
-    const payload = await response.json();
-    const tokens = extractTokens(payload);
-    if (payload?.success && tokens.token) {
-      await persistAuthTokens(tokens);
-      return tokens.token;
-    }
-  } catch (error) {
-    console.error('Refresh token error:', error);
-  }
-  return null;
-};
-
-export const extractAuthPayload = response => {
-  const data = response?.data || {};
-  return {
-    token: data.token || response?.token,
-    refreshToken: data.refreshToken || response?.refreshToken,
-    user: data.user || response?.user,
-  };
-};
+export {extractAuthPayload, ApiError};
 
 export const apiRequest = async (
   endpoint,
   method = 'GET',
   body = null,
   isFormData = false,
-  {retry = true} = {},
 ) => {
-  const token = await AsyncStorage.getItem('userToken');
-
-  const config = {
-    method,
-    headers: {},
-  };
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (!isFormData) {
-    config.headers['Content-Type'] = 'application/json';
-  }
-
-  if (body) {
-    config.body = isFormData ? body : JSON.stringify(body);
-  }
-
-  const response = await fetch(`${BASE_URL}${endpoint}`, config);
-  let data = null;
   try {
-    data = await response.json();
+    return await request(endpoint, method, body, isFormData, {
+      throwOnError: false,
+    });
   } catch (error) {
-    data = {
-      success: false,
-      message: `HTTP error! status: ${response.status}`,
-    };
-  }
-
-  if (
-    response.status === 401 &&
-    retry &&
-    token &&
-    !AUTH_SKIP_REFRESH.some(path => endpoint.startsWith(path))
-  ) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      return apiRequest(endpoint, method, body, isFormData, {retry: false});
+    if (error instanceof ApiError || error?.payload) {
+      return {
+        success: false,
+        code: error.code || error.payload?.code || null,
+        message: error.message,
+        data: error.payload?.data ?? null,
+        status: error.status,
+      };
     }
+    throw error;
   }
-
-  if (data && typeof data === 'object') {
-    data.status = response.status;
-  }
-
-  return data;
 };
 
 export const registerUser = async (name, email, password) => {

@@ -12,14 +12,16 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useBookingDetails} from '../api/queries';
+import {useBookingDetails, useBookingDisputes} from '../api/queries';
 import {
   useAcceptBooking,
   useRejectBooking,
   useCancelBooking,
   useStartBooking,
   useCompleteBooking,
+  useCreateDispute,
 } from '../api/mutations';
+import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import Header from '../components/common/Header';
 import BookingDetailsSkeleton from '../components/home/BookingDetailsSkeleton';
 import Loader from '../components/common/Loader';
@@ -28,6 +30,7 @@ const STATUS_STYLES = {
   PENDING_PAYMENT: {bg: '#FFF4E5', text: '#D97706'},
   PROVIDER_ASSIGNED: {bg: '#E6F4F3', text: '#008178'},
   PROVIDER_ACCEPTED: {bg: '#E6F4F3', text: '#008178'},
+  PAYMENT_PAID: {bg: '#E6F4F3', text: '#008178'},
   CONFIRMED: {bg: '#E6F4F3', text: '#008178'},
   IN_PROGRESS: {bg: '#E6F4F3', text: '#008178'},
   SERVICE_IN_PROGRESS: {bg: '#E6F4F3', text: '#008178'},
@@ -44,9 +47,21 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const cancelBooking = useCancelBooking();
   const startBooking = useStartBooking();
   const completeBooking = useCompleteBooking();
-  const booking = bookingData?.data;
+  const createDispute = useCreateDispute();
+  const booking = bookingData?.data || null;
+  const disputesQuery = useBookingDisputes(bookingId, {
+    enabled: Boolean(
+      bookingId &&
+        (booking?.can_dispute ||
+          booking?.status === 'PAYMENT_PAID' ||
+          booking?.status === 'SERVICE_COMPLETED' ||
+          booking?.status === 'COMPLETED'),
+    ),
+  });
+  const disputes = unwrapList(disputesQuery.data);
   const [reasonModal, setReasonModal] = useState(null);
   const [reason, setReason] = useState('');
+  const [disputeDetails, setDisputeDetails] = useState('');
 
   const formatDate = dateString => {
     if (!dateString) return '--';
@@ -67,11 +82,20 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const formatTime = timeString => {
     if (!timeString) return '--';
     try {
-      const [hours, minutes] = timeString.split(':');
+      if (String(timeString).includes('T')) {
+        const date = new Date(timeString);
+        if (!Number.isNaN(date.getTime())) {
+          return date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+        }
+      }
+      const [hours, minutes] = String(timeString).split(':');
       const hour = parseInt(hours, 10);
       const ampm = hour >= 12 ? 'PM' : 'AM';
       const hour12 = hour % 12 || 12;
-      return `${hour12}:${minutes} ${ampm}`;
+      return `${hour12}:${(minutes || '00').slice(0, 2)} ${ampm}`;
     } catch (error) {
       return '--';
     }
@@ -81,37 +105,39 @@ const BookingDetailsScreen = ({navigation, route}) => {
     STATUS_STYLES[booking?.status] || {bg: '#F0F2F5', text: '#8190A7'};
   const statusLabel = (booking?.status || '').replace(/_/g, ' ');
   const canRespond = booking?.status === 'PROVIDER_ASSIGNED';
+  const waitingForPay = booking?.status === 'PROVIDER_ACCEPTED';
   const canStart = booking?.can_start === true;
   const canComplete = booking?.can_complete === true;
-  const canCancel =
-    booking?.status &&
-    ![
-      'CANCELLED',
-      'COMPLETED',
-      'SERVICE_COMPLETED',
-      'SERVICE_IN_PROGRESS',
-    ].includes(booking.status) &&
-    !canRespond &&
-    !canStart &&
-    !canComplete;
+  const paidOrDone = [
+    'PAYMENT_PAID',
+    'SERVICE_IN_PROGRESS',
+    'SERVICE_COMPLETED',
+    'COMPLETED',
+  ].includes(booking?.status);
+  const canCancel = booking?.can_cancel === true && !paidOrDone;
+  const canDispute =
+    booking?.can_dispute === true ||
+    (booking?.can_dispute !== false &&
+      ['PAYMENT_PAID', 'SERVICE_COMPLETED', 'COMPLETED'].includes(
+        booking?.status,
+      ));
 
   const familyName =
     booking?.family_member_name || booking?.family_member?.name;
   const customerName = booking?.customer_name || booking?.user?.name;
-  const familyMeta = [
-    booking?.family_member?.relationship,
-    booking?.family_member?.blood_group,
-  ]
-    .filter(Boolean)
-    .join(' · ');
   const familyAddress = [
-    booking?.family_member_house,
-    booking?.family_member_thana,
-    booking?.family_member_district,
+    booking?.family_member_house || booking?.family_member?.house,
+    booking?.family_member_thana || booking?.family_member?.thana,
+    booking?.family_member_district || booking?.family_member?.district,
   ]
     .filter(Boolean)
     .join(', ');
   const hospitalName = booking?.hospital_name || booking?.hospital?.name;
+  const hospitalAddress =
+    booking?.hospital_address || booking?.hospital?.address;
+  const hospitalPhone = booking?.hospital_phone || booking?.hospital?.phone;
+  const familyPhoto =
+    booking?.family_member?.photo || booking?.family_member_photo;
 
   const handleStart = () => {
     Alert.alert('Start service', 'Start this booking now?', [
@@ -165,10 +191,10 @@ const BookingDetailsScreen = ({navigation, route}) => {
         onPress: async () => {
           try {
             await acceptBooking.mutateAsync(bookingId);
-            Alert.alert('Accepted', 'Booking accepted. The family will be notified.');
+            Alert.alert('Accepted', 'Booking accepted. Waiting for the family to pay.');
             refetch();
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to accept booking');
+            Alert.alert('Cannot accept', getAcceptConflictMessage(error));
           }
         },
       },
@@ -184,11 +210,28 @@ const BookingDetailsScreen = ({navigation, route}) => {
     try {
       if (reasonModal === 'reject') {
         await rejectBooking.mutateAsync({id: bookingId, reason: trimmed});
-        Alert.alert('Rejected', 'Booking was rejected');
-      } else {
-        await cancelBooking.mutateAsync({id: bookingId, reason: trimmed});
-        Alert.alert('Cancelled', 'Booking cancelled');
+        Alert.alert('Rejected', 'This request was declined. It will be reassigned.');
+        setReasonModal(null);
+        setReason('');
+        navigation?.goBack();
+        return;
       }
+      if (reasonModal === 'dispute') {
+        await createDispute.mutateAsync({
+          id: bookingId,
+          reason: trimmed,
+          details: disputeDetails.trim(),
+        });
+        Alert.alert('Submitted', 'Dispute submitted');
+        setReasonModal(null);
+        setReason('');
+        setDisputeDetails('');
+        refetch();
+        disputesQuery.refetch();
+        return;
+      }
+      await cancelBooking.mutateAsync({id: bookingId, reason: trimmed});
+      Alert.alert('Cancelled', 'Booking cancelled');
       setReasonModal(null);
       setReason('');
       refetch();
@@ -206,7 +249,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
     );
   }
 
-  if (!booking) {
+  if (!booking?.id) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <Header title="Booking details" onBack={() => navigation?.goBack()} />
@@ -247,7 +290,8 @@ const BookingDetailsScreen = ({navigation, route}) => {
     rejectBooking.isPending ||
     cancelBooking.isPending ||
     startBooking.isPending ||
-    completeBooking.isPending;
+    completeBooking.isPending ||
+    createDispute.isPending;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
@@ -258,6 +302,17 @@ const BookingDetailsScreen = ({navigation, route}) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
+        {waitingForPay && (
+          <View style={styles.startBanner}>
+            <Icon name="card-outline" size={22} color="#008178" />
+            <View style={styles.startBannerText}>
+              <Text style={styles.startTitle}>Waiting for payment</Text>
+              <Text style={styles.startSub}>
+                You accepted this booking. Start becomes available after the family pays.
+              </Text>
+            </View>
+          </View>
+        )}
         {canStart && (
           <View style={styles.startBanner}>
             <Icon name="play-circle" size={22} color="#008178" />
@@ -276,6 +331,18 @@ const BookingDetailsScreen = ({navigation, route}) => {
               <Text style={styles.startTitle}>Service in progress</Text>
               <Text style={styles.startSub}>
                 Tap End when the booking is finished. Earnings go to your wallet.
+              </Text>
+            </View>
+          </View>
+        )}
+        {(booking.status === 'SERVICE_COMPLETED' ||
+          booking.status === 'COMPLETED') && (
+          <View style={styles.startBanner}>
+            <Icon name="wallet-outline" size={22} color="#008178" />
+            <View style={styles.startBannerText}>
+              <Text style={styles.startTitle}>Earning settled</Text>
+              <Text style={styles.startSub}>
+                This service is complete. Earnings are in your wallet.
               </Text>
             </View>
           </View>
@@ -320,13 +387,10 @@ const BookingDetailsScreen = ({navigation, route}) => {
 
         {!!familyName && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Patient</Text>
+            <Text style={styles.sectionTitle}>Family member</Text>
             <View style={styles.personRow}>
-              {booking.family_member?.photo ? (
-                <Image
-                  source={{uri: booking.family_member.photo}}
-                  style={styles.avatar}
-                />
+              {familyPhoto ? (
+                <Image source={{uri: familyPhoto}} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Icon name="person" size={22} color="#008178" />
@@ -334,9 +398,6 @@ const BookingDetailsScreen = ({navigation, route}) => {
               )}
               <View style={styles.personInfo}>
                 <Text style={styles.personName}>{familyName}</Text>
-                {!!familyMeta && (
-                  <Text style={styles.personMeta}>{familyMeta}</Text>
-                )}
                 {!!familyAddress && (
                   <Text style={styles.personMeta}>{familyAddress}</Text>
                 )}
@@ -361,30 +422,35 @@ const BookingDetailsScreen = ({navigation, route}) => {
               )}
               <View style={styles.personInfo}>
                 <Text style={styles.personName}>{hospitalName}</Text>
-                {!!booking.hospital?.address && (
+                {!!hospitalAddress && (
                   <Text style={styles.personMeta} numberOfLines={2}>
-                    {booking.hospital.address}
+                    {hospitalAddress}
                   </Text>
                 )}
-                {!!booking.hospital?.phone && (
-                  <Text style={styles.personMeta}>{booking.hospital.phone}</Text>
+                {!!hospitalPhone && (
+                  <Text style={styles.personMeta}>{hospitalPhone}</Text>
                 )}
               </View>
             </View>
           </View>
         )}
 
-        {!!booking.patient_requirements && (
+        {!!booking.notes && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Patient needs</Text>
-            <Text style={styles.bodyText}>{booking.patient_requirements}</Text>
+            <Text style={styles.sectionTitle}>Operational notes</Text>
+            <Text style={styles.bodyText}>{booking.notes}</Text>
           </View>
         )}
 
-        {!!booking.notes && (
+        {disputes.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Notes</Text>
-            <Text style={styles.bodyText}>{booking.notes}</Text>
+            <Text style={styles.sectionTitle}>Disputes</Text>
+            {disputes.map((item, index) => (
+              <Text key={item.id || index} style={styles.bodyText}>
+                {(item.status || 'OPEN').replace(/_/g, ' ')}
+                {item.reason ? ` · ${item.reason}` : ''}
+              </Text>
+            ))}
           </View>
         )}
 
@@ -402,7 +468,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
         )}
       </ScrollView>
 
-      {(canRespond || canCancel || canStart || canComplete) && (
+      {(canRespond || canCancel || canStart || canComplete || canDispute) && (
         <View style={styles.bottomContainer}>
           {canRespond && (
             <>
@@ -454,6 +520,20 @@ const BookingDetailsScreen = ({navigation, route}) => {
               </Text>
             </TouchableOpacity>
           )}
+          {canDispute && !canRespond && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.actionButton, styles.cancelButton]}
+              onPress={() => {
+                setReason('');
+                setDisputeDetails('');
+                setReasonModal('dispute');
+              }}>
+              <Text style={[styles.payButtonText, styles.cancelButtonText]}>
+                Dispute
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -465,16 +545,30 @@ const BookingDetailsScreen = ({navigation, route}) => {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {reasonModal === 'reject' ? 'Reject booking' : 'Cancel booking'}
+              {reasonModal === 'reject'
+                ? 'Reject booking'
+                : reasonModal === 'dispute'
+                  ? 'Open dispute'
+                  : 'Cancel booking'}
             </Text>
             <TextInput
               style={styles.reasonInput}
               value={reason}
               onChangeText={setReason}
-              placeholder="Reason"
+              placeholder={reasonModal === 'dispute' ? 'Reason' : 'Reason'}
               placeholderTextColor="#8190A7"
               multiline
             />
+            {reasonModal === 'dispute' ? (
+              <TextInput
+                style={[styles.reasonInput, {marginTop: 10}]}
+                value={disputeDetails}
+                onChangeText={setDisputeDetails}
+                placeholder="Details (optional)"
+                placeholderTextColor="#8190A7"
+                multiline
+              />
+            ) : null}
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalGhost}
@@ -483,7 +577,11 @@ const BookingDetailsScreen = ({navigation, route}) => {
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalPrimary} onPress={submitReason}>
                 <Text style={styles.payButtonText}>
-                  {reasonModal === 'reject' ? 'Reject' : 'Cancel'}
+                  {reasonModal === 'reject'
+                    ? 'Reject'
+                    : reasonModal === 'dispute'
+                      ? 'Submit'
+                      : 'Cancel'}
                 </Text>
               </TouchableOpacity>
             </View>

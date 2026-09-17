@@ -24,6 +24,17 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>caremate-caregiver</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>caremate-caregiver</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -39,7 +50,9 @@
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Stay updated with booking confirmations, caregiver arrivals, and important alerts.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to take photos for your profile and family members.</string>
+	<string>We need camera access for identity verification and profile photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need microphone access for identity verification liveness checks.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need photo library access to select photos for your profile and family members.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

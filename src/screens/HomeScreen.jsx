@@ -39,16 +39,12 @@ import {
   getPendingReview,
   clearPendingReview,
 } from '../utils/homeAlerts';
+import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#F4F8F7';
 
-const unwrapBookings = payload =>
-  Array.isArray(payload?.data)
-    ? payload.data
-    : Array.isArray(payload?.data?.bookings)
-      ? payload.data.bookings
-      : [];
+const unwrapBookings = payload => unwrapList(payload);
 
 const formatAmount = value => {
   const num = Number(value);
@@ -130,7 +126,9 @@ const getStatusMeta = status => {
   switch (status) {
     case 'PROVIDER_ACCEPTED':
     case 'CONFIRMED':
-      return {label: 'Accepted', bg: '#E6F7F2', text: '#0B8A80'};
+      return {label: 'Waiting for pay', bg: '#E6F7F2', text: '#0B8A80'};
+    case 'PAYMENT_PAID':
+      return {label: 'Paid', bg: '#E6F7F2', text: '#0B8A80'};
     case 'IN_PROGRESS':
     case 'SERVICE_IN_PROGRESS':
       return {label: 'In progress', bg: '#E6F7F2', text: '#0B8A80'};
@@ -267,7 +265,7 @@ const HomeScreen = ({navigation}) => {
           try {
             await acceptBooking.mutateAsync(bookingId);
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to accept booking');
+            Alert.alert('Cannot accept', getAcceptConflictMessage(error));
           }
         },
       },

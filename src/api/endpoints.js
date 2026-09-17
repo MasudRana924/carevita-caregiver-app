@@ -29,11 +29,18 @@ export const ENDPOINTS = {
     START: id => `/caregiver/bookings/${id}/start`,
     COMPLETE: id => `/caregiver/bookings/${id}/complete`,
     WALLET: '/caregiver/wallet',
+    AVAILABILITY: '/caregiver/availability',
+    WITHDRAWALS: '/caregiver/withdrawals',
+    REVIEWS: '/caregiver/reviews/my',
+    EKYC_INITIATE: '/caregiver/ekyc/initiate',
+    EKYC_STATUS: '/caregiver/ekyc/status',
   },
 
   BOOKINGS: {
     DETAIL: id => `/bookings/${id}`,
     CANCEL: id => `/bookings/${id}/cancel`,
+    DISPUTE: id => `/bookings/${id}/dispute`,
+    DISPUTES: id => `/bookings/${id}/disputes`,
   },
 
   HOSPITALS: {
@@ -49,12 +56,12 @@ export const ENDPOINTS = {
     READ_ALL: '/inbox/read-all',
   },
 
-  NOTIFICATION_TOKENS: {
-    LIST: '/notifications/tokens',
-    CREATE: '/notifications/tokens',
-    DELETE: id => `/notifications/tokens/${id}`,
-    DELETE_DEVICE: deviceId => `/notifications/tokens/device/${deviceId}`,
+  NOTIFICATIONS: {
+    TOKENS: '/notifications/tokens',
+    TOKEN: id => `/notifications/tokens/${id}`,
+    TOKEN_DEVICE: deviceId => `/notifications/tokens/device/${deviceId}`,
     DEACTIVATE_ALL: '/notifications/tokens/deactivate-all',
+    PREFERENCES: '/notifications/preferences',
   },
 };
 

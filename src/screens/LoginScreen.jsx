@@ -74,6 +74,7 @@ const LoginScreen = ({navigation}) => {
       } else {
         const message = response.message || 'Login failed';
         const needsVerify =
+          response.code === 'UNVERIFIED' ||
           response.errors?.some?.(e =>
             String(e?.message || e)
               .toLowerCase()

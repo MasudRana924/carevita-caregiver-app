@@ -44,6 +44,27 @@ const getSettings = navigation => [
     onPress: () => navigation?.navigate('CaregiverProfile', {mode: 'edit'}),
   },
   {
+    id: 'hours',
+    name: 'Weekly availability',
+    subtitle: 'Set hours bookings can start',
+    icon: 'time-outline',
+    onPress: () => navigation?.navigate('Availability'),
+  },
+  {
+    id: 'reviews',
+    name: 'Reviews',
+    subtitle: 'Ratings and comments from families',
+    icon: 'star-outline',
+    onPress: () => navigation?.navigate('Reviews'),
+  },
+  {
+    id: 'notifications',
+    name: 'Notification mute',
+    subtitle: 'Choose which push alerts you get',
+    icon: 'notifications-outline',
+    onPress: () => navigation?.navigate('NotificationPreferences'),
+  },
+  {
     id: 'password',
     name: 'Change password',
     subtitle: 'Update your login password',

@@ -22,11 +22,21 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      retry: 1,
+      retry: (failureCount, error) => {
+        const code = String(error?.code || '').toUpperCase();
+        if (
+          error?.status === 401 ||
+          code === 'TOKEN_EXPIRED' ||
+          code === 'UNAUTHORIZED'
+        ) {
+          return false;
+        }
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false,
     },
     mutations: {
-      retry: 1,
+      retry: 0,
     },
   },
 });
@@ -59,12 +69,15 @@ function AppContent() {
   useEffect(() => {
     const unsubscribe = notificationService.setForegroundBannerHandler(
       payload => {
+        const data = parseNotificationData(payload?.data);
+        const type = String(data?.type || '').toUpperCase();
         queryClient.invalidateQueries({queryKey: queryKeys.inbox.all});
         queryClient.invalidateQueries({queryKey: queryKeys.bookings.all});
         queryClient.invalidateQueries({queryKey: queryKeys.wallet.all});
+        if (type === 'REVIEW_RECEIVED') {
+          queryClient.invalidateQueries({queryKey: queryKeys.reviews.all});
+        }
 
-        const data = parseNotificationData(payload?.data);
-        const type = String(data?.type || '').toUpperCase();
         if (type === 'REVIEW_RECEIVED') {
           setPendingReview({
             ...data,

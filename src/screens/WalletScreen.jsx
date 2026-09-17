@@ -1,11 +1,20 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
-import {useWallet} from '../api/queries';
+import {useWallet, useWithdrawals} from '../api/queries';
+import {useCreateWithdrawal} from '../api/mutations';
+import {unwrapList} from '../api/envelope';
 
 const formatAmount = value => {
   const num = Number(value);
@@ -33,13 +42,21 @@ const formatDate = value => {
 
 const WalletScreen = ({navigation, route}) => {
   const showBack = route?.params?.showBack === true;
-  const {data, isLoading, refetch} = useWallet({limit: 20, offset: 0});
+  const {data, isLoading, refetch} = useWallet({page: 1, limit: 20});
+  const withdrawalsQuery = useWithdrawals({page: 1, limit: 20});
+  const createWithdrawal = useCreateWithdrawal();
   const wallet = data?.data || {};
   const transactions = Array.isArray(wallet.transactions)
     ? wallet.transactions
-    : [];
+    : unwrapList(data);
+  const withdrawals = unwrapList(withdrawalsQuery.data);
+  const pendingWithdrawal = withdrawals.find(
+    item => String(item.status || '').toUpperCase() === 'PENDING',
+  );
   const [showBalance, setShowBalance] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [bkashNumber, setBkashNumber] = useState('');
 
   useEffect(() => {
     const unsubscribe = navigation?.addListener('focus', () => {
@@ -62,6 +79,37 @@ const WalletScreen = ({navigation, route}) => {
     setShowBalance(!showBalance);
   };
 
+  const handleWithdraw = async () => {
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value < 100) {
+      Alert.alert('Minimum ৳100', 'Enter an amount of at least 100 BDT.');
+      return;
+    }
+    if (!bkashNumber.trim()) {
+      Alert.alert('Required', 'Enter your bKash number');
+      return;
+    }
+    if (pendingWithdrawal) {
+      Alert.alert(
+        'Pending withdrawal',
+        'Wait until your current withdrawal is completed or rejected.',
+      );
+      return;
+    }
+    try {
+      await createWithdrawal.mutateAsync({
+        amount: value,
+        bkash_number: bkashNumber.trim(),
+      });
+      setAmount('');
+      Alert.alert('Requested', 'Withdrawal request submitted');
+      withdrawalsQuery.refetch();
+      refetch();
+    } catch (error) {
+      Alert.alert('Error', error?.message || 'Failed to request withdrawal');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
       <Header
@@ -69,7 +117,7 @@ const WalletScreen = ({navigation, route}) => {
         showBack={showBack}
         onBack={() => navigation?.goBack()}
       />
-      <Loader visible={balanceLoading} />
+      <Loader visible={balanceLoading || createWithdrawal.isPending} />
 
       <ScrollView
         style={styles.flex}
@@ -93,9 +141,93 @@ const WalletScreen = ({navigation, route}) => {
             {showBalance ? `৳${formatAmount(wallet.balance ?? 0)}` : '৳****'}
           </Text>
           <Text style={styles.currency}>
-            {wallet.currency || 'BDT'} · {wallet.owner_type || 'CAREGIVER'}
+            {wallet.currency || 'BDT'}
           </Text>
         </View>
+
+        <Text style={styles.sectionTitle}>Withdraw</Text>
+        <View style={styles.withdrawCard}>
+          <Text style={styles.withdrawHint}>
+            Minimum ৳100. One pending request at a time.
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="Amount"
+            placeholderTextColor="#8190A7"
+            keyboardType="numeric"
+            editable={!pendingWithdrawal}
+          />
+          <TextInput
+            style={styles.input}
+            value={bkashNumber}
+            onChangeText={setBkashNumber}
+            placeholder="bKash number"
+            placeholderTextColor="#8190A7"
+            keyboardType="phone-pad"
+            editable={!pendingWithdrawal}
+          />
+          <TouchableOpacity
+            style={[
+              styles.withdrawBtn,
+              pendingWithdrawal && styles.withdrawBtnDisabled,
+            ]}
+            activeOpacity={0.85}
+            disabled={!!pendingWithdrawal}
+            onPress={handleWithdraw}>
+            <Text style={styles.withdrawBtnText}>
+              {pendingWithdrawal ? 'Withdrawal pending' : 'Request withdrawal'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {withdrawals.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Withdrawals</Text>
+            {withdrawals.map((item, index) => {
+              const status = String(item.status || 'PENDING').toUpperCase();
+              return (
+                <View key={item.id || index} style={styles.txCard}>
+                  <View
+                    style={[
+                      styles.txIcon,
+                      {
+                        backgroundColor:
+                          status === 'COMPLETED'
+                            ? '#E6F4F3'
+                            : status === 'REJECTED'
+                              ? '#FEECEC'
+                              : '#FFF4E5',
+                      },
+                    ]}>
+                    <Icon
+                      name="cash-outline"
+                      size={18}
+                      color={
+                        status === 'COMPLETED'
+                          ? '#008178'
+                          : status === 'REJECTED'
+                            ? '#DC2626'
+                            : '#D97706'
+                      }
+                    />
+                  </View>
+                  <View style={styles.txInfo}>
+                    <Text style={styles.txTitle}>{status.replace(/_/g, ' ')}</Text>
+                    <Text style={styles.txMeta}>
+                      {formatDate(item.created_at || item.updated_at)}
+                      {item.bkash_number ? ` · ${item.bkash_number}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.txAmount}>
+                    ৳{formatAmount(item.amount)}
+                  </Text>
+                </View>
+              );
+            })}
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Transactions</Text>
 
@@ -234,4 +366,34 @@ const styles = StyleSheet.create({
   txRight: {alignItems: 'flex-end'},
   txAmount: {fontSize: 14, fontWeight: '700'},
   txBalance: {marginTop: 3, fontSize: 11, color: '#8190A7'},
+  withdrawCard: {
+    backgroundColor: '#F6F6F6',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 22,
+  },
+  withdrawHint: {
+    fontSize: 12,
+    color: '#8190A7',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  input: {
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: '#111820',
+    marginBottom: 10,
+  },
+  withdrawBtn: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#008178',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  withdrawBtnDisabled: {backgroundColor: '#9BB8B0'},
+  withdrawBtnText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF'},
 });

@@ -11,6 +11,7 @@ import {
   authService,
   inboxService,
   notificationService,
+  notificationPreferenceService,
 } from './services';
 import {queryKeys} from './queryKeys';
 
@@ -90,6 +91,47 @@ export const useWallet = (params = {}, options = {}) => {
   });
 };
 
+export const useAvailability = (options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.availability.current(),
+    queryFn: () => caregiverService.getAvailability(),
+    ...options,
+  });
+};
+
+export const useWithdrawals = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.wallet.withdrawals(params),
+    queryFn: () => caregiverService.getWithdrawals(params),
+    ...options,
+  });
+};
+
+export const useCaregiverReviews = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.reviews.mine(params),
+    queryFn: () => caregiverService.getReviews(params),
+    ...options,
+  });
+};
+
+export const useNotificationPreferences = (options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.notificationPreferences.current(),
+    queryFn: () => notificationPreferenceService.getPreferences(),
+    ...options,
+  });
+};
+
+export const useBookingDisputes = (id, options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.disputes.list(id),
+    queryFn: () => bookingService.getDisputes(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
 export const useHospitals = (options = {}) => {
   return useQuery({
     queryKey: queryKeys.hospitals.lists(),
@@ -124,6 +166,11 @@ export default {
   useInboxItem,
   useInboxUnreadCount,
   useWallet,
+  useAvailability,
+  useWithdrawals,
+  useCaregiverReviews,
+  useNotificationPreferences,
+  useBookingDisputes,
   useHospitals,
   useHospital,
 };
