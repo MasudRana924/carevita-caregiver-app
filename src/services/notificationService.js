@@ -7,14 +7,20 @@ import {
   onNotificationOpenedApp,
   onTokenRefresh,
   getInitialNotification,
+  registerDeviceForRemoteMessages,
+  isDeviceRegisteredForRemoteMessages,
+  setAutoInitEnabled,
 } from '@react-native-firebase/messaging';
-import {Platform} from 'react-native';
+import {PermissionsAndroid, Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
 import {apiRequest} from './api';
+import {getFullUrl} from '../api/endpoints';
+import {normalizeEnvelope} from '../api/envelope';
 import {requestNotificationPermission} from '../utils/permissions';
 import {
   handleNotificationClick,
+  isEkycPushType,
   parseNotificationData,
 } from '../utils/notificationHandler';
 
@@ -31,6 +37,8 @@ class NotificationService {
   constructor() {
     this.isInitialized = false;
     this.foregroundBannerHandler = null;
+    this.ekycPushHandler = null;
+    this.registerInFlight = null;
   }
 
   setForegroundBannerHandler(handler) {
@@ -42,6 +50,15 @@ class NotificationService {
     };
   }
 
+  setEkycPushHandler(handler) {
+    this.ekycPushHandler = handler;
+    return () => {
+      if (this.ekycPushHandler === handler) {
+        this.ekycPushHandler = null;
+      }
+    };
+  }
+
   /**
    * Step 1: Request notification permission from user
    */
@@ -49,19 +66,29 @@ class NotificationService {
     try {
       console.log('🔔 Requesting notification permission...');
 
-      const systemGranted = await requestNotificationPermission();
-      if (!systemGranted) {
-        console.log('❌ Notification permission denied');
-        return false;
+      if (Platform.OS === 'android') {
+        const apiLevel = Number(Platform.Version);
+        if (!Number.isNaN(apiLevel) && apiLevel >= 33) {
+          const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+          const granted = result === PermissionsAndroid.RESULTS.GRANTED;
+          console.log(
+            granted
+              ? '✅ Notification permission granted'
+              : `⚠️ Notification permission: ${result}`,
+          );
+          return granted;
+        }
+        return true;
       }
 
-      if (Platform.OS === 'ios') {
-        const authStatus = await requestPermission(getMessaging());
-        const enabled = authStatus === AUTHORIZED || authStatus === PROVISIONAL;
-        if (!enabled) {
-          console.log('❌ iOS Firebase notification permission denied');
-          return false;
-        }
+      const systemGranted = await requestNotificationPermission();
+      const authStatus = await requestPermission(getMessaging());
+      const enabled = authStatus === AUTHORIZED || authStatus === PROVISIONAL;
+      if (!systemGranted || !enabled) {
+        console.log('❌ iOS Firebase notification permission denied');
+        return false;
       }
 
       console.log('✅ Notification permission granted');
@@ -72,15 +99,30 @@ class NotificationService {
     }
   }
 
+  async ensureRemoteMessaging() {
+    const messagingInstance = getMessaging();
+    try {
+      await setAutoInitEnabled(messagingInstance, true);
+    } catch (error) {
+      console.log('FCM auto-init skipped:', error?.message);
+    }
+    try {
+      if (!isDeviceRegisteredForRemoteMessages(messagingInstance)) {
+        await registerDeviceForRemoteMessages(messagingInstance);
+      }
+    } catch (error) {
+      console.log('FCM device register skipped:', error?.message);
+    }
+    return messagingInstance;
+  }
+
   /**
    * Step 2: Get FCM token from Firebase
    */
   async getFCMToken() {
     try {
       console.log('📱 Getting FCM token...');
-
-      // Check if we have apns token for iOS
-      const messagingInstance = getMessaging();
+      const messagingInstance = await this.ensureRemoteMessaging();
 
       if (Platform.OS === 'ios') {
         const apnsToken = await getAPNSToken(messagingInstance);
@@ -96,10 +138,9 @@ class NotificationService {
         console.log('✅ FCM Token obtained:', token.substring(0, 20) + '...');
         await AsyncStorage.setItem('fcmToken', token);
         return token;
-      } else {
-        console.log('❌ No FCM token available');
-        return null;
       }
+      console.log('❌ No FCM token available');
+      return null;
     } catch (error) {
       console.error('❌ FCM Token error:', error);
       return null;
@@ -146,38 +187,104 @@ class NotificationService {
         return false;
       }
 
-      const deviceId = await this.getOrCreateDeviceId();
-      const platform =
-        Platform.OS === 'ios'
-          ? 'IOS'
-          : Platform.OS === 'android'
-            ? 'ANDROID'
-            : 'WEB';
-
-      const response = await apiRequest(
-        '/notifications/tokens',
-        'POST',
-        {
-          token: token,
-          device_id: deviceId,
-          platform,
-        },
-        false,
-      );
-
-      if (response.success) {
-        console.log('✅ Token registered successfully with server');
-        await AsyncStorage.setItem('tokenRegistered', 'true');
-        if (response.data?.id) {
-          await AsyncStorage.setItem('fcmTokenId', response.data.id);
-        }
+      const fingerprint = `${String(authToken || '').slice(-12)}:${token}`;
+      const lastFingerprint = await AsyncStorage.getItem('fcmTokenFingerprint');
+      if (lastFingerprint === fingerprint) {
+        console.log('✅ FCM token already registered for this session');
         return true;
-      } else {
-        console.log('❌ Token registration failed:', response.message);
-        return false;
+      }
+
+      if (this.registerInFlight) {
+        return this.registerInFlight;
+      }
+
+      this.registerInFlight = this.postTokenToServer(
+        token,
+        fingerprint,
+        authToken,
+      );
+      try {
+        return await this.registerInFlight;
+      } finally {
+        this.registerInFlight = null;
       }
     } catch (error) {
       console.error('❌ Token registration error:', error);
+      return false;
+    }
+  }
+
+  async postTokenToServer(token, fingerprint, authToken) {
+    const deviceId = await this.getOrCreateDeviceId();
+    const platform =
+      Platform.OS === 'ios'
+        ? 'IOS'
+        : Platform.OS === 'android'
+          ? 'ANDROID'
+          : 'WEB';
+    const jwt = authToken || (await AsyncStorage.getItem('userToken'));
+    const payload = {
+      token,
+      device_id: deviceId,
+      platform,
+    };
+
+    console.log('📤 POST /notifications/tokens', {
+      device_id: deviceId,
+      platform,
+      token: `${token.substring(0, 16)}...`,
+      hasAuth: Boolean(jwt),
+    });
+
+    const response = await fetch(getFullUrl('/notifications/tokens'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(jwt ? {Authorization: `Bearer ${jwt}`} : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    let raw = null;
+    try {
+      raw = await response.json();
+    } catch (error) {
+      raw = null;
+    }
+    const envelope = normalizeEnvelope(raw, response.status);
+    console.log('📥 FCM token API response', {
+      http: response.status,
+      success: envelope.success,
+      message: envelope.message,
+    });
+
+    if (response.ok && envelope.success) {
+      await AsyncStorage.setItem('tokenRegistered', 'true');
+      await AsyncStorage.setItem('fcmTokenFingerprint', fingerprint);
+      const tokenId = envelope.data?.id || envelope.data?.token_id;
+      if (tokenId) {
+        await AsyncStorage.setItem('fcmTokenId', String(tokenId));
+      }
+      console.log('✅ Token registered successfully with server');
+      return true;
+    }
+
+    console.log('❌ Token registration failed:', envelope.message);
+    return false;
+  }
+
+  /**
+   * Login / register / OTP: POST FCM token immediately, then ask permission.
+   */
+  async registerAfterAuth(authToken) {
+    try {
+      const registered = await this.registerTokenWithServer(authToken);
+      this.requestPermission().catch(error => {
+        console.log('Notification permission after auth failed:', error?.message);
+      });
+      this.isInitialized = true;
+      return registered;
+    } catch (error) {
+      console.log('FCM register after auth failed:', error?.message);
       return false;
     }
   }
@@ -187,28 +294,9 @@ class NotificationService {
    */
   async initialize(authToken) {
     try {
-      if (this.isInitialized) {
-        console.log('⚠️ Notification service already initialized');
-        return true;
-      }
-
       console.log('🚀 Initializing notification service...');
+      await this.requestPermission();
 
-      // Step 1: Request permission
-      const hasPermission = await this.requestPermission();
-      if (!hasPermission) {
-        console.log('❌ Notification permission not granted');
-        return false;
-      }
-
-      // Step 2: Get FCM token
-      const token = await this.getFCMToken();
-      if (!token) {
-        console.log('❌ Failed to get FCM token');
-        return false;
-      }
-
-      // Step 3: Register with server (if auth token provided)
       if (authToken) {
         const registered = await this.registerTokenWithServer(authToken);
         if (!registered) {
@@ -216,6 +304,8 @@ class NotificationService {
             '⚠️ Token registration with server failed, but service is functional',
           );
         }
+      } else {
+        await this.getFCMToken();
       }
 
       this.isInitialized = true;
@@ -286,8 +376,13 @@ class NotificationService {
   handleNotification(remoteMessage, navigation) {
     const {title, body} = remoteMessage?.notification || {};
     const data = parseNotificationData(remoteMessage?.data);
+    const type = data?.type || data?.event;
 
     console.log('🔔 Notification received:', {title, body, data});
+
+    if (isEkycPushType(type) && typeof this.ekycPushHandler === 'function') {
+      this.ekycPushHandler(type, data);
+    }
 
     if (typeof this.foregroundBannerHandler === 'function') {
       this.foregroundBannerHandler({
@@ -309,7 +404,11 @@ class NotificationService {
     const data = parseNotificationData(
       remoteMessage?.data || remoteMessage || {},
     );
+    const type = data?.type || data?.event;
     console.log('🧭 Opening screen from push:', data);
+    if (isEkycPushType(type) && typeof this.ekycPushHandler === 'function') {
+      this.ekycPushHandler(type, data);
+    }
     handleNotificationClick(data, navigation);
   }
 
@@ -371,6 +470,7 @@ class NotificationService {
       await Promise.all([
         AsyncStorage.removeItem('fcmToken'),
         AsyncStorage.removeItem('tokenRegistered'),
+        AsyncStorage.removeItem('fcmTokenFingerprint'),
         AsyncStorage.removeItem('deviceId'),
         AsyncStorage.removeItem('fcmTokenId'),
       ]);

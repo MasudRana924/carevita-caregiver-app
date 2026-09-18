@@ -109,27 +109,7 @@ const VerifyPhoneScreen = ({navigation, route}) => {
           return;
         }
         console.log('✅ Auth tokens stored locally');
-
-        console.log('🔔 Initializing notification service...');
-        const notificationInitialized = await notificationService.initialize(
-          token,
-        );
-
-        if (notificationInitialized) {
-          console.log('✅ Notification service initialized');
-        } else {
-          console.log('⚠️ Notification service initialization failed');
-        }
-
-        console.log('📱 Registering FCM token with server...');
-        const tokenRegistered =
-          await notificationService.registerTokenWithServer(token);
-
-        if (tokenRegistered) {
-          console.log('✅ FCM token registered successfully');
-        } else {
-          console.log('⚠️ FCM token registration failed');
-        }
+        await notificationService.registerAfterAuth(token);
       } else {
         Alert.alert('Error', response.message || 'OTP verification failed');
       }
@@ -149,7 +129,7 @@ const VerifyPhoneScreen = ({navigation, route}) => {
       showBack
       title="Verify email"
       subtitle={`We sent a 4-digit code to ${email || 'your email'}.`}>
-      <Loader visible={loading} />
+      <Loader visible={loading || resending} overlay />
 
       <Text style={authStyles.label}>Enter OTP</Text>
       <View style={styles.otpContainer}>

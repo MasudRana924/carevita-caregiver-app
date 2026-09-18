@@ -72,6 +72,22 @@ export const AuthProvider = ({children}) => {
         return {ok: false, reason: 'wrong_role'};
       }
       if (userData?.id || userData?.email) {
+        try {
+          const storedRaw = await AsyncStorage.getItem('user');
+          const stored = storedRaw ? JSON.parse(storedRaw) : null;
+          if (stored?.ekyc_status === true && userData.ekyc_status !== true) {
+            userData = {
+              ...userData,
+              ekyc_status: true,
+              ekyc_session_status:
+                userData.ekyc_session_status || stored.ekyc_session_status,
+              ekyc_verified_at:
+                userData.ekyc_verified_at || stored.ekyc_verified_at,
+            };
+          }
+        } catch (error) {
+          // Keep freshly fetched profile if stored user cannot be read.
+        }
         await persistUser(userData);
       }
     } catch (error) {
@@ -164,6 +180,8 @@ export const AuthProvider = ({children}) => {
         await persistUser(authUser);
       }
 
+      await notificationService.registerAfterAuth(token);
+
       if (authUser?.ekyc_status !== true) {
         try {
           const ekycRes = await caregiverService.initiateEkyc(EKYC_REDIRECT_URL);
@@ -214,6 +232,33 @@ export const AuthProvider = ({children}) => {
     await persistUser(next);
   };
 
+  const applyEkycPush = useCallback(async (type, data = {}) => {
+    const normalized = String(type || data?.type || data?.event || '').toUpperCase();
+    if (normalized === 'EKYC_APPROVED') {
+      setPendingEkyc(null);
+      await updateUser(
+        applyEkycStatus(null, {
+          ...data,
+          ekyc_status: true,
+          ekyc_session_status: data.ekyc_session_status || 'Approved',
+        }),
+      );
+      await hydrateSession();
+      return 'approved';
+    }
+    if (normalized === 'EKYC_DECLINED') {
+      await updateUser(
+        applyEkycStatus(null, {
+          ...data,
+          ekyc_status: false,
+          ekyc_session_status: data.ekyc_session_status || 'Declined',
+        }),
+      );
+      return 'declined';
+    }
+    return null;
+  }, [hydrateSession, updateUser]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -229,6 +274,7 @@ export const AuthProvider = ({children}) => {
         login,
         logout,
         updateUser,
+        applyEkycPush,
         completeCaregiverProfile,
         refreshSession: hydrateSession,
       }}>

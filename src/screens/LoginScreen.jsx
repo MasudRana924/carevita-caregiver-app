@@ -47,30 +47,7 @@ const LoginScreen = ({navigation}) => {
           return;
         }
         console.log('✅ Auth tokens stored locally');
-
-        console.log('🔔 Initializing notification service...');
-        const notificationInitialized = await notificationService.initialize(
-          token,
-        );
-
-        if (notificationInitialized) {
-          console.log('✅ Notification service initialized');
-        } else {
-          console.log(
-            '⚠️ Notification service initialization failed, but continuing...',
-          );
-        }
-
-        console.log('📱 Registering FCM token with server...');
-        const tokenRegistered = await notificationService.registerTokenWithServer(
-          token,
-        );
-
-        if (tokenRegistered) {
-          console.log('✅ FCM token registered successfully');
-        } else {
-          console.log('⚠️ FCM token registration failed, but login successful');
-        }
+        await notificationService.registerAfterAuth(token);
       } else {
         const message = response.message || 'Login failed';
         const needsVerify =
@@ -98,7 +75,7 @@ const LoginScreen = ({navigation}) => {
       navigation={navigation}
       title="Welcome back"
       subtitle="Sign in to manage bookings and your caregiver profile.">
-      <Loader visible={loading} />
+      <Loader visible={loading} overlay />
 
       <Text style={authStyles.label}>Email Address</Text>
       <View style={authStyles.inputRow}>

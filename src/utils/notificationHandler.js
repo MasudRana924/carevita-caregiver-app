@@ -54,6 +54,11 @@ const shouldOpenBooking = (type, action, screen) =>
   type === 'DISPUTE_UPDATED' ||
   screen === 'booking_details';
 
+export const isEkycPushType = type => {
+  const value = normalize(type);
+  return value === 'EKYC_APPROVED' || value === 'EKYC_DECLINED';
+};
+
 /**
  * Handle notification click / FCM data and navigate by type + action
  */
@@ -63,9 +68,13 @@ export const handleNotificationClick = (rawData, navigation) => {
 
   const bookingId = getBookingId(data);
   const inboxId = getInboxId(data);
-  const type = normalize(data?.type);
+  const type = normalize(data?.type || data?.event);
   const action = normalize(data?.action);
   const screen = String(data?.screen || '').toLowerCase();
+
+  if (isEkycPushType(type)) {
+    return;
+  }
 
   if (shouldOpenWallet(type, action, screen)) {
     goToWallet(navigation);

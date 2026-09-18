@@ -3,7 +3,8 @@ import {View, Text, TextInput, TouchableOpacity, Alert} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
 import AuthShell, {AUTH, authStyles} from '../components/auth/AuthShell';
-import {registerUser} from '../services/api';
+import {registerUser, extractAuthPayload} from '../services/api';
+import notificationService from '../services/notificationService';
 
 const CreateAccountScreen = ({navigation}) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +44,8 @@ const CreateAccountScreen = ({navigation}) => {
     try {
       const response = await registerUser(name.trim(), email.trim(), password);
       if (response.success) {
+        const {token} = extractAuthPayload(response);
+        await notificationService.registerAfterAuth(token);
         navigation?.navigate('VerifyPhone', {email: email.trim()});
       } else {
         Alert.alert('Error', response.message || 'Registration failed');
@@ -61,7 +64,7 @@ const CreateAccountScreen = ({navigation}) => {
       showBack
       title="Create account"
       subtitle="Register to receive bookings and earn from your care work.">
-      <Loader visible={loading} />
+      <Loader visible={loading} overlay />
 
       <Text style={authStyles.label}>Full Name</Text>
       <View style={authStyles.inputRow}>

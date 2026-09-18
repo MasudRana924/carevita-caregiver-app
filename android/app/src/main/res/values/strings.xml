@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Nirapod</string>
+    <string name="default_notification_channel_id">caremate_default</string>
+    <string name="default_notification_channel_name">CareMate alerts</string>
 </resources>

@@ -80,6 +80,16 @@ export const requestMicrophonePermission = async () => {
 
 export const requestNotificationPermission = async () => {
   try {
+    if (Platform.OS === 'android') {
+      const apiLevel =
+        typeof Platform.Version === 'number'
+          ? Platform.Version
+          : parseInt(String(Platform.Version), 10);
+      if (!Number.isNaN(apiLevel) && apiLevel < 33) {
+        return true;
+      }
+    }
+
     const permission =
       Platform.OS === 'ios'
         ? PERMISSIONS.IOS.NOTIFICATIONS

@@ -42,7 +42,7 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  const {isLoading, userToken} = useAuth();
+  const {isLoading, userToken, applyEkycPush} = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const navigationRef = useRef<any>(null);
   const listenersCleanupRef = useRef<(() => void) | null>(null);
@@ -70,12 +70,30 @@ function AppContent() {
     const unsubscribe = notificationService.setForegroundBannerHandler(
       payload => {
         const data = parseNotificationData(payload?.data);
-        const type = String(data?.type || '').toUpperCase();
+        const type = String(data?.type || data?.event || '').toUpperCase();
         queryClient.invalidateQueries({queryKey: queryKeys.inbox.all});
         queryClient.invalidateQueries({queryKey: queryKeys.bookings.all});
         queryClient.invalidateQueries({queryKey: queryKeys.wallet.all});
         if (type === 'REVIEW_RECEIVED') {
           queryClient.invalidateQueries({queryKey: queryKeys.reviews.all});
+        }
+        if (type === 'EKYC_APPROVED' || type === 'EKYC_DECLINED') {
+          applyEkycPush(type, data);
+          setBanner({
+            visible: true,
+            title:
+              payload?.title ||
+              (type === 'EKYC_APPROVED'
+                ? 'Identity verified'
+                : 'Identity verification declined'),
+            body:
+              payload?.body ||
+              (type === 'EKYC_APPROVED'
+                ? 'Your eKYC was approved. You can continue in the app.'
+                : 'Your eKYC was declined. Please retry verification.'),
+            data: payload?.data || null,
+          });
+          return;
         }
 
         if (type === 'REVIEW_RECEIVED') {
@@ -103,7 +121,13 @@ function AppContent() {
       },
     );
     return unsubscribe;
-  }, []);
+  }, [applyEkycPush]);
+
+  useEffect(() => {
+    return notificationService.setEkycPushHandler((type, data) => {
+      applyEkycPush(type, data);
+    });
+  }, [applyEkycPush]);
 
   useEffect(() => {
     return () => {

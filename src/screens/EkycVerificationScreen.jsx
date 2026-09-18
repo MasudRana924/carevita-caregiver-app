@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,15 @@ import {
   BackHandler,
   Linking,
   StatusBar,
-  ActivityIndicator,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {WebView} from 'react-native-webview';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {caregiverService} from '../api/services';
-import {unwrapData} from '../api/envelope';
-import {useAuth} from '../context/AuthContext';
+import { caregiverService } from '../api/services';
+import { unwrapData } from '../api/envelope';
+import { useAuth } from '../context/AuthContext';
 import Toast from '../components/common/Toast';
+import Loader from '../components/common/Loader';
 import {AUTH, authStyles} from '../components/auth/AuthShell';
 import {
   EKYC_REDIRECT_URL,
@@ -43,7 +43,7 @@ const getInitialPhase = (pendingEkyc, user) => {
 };
 
 const EkycVerificationScreen = () => {
-  const {user, updateUser, logout, pendingEkyc, setPendingEkyc} = useAuth();
+  const { user, updateUser, logout, pendingEkyc, setPendingEkyc } = useAuth();
   const initialUrl = pendingEkyc?.verification_url || '';
   const [phase, setPhase] = useState(() => getInitialPhase(pendingEkyc, user));
   const [verificationUrl, setVerificationUrl] = useState(
@@ -63,7 +63,7 @@ const EkycVerificationScreen = () => {
   const statusRequestRef = useRef(null);
 
   const showError = message => {
-    setToast({visible: true, message, type: 'error'});
+    setToast({ visible: true, message, type: 'error' });
   };
 
   const markApproved = useCallback(
@@ -210,6 +210,17 @@ const EkycVerificationScreen = () => {
   }, [fetchStatusOnce]);
 
   useEffect(() => {
+    if (isEkycApproved(user)) {
+      return;
+    }
+    if (isEkycDeclined(user)) {
+      setVerificationUrl('');
+      setSessionStatus(getEkycSessionStatus(user) || 'Declined');
+      setPhase('declined');
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (startedRef.current || isEkycApproved(user)) {
       return;
     }
@@ -260,9 +271,9 @@ const EkycVerificationScreen = () => {
             : 'Verify identity to continue';
     const body =
       phase === 'declined'
-        ? 'Didit could not approve this session. Retry to start again.'
+        ? 'Your identity could not be approved. Please retry verification or contact support if this keeps happening.'
         : phase === 'in_review'
-          ? 'Please wait until you get a response. We will let you continue after verification is approved.'
+          ? 'Your identity is being reviewed. Please wait until you get a response. You can continue using the app once verification is approved.'
           : phase === 'pending'
             ? 'Finish identity verification to continue.'
             : 'Complete identity verification to continue.';
@@ -280,21 +291,13 @@ const EkycVerificationScreen = () => {
         </View>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
-        {!!sessionStatus && (
-          <Text style={styles.status}>Status: {sessionStatus}</Text>
-        )}
-        {checking ? (
-          <ActivityIndicator style={styles.spinner} color={AUTH.button} />
-        ) : null}
         {phase === 'in_review' ? (
           <TouchableOpacity
             style={authStyles.primaryButton}
             activeOpacity={0.85}
             onPress={fetchStatusOnce}
             disabled={checking}>
-            <Text style={authStyles.primaryButtonText}>
-              {checking ? 'Checking...' : 'Check status'}
-            </Text>
+            <Text style={authStyles.primaryButtonText}>Check status</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -320,18 +323,18 @@ const EkycVerificationScreen = () => {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
-        onHide={() => setToast(prev => ({...prev, visible: false}))}
+        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
       {phase === 'webview' && verificationUrl ? (
         <View style={styles.flex}>
           <View style={styles.webHeader}>
-            <Text style={styles.webTitle}>Identity verification</Text>
+            {/* <Text style={styles.webTitle}>Identity verification</Text> */}
             <TouchableOpacity onPress={leaveWebView} hitSlop={8}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={styles.closeText}>X</Text>
             </TouchableOpacity>
           </View>
           <WebView
-            source={{uri: verificationUrl}}
+            source={{ uri: verificationUrl }}
             startInLoadingState
             javaScriptEnabled
             domStorageEnabled
@@ -344,12 +347,12 @@ const EkycVerificationScreen = () => {
         </View>
       ) : phase === 'loading' ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={AUTH.button} />
           <Text style={styles.body}>Starting identity verification...</Text>
         </View>
       ) : (
         renderStatus()
       )}
+      <Loader visible={checking || phase === 'loading'} overlay />
     </SafeAreaView>
   );
 };
@@ -357,8 +360,8 @@ const EkycVerificationScreen = () => {
 export default EkycVerificationScreen;
 
 const styles = StyleSheet.create({
-  safe: {flex: 1, backgroundColor: AUTH.page},
-  flex: {flex: 1},
+  safe: { flex: 1, backgroundColor: AUTH.page },
+  flex: { flex: 1 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -386,26 +389,17 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: AUTH.muted,
     textAlign: 'center',
+    marginBottom: 22,
   },
-  status: {
-    marginTop: 12,
-    fontSize: 13,
-    fontWeight: '700',
-    color: AUTH.teal,
-    textAlign: 'center',
-  },
-  spinner: {marginVertical: 18},
   logout: {alignItems: 'center', marginTop: 16},
-  logoutText: {fontSize: 14, fontWeight: '600', color: AUTH.muted},
+  logoutText: { fontSize: 14, fontWeight: '600', color: AUTH.muted },
   webHeader: {
     height: 52,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3EDE8',
   },
-  webTitle: {fontSize: 16, fontWeight: '700', color: AUTH.title},
-  closeText: {fontSize: 14, fontWeight: '700', color: AUTH.button},
+  webTitle: { fontSize: 16, fontWeight: '700', color: AUTH.title },
+  closeText: { fontSize: 14, fontWeight: '700', color: AUTH.button },
 });
