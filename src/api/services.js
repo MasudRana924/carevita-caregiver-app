@@ -188,19 +188,75 @@ export const authService = {
 
 const appendProfileFields = (formData, fields = {}) => {
   Object.entries(fields).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') {
+    if (value === undefined || value === null) {
       return;
     }
-    if (Array.isArray(value)) {
-      formData.append(key, value.join(','));
+
+    if (key === 'service_areas') {
+      const areas = normalizeServiceAreas(value);
+      if (areas) {
+        formData.append('service_areas', areas);
+      }
       return;
     }
+
     if (typeof value === 'boolean') {
       formData.append(key, value ? 'true' : 'false');
       return;
     }
-    formData.append(key, String(value));
+
+    if (Array.isArray(value)) {
+      const joined = value
+        .map(item => String(item).trim())
+        .filter(Boolean)
+        .join(',');
+      if (joined) {
+        formData.append(key, joined);
+      }
+      return;
+    }
+
+    const text = String(value).trim();
+    if (!text) {
+      return;
+    }
+    formData.append(key, text);
   });
+};
+
+/** Multipart expects: "Dhaka" | "Dhaka,Mirpur" (not JSON array) */
+const normalizeServiceAreas = value => {
+  if (Array.isArray(value)) {
+    return value
+      .map(item => String(item).trim())
+      .filter(Boolean)
+      .join(',');
+  }
+
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  if (raw.startsWith('[') && raw.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(item => String(item).trim())
+          .filter(Boolean)
+          .join(',');
+      }
+    } catch (error) {
+      // fall through to comma split
+    }
+  }
+
+  return raw
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+    .join(',');
 };
 
 const toQuery = params => {
@@ -229,6 +285,7 @@ export const caregiverService = {
         name: photoAsset.fileName || 'profile_photo.jpg',
       });
     }
+    // Do NOT set Content-Type — fetch sets multipart boundary automatically
     return apiRequest('/caregiver/profile', 'POST', formData, true);
   },
 
@@ -242,6 +299,7 @@ export const caregiverService = {
         name: photoAsset.fileName || 'profile_photo.jpg',
       });
     }
+    // Do NOT set Content-Type — fetch sets multipart boundary automatically
     return apiRequest('/caregiver/profile', 'PUT', formData, true);
   },
 

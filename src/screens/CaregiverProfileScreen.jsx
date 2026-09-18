@@ -28,7 +28,35 @@ import {
 } from '../api/mutations';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const GENDERS = ['MALE', 'FEMALE', 'OTHER'];
+const GENDERS = [
+  {value: 'Female', label: 'Female'},
+  {value: 'Male', label: 'Male'},
+  {value: 'Other', label: 'Other'},
+];
+
+const normalizeGender = value => {
+  const raw = String(value || '').trim().toUpperCase();
+  if (raw === 'FEMALE' || raw === 'F') {
+    return 'Female';
+  }
+  if (raw === 'MALE' || raw === 'M') {
+    return 'Male';
+  }
+  if (raw === 'OTHER') {
+    return 'Other';
+  }
+  if (value === 'Female' || value === 'Male' || value === 'Other') {
+    return value;
+  }
+  return '';
+};
+
+const formatServiceAreasForApi = value =>
+  String(value || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+    .join(',');
 
 const CaregiverProfileScreen = ({navigation, route}) => {
   const isSetup = route?.params?.mode === 'setup';
@@ -76,7 +104,7 @@ const CaregiverProfileScreen = ({navigation, route}) => {
       date_of_birth: existing.date_of_birth
         ? String(existing.date_of_birth).split('T')[0]
         : '',
-      gender: existing.gender || '',
+      gender: normalizeGender(existing.gender),
       service_areas: Array.isArray(existing.service_areas)
         ? existing.service_areas.join(', ')
         : existing.service_areas || '',
@@ -136,17 +164,17 @@ const CaregiverProfileScreen = ({navigation, route}) => {
       district: form.district.trim(),
       thana: form.thana.trim(),
       bio: form.bio.trim(),
-      experience_years: form.experience_years.trim(),
-      hourly_rate: form.hourly_rate.trim(),
+      experience_years: String(form.experience_years.trim()),
+      hourly_rate: String(form.hourly_rate.trim()),
       education: form.education.trim(),
       blood_group: form.blood_group,
       date_of_birth: form.date_of_birth.trim(),
-      gender: form.gender,
-      service_areas: form.service_areas.trim(),
+      gender: normalizeGender(form.gender),
+      service_areas: formatServiceAreasForApi(form.service_areas),
     };
 
     if (!isSetup) {
-      fields.is_available = form.is_available;
+      fields.is_available = form.is_available === true;
     }
 
     const photoAsset =
@@ -288,20 +316,20 @@ const CaregiverProfileScreen = ({navigation, route}) => {
 
           <Text style={styles.label}>Gender</Text>
           <View style={styles.chipRow}>
-            {GENDERS.map(gender => (
+            {GENDERS.map(item => (
               <TouchableOpacity
-                key={gender}
+                key={item.value}
                 style={[
                   styles.chip,
-                  form.gender === gender && styles.chipActive,
+                  form.gender === item.value && styles.chipActive,
                 ]}
-                onPress={() => updateField('gender', gender)}>
+                onPress={() => updateField('gender', item.value)}>
                 <Text
                   style={[
                     styles.chipText,
-                    form.gender === gender && styles.chipTextActive,
+                    form.gender === item.value && styles.chipTextActive,
                   ]}>
-                  {gender}
+                  {item.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -321,7 +349,7 @@ const CaregiverProfileScreen = ({navigation, route}) => {
             style={styles.input}
             value={form.service_areas}
             onChangeText={text => updateField('service_areas', text)}
-            placeholder="Comma-separated areas"
+            placeholder="Dhaka or Dhaka,Mirpur"
             placeholderTextColor="#8190A7"
           />
 

@@ -31,17 +31,10 @@ const getInitials = name => {
 const getSettings = navigation => [
   {
     id: 'edit',
-    name: 'Edit account',
-    subtitle: 'Name, address & photo',
+    name: 'Edit profile',
+    subtitle: 'District, rate, bio & photo',
     icon: 'person-outline',
     onPress: () => navigation?.navigate('EditProfile'),
-  },
-  {
-    id: 'caregiver',
-    name: 'Caregiver profile',
-    subtitle: 'District, rate, availability',
-    icon: 'briefcase-outline',
-    onPress: () => navigation?.navigate('CaregiverProfile', {mode: 'edit'}),
   },
   {
     id: 'hours',
@@ -155,16 +148,14 @@ const ProfileScreen = ({navigation}) => {
         <TouchableOpacity
           activeOpacity={0.8}
           style={styles.accountCard}
-          onPress={() =>
-            navigation?.navigate('CaregiverProfile', {mode: 'edit'})
-          }>
+          onPress={() => navigation?.navigate('EditProfile')}>
           <View style={styles.accountIcon}>
             <Icon name="person-outline" size={20} color={TEAL} />
           </View>
           <View style={styles.accountCopy}>
-            <Text style={styles.accountTitle}>Caregiver Account</Text>
+            <Text style={styles.accountTitle}>Edit caregiver profile</Text>
             <Text style={styles.accountSub}>
-              Manage your profile, preferences and account settings
+              Update district, rate, bio, photo and availability
             </Text>
           </View>
           <Icon name="chevron-forward" size={18} color="#B7C2CC" />
