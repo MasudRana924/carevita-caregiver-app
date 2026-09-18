@@ -321,25 +321,14 @@ const HomeScreen = ({navigation}) => {
 
         <View style={styles.availCard}>
           <View style={styles.availLeft}>
-            {/* <View
-              style={[
-                styles.checkCircle,
-                !isAvailable && styles.checkCircleOff,
-              ]}>
-              <Icon
-                name={isAvailable ? 'checkmark' : 'close'}
-                size={16}
-                color="#FFFFFF"
-              />
-            </View> */}
             <View style={styles.availCopy}>
               <Text style={styles.availTitle}>
-                {isAvailable ? "You're available" : "You're unavailable"}
+                {isAvailable ? "You're available" : "You're offline"}
               </Text>
               <Text style={styles.availSub}>
                 {isAvailable
-                  ? 'New booking requests can be assigned to you'
-                  : 'Turn this on to receive new booking requests'}
+                  ? 'Families can send you new booking requests'
+                  : 'Turn on to receive new booking requests'}
               </Text>
             </View>
           </View>
@@ -364,10 +353,11 @@ const HomeScreen = ({navigation}) => {
                 styles.availState,
                 {color: isAvailable ? '#22C55E' : '#8A97A6'},
               ]}>
-              {isAvailable ? 'Available' : 'Offline'}
+              {isAvailable ? 'On' : 'Off'}
             </Text>
           </View>
         </View>
+
 
         {reminder?.booking ? (
           <TouchableOpacity
@@ -412,18 +402,14 @@ const HomeScreen = ({navigation}) => {
                   </Text>
                 </View>
               </View>
-              {/* <Text style={styles.timerHint}>
-                {reminderReady
-                  ? 'Service time has started. Open details to tap Start.'
-                  : 'Countdown follows the booking start time. Leaving the app will not reset it.'}
-              </Text> */}
             </LinearGradient>
           </TouchableOpacity>
         ) : null}
 
         <SectionHeader
-          icon="flash"
-          title="New Booking Request"
+          title="Needs your reply"
+          count={assigned.length}
+          actionLabel={assigned.length ? 'View all' : null}
           onPress={() =>
             navigation.navigate('Bookings', {status: 'PROVIDER_ASSIGNED'})
           }
@@ -432,11 +418,8 @@ const HomeScreen = ({navigation}) => {
           <View style={styles.requestCard}>
             <View style={styles.requestTop}>
               <View style={styles.requestBadge}>
-                <Text style={styles.requestBadgeText}>NEW BOOKING REQUEST</Text>
+                <Text style={styles.requestBadgeText}>ACTION NEEDED</Text>
               </View>
-              {/* <Text style={styles.bookingNumber}>
-                Booking #{featured.booking_number || featured.id?.slice(0, 8)}
-              </Text> */}
             </View>
 
             <TouchableOpacity
@@ -477,7 +460,7 @@ const HomeScreen = ({navigation}) => {
                 activeOpacity={0.85}
                 onPress={() => handleAccept(featured.id)}>
                 <Icon name="checkmark" size={16} color="#FFFFFF" />
-                <Text style={styles.acceptText}>Accept Booking</Text>
+                <Text style={styles.acceptText}>Accept</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.rejectBtn}
@@ -492,12 +475,21 @@ const HomeScreen = ({navigation}) => {
             </View>
           </View>
         ) : (
-          <EmptyCard text="No new booking requests right now" />
+          <EmptyCard
+            icon="mail-open-outline"
+            title="No requests waiting"
+            text={
+              isAvailable
+                ? 'Stay online. New family requests will show up here.'
+                : 'Turn availability On above to get new requests.'
+            }
+          />
         )}
 
         <SectionHeader
-          icon="calendar-outline"
-          title="Today's Schedule"
+          title="Today's work"
+          count={todayBookings.length}
+          actionLabel="Open bookings"
           onPress={() => navigation.navigate('Bookings')}
         />
         <TouchableOpacity
@@ -505,27 +497,41 @@ const HomeScreen = ({navigation}) => {
           activeOpacity={0.85}
           onPress={() => navigation.navigate('Bookings')}>
           <View style={styles.scheduleIcon}>
-            <Icon name="calendar" size={18} color={TEAL} />
+            <Icon
+              name={todayBookings.length ? 'calendar' : 'sunny-outline'}
+              size={18}
+              color={TEAL}
+            />
           </View>
           <View style={styles.scheduleCopy}>
             <Text style={styles.scheduleTitle}>
-              {todayBookings.length}{' '}
-              {todayBookings.length === 1 ? 'Booking' : 'Bookings'}
+              {todayBookings.length === 0
+                ? 'No visits today'
+                : `${todayBookings.length} visit${
+                    todayBookings.length === 1 ? '' : 's'
+                  } today`}
             </Text>
             <Text style={styles.scheduleMeta}>
-              Today, {formatDate(new Date().toISOString())}
+              {todayBookings.length === 0
+                ? 'Nothing scheduled · enjoy your free time'
+                : `Today, ${formatDate(new Date().toISOString())} · tap to open`}
             </Text>
           </View>
           <Icon name="chevron-forward" size={18} color="#B7C2CC" />
         </TouchableOpacity>
 
         <SectionHeader
-          icon="time-outline"
-          title="Recent Bookings"
+          title="Recent activity"
+          count={recent.length}
+          actionLabel={recent.length ? 'View all' : null}
           onPress={() => navigation.navigate('Bookings')}
         />
         {recent.length === 0 ? (
-          <EmptyCard text="Recent bookings will appear here" />
+          <EmptyCard
+            icon="time-outline"
+            title="No bookings yet"
+            text="Accepted and past bookings will appear here for quick follow-up."
+          />
         ) : (
           <View style={styles.recentCard}>
             {recent.map((booking, index) => {
@@ -683,33 +689,50 @@ const ServiceClockArt = () => (
   </View>
 );
 
-const SectionHeader = ({icon, title, onPress}) => (
+const SectionHeader = ({title, count, actionLabel, onPress}) => (
   <View style={styles.sectionHead}>
     <View style={styles.sectionTitleRow}>
-
       <Text style={styles.sectionTitle}>{title}</Text>
+      {count > 0 ? (
+        <View style={styles.countPill}>
+          <Text style={styles.countPillText}>{count}</Text>
+        </View>
+      ) : null}
     </View>
-    <TouchableOpacity onPress={onPress} hitSlop={8}>
-      <Text style={styles.viewAll}>View all </Text>
-    </TouchableOpacity>
+    {actionLabel ? (
+      <TouchableOpacity onPress={onPress} hitSlop={8}>
+        <Text style={styles.viewAll}>{actionLabel}</Text>
+      </TouchableOpacity>
+    ) : null}
   </View>
 );
 
-const StatCard = ({icon, value, label, onPress}) => (
-  <TouchableOpacity style={styles.statCard} activeOpacity={0.85} onPress={onPress}>
-    <View style={styles.statTop}>
-      <Icon name={icon} size={16} color="#07d84d" />
-      <Icon name="chevron-forward" size={18} color="#07d84d" />
+const SnapshotCard = ({icon, value, label, hint, onPress}) => (
+  <TouchableOpacity
+    style={styles.snapshotCard}
+    activeOpacity={0.85}
+    onPress={onPress}>
+    <View style={styles.snapshotIcon}>
+      <Icon name={icon} size={15} color={TEAL} />
     </View>
-    <Text style={styles.statValue} numberOfLines={1}>
+    <Text style={styles.snapshotValue} numberOfLines={1}>
       {value}
     </Text>
-    <Text style={styles.statLabel}>{label}</Text>
+    <Text style={styles.snapshotLabel} numberOfLines={1}>
+      {label}
+    </Text>
+    <Text style={styles.snapshotHint} numberOfLines={1}>
+      {hint}
+    </Text>
   </TouchableOpacity>
 );
 
-const EmptyCard = ({text}) => (
+const EmptyCard = ({icon, title, text}) => (
   <View style={styles.emptyCard}>
+    <View style={styles.emptyIcon}>
+      <Icon name={icon || 'information-circle-outline'} size={22} color={TEAL} />
+    </View>
+    {!!title && <Text style={styles.emptyTitle}>{title}</Text>}
     <Text style={styles.emptyText}>{text}</Text>
   </View>
 );
@@ -1015,29 +1038,41 @@ const styles = StyleSheet.create({
   },
   ratingGhostText: {fontSize: 14, fontWeight: '600', color: '#8A97A6'},
   statsRow: {flexDirection: 'row', gap: 10, marginTop: 14},
-  statCard: {
+  snapshotRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  snapshotCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    minHeight: 108,
-    width: 308,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
   },
-  statTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  snapshotIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#E8F3F1',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
-  statValue: {
-    marginTop: 12,
-    fontSize: 20,
+  snapshotValue: {
+    fontSize: 15,
     fontWeight: '800',
     color: '#15202B',
   },
-  statLabel: {
-    marginTop: 4,
+  snapshotLabel: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#5B6B7A',
+  },
+  snapshotHint: {
+    marginTop: 2,
     fontSize: 10,
-    lineHeight: 15,
     color: '#8A97A6',
   },
   sectionHead: {
@@ -1047,8 +1082,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
-  sectionTitle: {fontSize: 15, fontWeight: '400', color: '#15202B'},
+  sectionTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  sectionTitle: {fontSize: 16, fontWeight: '700', color: '#15202B'},
+  countPill: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 7,
+    backgroundColor: '#E8F3F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countPillText: {fontSize: 11, fontWeight: '800', color: TEAL},
   viewAll: {fontSize: 12, fontWeight: '600', color: TEAL},
   requestCard: {
     backgroundColor: '#FFFFFF',
@@ -1170,9 +1215,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 22,
+    paddingHorizontal: 18,
     alignItems: 'center',
   },
-  emptyText: {fontSize: 13, color: '#8A97A6'},
+  emptyIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#E8F3F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#15202B',
+    marginBottom: 4,
+  },
+  emptyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#8A97A6',
+    textAlign: 'center',
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
