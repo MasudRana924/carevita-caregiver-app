@@ -46,6 +46,8 @@ export const queryKeys = {
     all: ['wallet'],
     current: params => ['wallet', 'current', params],
     withdrawals: params => ['wallet', 'withdrawals', params],
+    deliveryMethods: () => ['wallet', 'delivery-methods'],
+    deliveryMethod: method => ['wallet', 'delivery-methods', method],
   },
 
   availability: {

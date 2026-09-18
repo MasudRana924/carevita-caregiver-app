@@ -258,6 +258,12 @@ export const caregiverService = {
   getWithdrawals: (params = {}) =>
     apiRequest(`/caregiver/withdrawals${toQuery(params)}`, 'GET'),
 
+  getDeliveryMethods: () =>
+    apiRequest('/caregiver/withdrawals/delivery-methods', 'GET'),
+
+  getDeliveryMethodFields: method =>
+    apiRequest(`/caregiver/withdrawals/delivery-methods/${method}`, 'GET'),
+
   createWithdrawal: payload =>
     apiRequest('/caregiver/withdrawals', 'POST', payload),
 

@@ -107,6 +107,23 @@ export const useWithdrawals = (params = {}, options = {}) => {
   });
 };
 
+export const useDeliveryMethods = (options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.wallet.deliveryMethods(),
+    queryFn: () => caregiverService.getDeliveryMethods(),
+    ...options,
+  });
+};
+
+export const useDeliveryMethodFields = (method, options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.wallet.deliveryMethod(method),
+    queryFn: () => caregiverService.getDeliveryMethodFields(method),
+    enabled: !!method,
+    ...options,
+  });
+};
+
 export const useCaregiverReviews = (params = {}, options = {}) => {
   return useQuery({
     queryKey: queryKeys.reviews.mine(params),
@@ -168,6 +185,8 @@ export default {
   useWallet,
   useAvailability,
   useWithdrawals,
+  useDeliveryMethods,
+  useDeliveryMethodFields,
   useCaregiverReviews,
   useNotificationPreferences,
   useBookingDisputes,

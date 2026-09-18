@@ -5,15 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
+import WithdrawModal from '../components/wallet/WithdrawModal';
 import {useWallet, useWithdrawals} from '../api/queries';
-import {useCreateWithdrawal} from '../api/mutations';
 import {unwrapList} from '../api/envelope';
 
 const formatAmount = value => {
@@ -40,11 +39,27 @@ const formatDate = value => {
   });
 };
 
+const getWithdrawalMeta = item => {
+  if (item?.bkash_number) {
+    return item.bkash_number;
+  }
+  const details = item?.delivery_details || {};
+  if (details.wallet_number) {
+    return details.wallet_number;
+  }
+  if (details.account_number) {
+    return details.account_number;
+  }
+  if (item?.method) {
+    return String(item.method);
+  }
+  return '';
+};
+
 const WalletScreen = ({navigation, route}) => {
   const showBack = route?.params?.showBack === true;
   const {data, isLoading, refetch} = useWallet({page: 1, limit: 20});
   const withdrawalsQuery = useWithdrawals({page: 1, limit: 20});
-  const createWithdrawal = useCreateWithdrawal();
   const wallet = data?.data || {};
   const transactions = Array.isArray(wallet.transactions)
     ? wallet.transactions
@@ -55,8 +70,7 @@ const WalletScreen = ({navigation, route}) => {
   );
   const [showBalance, setShowBalance] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [bkashNumber, setBkashNumber] = useState('');
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation?.addListener('focus', () => {
@@ -79,35 +93,14 @@ const WalletScreen = ({navigation, route}) => {
     setShowBalance(!showBalance);
   };
 
-  const handleWithdraw = async () => {
-    const value = Number(amount);
-    if (!Number.isFinite(value) || value < 100) {
-      Alert.alert('Minimum ৳100', 'Enter an amount of at least 100 BDT.');
-      return;
-    }
-    if (!bkashNumber.trim()) {
-      Alert.alert('Required', 'Enter your bKash number');
-      return;
-    }
-    if (pendingWithdrawal) {
-      Alert.alert(
-        'Pending withdrawal',
-        'Wait until your current withdrawal is completed or rejected.',
-      );
-      return;
-    }
-    try {
-      await createWithdrawal.mutateAsync({
-        amount: value,
-        bkash_number: bkashNumber.trim(),
-      });
-      setAmount('');
-      Alert.alert('Requested', 'Withdrawal request submitted');
-      withdrawalsQuery.refetch();
-      refetch();
-    } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to request withdrawal');
-    }
+  const handleWithdrawSuccess = response => {
+    refetch();
+    withdrawalsQuery.refetch();
+    Alert.alert(
+      'Withdrawal requested',
+      response?.message ||
+        'Your withdrawal request has been submitted and is pending review.',
+    );
   };
 
   return (
@@ -117,7 +110,7 @@ const WalletScreen = ({navigation, route}) => {
         showBack={showBack}
         onBack={() => navigation?.goBack()}
       />
-      <Loader visible={balanceLoading || createWithdrawal.isPending} />
+      <Loader visible={balanceLoading} />
 
       <ScrollView
         style={styles.flex}
@@ -140,44 +133,15 @@ const WalletScreen = ({navigation, route}) => {
           <Text style={styles.balanceValue}>
             {showBalance ? `৳${formatAmount(wallet.balance ?? 0)}` : '৳****'}
           </Text>
-          <Text style={styles.currency}>
-            {wallet.currency || 'BDT'}
-          </Text>
-        </View>
+          <Text style={styles.currency}>{wallet.currency || 'BDT'}</Text>
 
-        <Text style={styles.sectionTitle}>Withdraw</Text>
-        <View style={styles.withdrawCard}>
-          <Text style={styles.withdrawHint}>
-            Minimum ৳100. One pending request at a time.
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="Amount"
-            placeholderTextColor="#8190A7"
-            keyboardType="numeric"
-            editable={!pendingWithdrawal}
-          />
-          <TextInput
-            style={styles.input}
-            value={bkashNumber}
-            onChangeText={setBkashNumber}
-            placeholder="bKash number"
-            placeholderTextColor="#8190A7"
-            keyboardType="phone-pad"
-            editable={!pendingWithdrawal}
-          />
           <TouchableOpacity
-            style={[
-              styles.withdrawBtn,
-              pendingWithdrawal && styles.withdrawBtnDisabled,
-            ]}
-            activeOpacity={0.85}
-            disabled={!!pendingWithdrawal}
-            onPress={handleWithdraw}>
+            activeOpacity={0.88}
+            style={styles.withdrawBtn}
+            onPress={() => setWithdrawOpen(true)}>
+            <Icon name="arrow-up-circle-outline" size={18} color="#008178" />
             <Text style={styles.withdrawBtnText}>
-              {pendingWithdrawal ? 'Withdrawal pending' : 'Request withdrawal'}
+              {pendingWithdrawal ? 'View withdrawal' : 'Withdraw'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -187,6 +151,7 @@ const WalletScreen = ({navigation, route}) => {
             <Text style={styles.sectionTitle}>Withdrawals</Text>
             {withdrawals.map((item, index) => {
               const status = String(item.status || 'PENDING').toUpperCase();
+              const meta = getWithdrawalMeta(item);
               return (
                 <View key={item.id || index} style={styles.txCard}>
                   <View
@@ -214,10 +179,13 @@ const WalletScreen = ({navigation, route}) => {
                     />
                   </View>
                   <View style={styles.txInfo}>
-                    <Text style={styles.txTitle}>{status.replace(/_/g, ' ')}</Text>
+                    <Text style={styles.txTitle}>
+                      {status.replace(/_/g, ' ')}
+                      {item.method ? ` · ${item.method}` : ''}
+                    </Text>
                     <Text style={styles.txMeta}>
                       {formatDate(item.created_at || item.updated_at)}
-                      {item.bkash_number ? ` · ${item.bkash_number}` : ''}
+                      {meta ? ` · ${meta}` : ''}
                     </Text>
                   </View>
                   <Text style={styles.txAmount}>
@@ -290,6 +258,14 @@ const WalletScreen = ({navigation, route}) => {
           })
         )}
       </ScrollView>
+
+      <WithdrawModal
+        visible={withdrawOpen}
+        onClose={() => setWithdrawOpen(false)}
+        balance={wallet.balance ?? 0}
+        pendingWithdrawal={!!pendingWithdrawal}
+        onSuccess={handleWithdrawSuccess}
+      />
     </SafeAreaView>
   );
 };
@@ -319,6 +295,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   currency: {marginTop: 6, fontSize: 13, color: '#D7F0ED'},
+  withdrawBtn: {
+    marginTop: 18,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  withdrawBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#008178',
+  },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
@@ -366,34 +358,4 @@ const styles = StyleSheet.create({
   txRight: {alignItems: 'flex-end'},
   txAmount: {fontSize: 14, fontWeight: '700'},
   txBalance: {marginTop: 3, fontSize: 11, color: '#8190A7'},
-  withdrawCard: {
-    backgroundColor: '#F6F6F6',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 22,
-  },
-  withdrawHint: {
-    fontSize: 12,
-    color: '#8190A7',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  input: {
-    height: 48,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    color: '#111820',
-    marginBottom: 10,
-  },
-  withdrawBtn: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  withdrawBtnDisabled: {backgroundColor: '#9BB8B0'},
-  withdrawBtnText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF'},
 });

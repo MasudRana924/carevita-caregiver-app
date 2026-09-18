@@ -31,6 +31,9 @@ export const ENDPOINTS = {
     WALLET: '/caregiver/wallet',
     AVAILABILITY: '/caregiver/availability',
     WITHDRAWALS: '/caregiver/withdrawals',
+    DELIVERY_METHODS: '/caregiver/withdrawals/delivery-methods',
+    DELIVERY_METHOD: method =>
+      `/caregiver/withdrawals/delivery-methods/${method}`,
     REVIEWS: '/caregiver/reviews/my',
     EKYC_INITIATE: '/caregiver/ekyc/initiate',
     EKYC_STATUS: '/caregiver/ekyc/status',
