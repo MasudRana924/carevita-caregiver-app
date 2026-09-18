@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Animated,
+  Dimensions,
+  Easing,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../common/Loader';
 import {
@@ -19,6 +23,9 @@ import {
   useDeliveryMethodFields,
 } from '../../api/queries';
 import {useCreateWithdrawal} from '../../api/mutations';
+
+const {height: SCREEN_HEIGHT} = Dimensions.get('window');
+const SHEET_MAX = Math.min(SCREEN_HEIGHT * 0.9, 720);
 
 const METHOD_ICONS = {
   MFS: 'phone-portrait-outline',
@@ -38,6 +45,10 @@ const WithdrawModal = ({
   const [fieldValues, setFieldValues] = useState({});
   const [openSelectKey, setOpenSelectKey] = useState(null);
   const [formError, setFormError] = useState('');
+  const [mounted, setMounted] = useState(visible);
+
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const sheetAnim = useRef(new Animated.Value(SHEET_MAX)).current;
 
   const methodsQuery = useDeliveryMethods({enabled: visible});
   const fieldsQuery = useDeliveryMethodFields(selectedMethod, {
@@ -61,14 +72,56 @@ const WithdrawModal = ({
     selectedMethod;
 
   useEffect(() => {
-    if (!visible) {
-      setAmount('');
-      setSelectedMethod(null);
-      setFieldValues({});
-      setOpenSelectKey(null);
-      setFormError('');
+    if (visible) {
+      setMounted(true);
+      backdropAnim.setValue(0);
+      sheetAnim.setValue(SHEET_MAX);
+      Animated.parallel([
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(sheetAnim, {
+          toValue: 0,
+          damping: 18,
+          stiffness: 160,
+          mass: 0.9,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
     }
-  }, [visible]);
+
+    if (!mounted) {
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetAnim, {
+        toValue: SHEET_MAX,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(({finished}) => {
+      if (finished) {
+        setMounted(false);
+        setAmount('');
+        setSelectedMethod(null);
+        setFieldValues({});
+        setOpenSelectKey(null);
+        setFormError('');
+      }
+    });
+  }, [visible, backdropAnim, sheetAnim, mounted]);
 
   useEffect(() => {
     setFieldValues({});
@@ -77,6 +130,7 @@ const WithdrawModal = ({
   }, [selectedMethod]);
 
   const availableBalance = Number(balance) || 0;
+  const step = !selectedMethod ? 1 : 2;
 
   const updateField = (key, value) => {
     setFieldValues(prev => ({...prev, [key]: value}));
@@ -148,7 +202,9 @@ const WithdrawModal = ({
         <View key={field.key} style={styles.fieldBlock}>
           <Text style={styles.fieldLabel}>
             {field.label}
-            {field.required ? ' *' : ''}
+            {field.required ? (
+              <Text style={styles.requiredMark}> *</Text>
+            ) : null}
           </Text>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -163,11 +219,13 @@ const WithdrawModal = ({
               ]}>
               {selectedOption?.label || field.placeholder || 'Select option'}
             </Text>
-            <Icon
-              name={isOpen ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color="#8190A7"
-            />
+            <View style={styles.chevronPill}>
+              <Icon
+                name={isOpen ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="#008178"
+              />
+            </View>
           </TouchableOpacity>
           {isOpen && (
             <View style={styles.selectMenu}>
@@ -193,9 +251,9 @@ const WithdrawModal = ({
                       ]}>
                       {opt.label}
                     </Text>
-                    {active && (
-                      <Icon name="checkmark" size={16} color="#008178" />
-                    )}
+                    {active ? (
+                      <Icon name="checkmark-circle" size={18} color="#008178" />
+                    ) : null}
                   </TouchableOpacity>
                 );
               })}
@@ -209,14 +267,14 @@ const WithdrawModal = ({
       <View key={field.key} style={styles.fieldBlock}>
         <Text style={styles.fieldLabel}>
           {field.label}
-          {field.required ? ' *' : ''}
+          {field.required ? <Text style={styles.requiredMark}> *</Text> : null}
         </Text>
         <TextInput
           style={styles.input}
           value={value}
           onChangeText={text => updateField(field.key, text)}
           placeholder={field.placeholder || field.label}
-          placeholderTextColor="#8190A7"
+          placeholderTextColor="#9AA7B8"
           keyboardType={field.type === 'tel' ? 'phone-pad' : 'default'}
           autoCapitalize={field.type === 'tel' ? 'none' : 'words'}
         />
@@ -226,7 +284,7 @@ const WithdrawModal = ({
 
   const submitting = createWithdrawal.isPending;
   const showLoader =
-    visible &&
+    mounted &&
     (methodsQuery.isFetching ||
       (!!selectedMethod && fieldsQuery.isFetching) ||
       submitting);
@@ -240,172 +298,246 @@ const WithdrawModal = ({
   return (
     <>
       <Modal
-        visible={visible}
+        visible={mounted}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={onClose}
         statusBarTranslucent>
-        <KeyboardAvoidingView
-          style={styles.root}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <Pressable style={styles.backdrop} onPress={onClose} />
-          <View
-            style={[
-              styles.sheet,
-              {paddingBottom: Math.max(insets.bottom, 16) + 8},
-            ]}>
-            <View style={styles.handle} />
+        {mounted ? (
+          <KeyboardAvoidingView
+            style={styles.root}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <Animated.View
+              style={[
+                styles.backdrop,
+                {
+                  opacity: backdropAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1],
+                  }),
+                },
+              ]}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+            </Animated.View>
 
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.title}>Withdraw</Text>
-                <Text style={styles.subtitle}>
-                  Available ৳{availableBalance.toFixed(2)}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={onClose}
-                hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-                <Icon name="close" size={20} color="#4A5568" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.scrollContent}>
-              {pendingWithdrawal ? (
-                <View style={styles.pendingBanner}>
-                  <Icon name="time-outline" size={18} color="#D97706" />
-                  <Text style={styles.pendingText}>
-                    You already have a pending withdrawal. Wait until it is
-                    completed or rejected.
-                  </Text>
+            <Animated.View
+              style={[
+                styles.sheetWrap,
+                {
+                  transform: [{translateY: sheetAnim}],
+                  paddingBottom: Math.max(insets.bottom, 12),
+                },
+              ]}>
+              <View style={styles.sheet}>
+                <View style={styles.handleRow}>
+                  <View style={styles.handle} />
                 </View>
-              ) : null}
 
-              <Text style={styles.sectionLabel}>Amount</Text>
-              <View style={styles.amountWrap}>
-                <Text style={styles.currencyPrefix}>৳</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  value={amount}
-                  onChangeText={text => {
-                    setAmount(text.replace(/[^0-9.]/g, ''));
-                    if (formError) {
-                      setFormError('');
-                    }
-                  }}
-                  placeholder="0.00"
-                  placeholderTextColor="#A0AEC0"
-                  keyboardType="decimal-pad"
-                  editable={!pendingWithdrawal}
-                />
-              </View>
-              <Text style={styles.hint}>Minimum ৳100</Text>
+                <LinearGradient
+                  colors={['#E8F7F5', '#FFFFFF']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.hero}>
+                  <Text style={styles.title}>Withdraw Money</Text>
+                </LinearGradient>
 
-              <Text style={[styles.sectionLabel, styles.sectionGap]}>
-                Delivery method
-              </Text>
-
-              {methodsQuery.isError ? (
-                <TouchableOpacity
-                  style={styles.errorBox}
-                  onPress={() => methodsQuery.refetch()}>
-                  <Text style={styles.errorBoxText}>
-                    {methodsQuery.error?.message || 'Failed to load methods'}
-                  </Text>
-                  <Text style={styles.retryText}>Tap to retry</Text>
-                </TouchableOpacity>
-              ) : (
-                methods.map(item => {
-                  const active = selectedMethod === item.method;
-                  return (
-                    <TouchableOpacity
-                      key={item.method}
-                      activeOpacity={0.88}
-                      disabled={pendingWithdrawal}
-                      style={[
-                        styles.methodCard,
-                        active && styles.methodCardActive,
-                        pendingWithdrawal && styles.methodCardDisabled,
-                      ]}
-                      onPress={() => setSelectedMethod(item.method)}>
-                      <View
-                        style={[
-                          styles.methodIcon,
-                          active && styles.methodIconActive,
-                        ]}>
-                        <Icon
-                          name={METHOD_ICONS[item.method] || 'wallet-outline'}
-                          size={20}
-                          color={active ? '#008178' : '#4A5568'}
-                        />
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  bounces={false}
+                  contentContainerStyle={styles.scrollContent}>
+                  {pendingWithdrawal ? (
+                    <View style={styles.pendingBanner}>
+                      <View style={styles.pendingIcon}>
+                        <Icon name="time-outline" size={18} color="#D97706" />
                       </View>
-                      <View style={styles.methodInfo}>
-                        <Text
-                          style={[
-                            styles.methodLabel,
-                            active && styles.methodLabelActive,
-                          ]}>
-                          {item.label}
-                        </Text>
-                        {!!item.description && (
-                          <Text style={styles.methodDesc}>
-                            {item.description}
-                          </Text>
-                        )}
-                      </View>
-                      <View
-                        style={[styles.radio, active && styles.radioActive]}>
-                        {active && <View style={styles.radioDot} />}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
-              )}
+                      <Text style={styles.pendingText}>
+                        You already have a pending withdrawal. Wait until it is
+                        completed or rejected.
+                      </Text>
+                    </View>
+                  ) : null}
 
-              {selectedMethod && !fieldsQuery.isFetching && (
-                <>
+                  <Text style={styles.sectionLabel}>Amount</Text>
+                  <View style={styles.amountCard}>
+                    <Text style={styles.currencyPrefix}>৳</Text>
+                    <TextInput
+                      style={styles.amountInput}
+                      value={amount}
+                      onChangeText={text => {
+                        setAmount(text.replace(/[^0-9.]/g, ''));
+                        if (formError) {
+                          setFormError('');
+                        }
+                      }}
+                      placeholder="0.00"
+                      placeholderTextColor="#C0CAD6"
+                      keyboardType="decimal-pad"
+                      editable={!pendingWithdrawal}
+                    />
+                  </View>
+                  <Text style={styles.hint}>Minimum withdrawal ৳100</Text>
+
                   <Text style={[styles.sectionLabel, styles.sectionGap]}>
-                    {methodLabel} details
+                    Delivery method
                   </Text>
 
-                  {fieldsQuery.isError ? (
+                  {methodsQuery.isError ? (
                     <TouchableOpacity
                       style={styles.errorBox}
-                      onPress={() => fieldsQuery.refetch()}>
+                      onPress={() => methodsQuery.refetch()}>
                       <Text style={styles.errorBoxText}>
-                        {fieldsQuery.error?.message || 'Failed to load fields'}
+                        {methodsQuery.error?.message ||
+                          'Failed to load methods'}
                       </Text>
                       <Text style={styles.retryText}>Tap to retry</Text>
                     </TouchableOpacity>
                   ) : (
-                    fields.map(renderField)
+                    methods.map(item => {
+                      const active = selectedMethod === item.method;
+                      return (
+                        <TouchableOpacity
+                          key={item.method}
+                          activeOpacity={0.9}
+                          disabled={pendingWithdrawal}
+                          style={[
+                            styles.methodCard,
+                            active && styles.methodCardActive,
+                            pendingWithdrawal && styles.methodCardDisabled,
+                          ]}
+                          onPress={() => setSelectedMethod(item.method)}>
+                          <View
+                            style={[
+                              styles.methodIcon,
+                              active && styles.methodIconActive,
+                            ]}>
+                            <Icon
+                              name={
+                                METHOD_ICONS[item.method] || 'wallet-outline'
+                              }
+                              size={22}
+                              color={active ? '#FFFFFF' : '#008178'}
+                            />
+                          </View>
+                          <View style={styles.methodInfo}>
+                            <Text
+                              style={[
+                                styles.methodLabel,
+                                active && styles.methodLabelActive,
+                              ]}>
+                              {item.label}
+                            </Text>
+                            {!!item.description && (
+                              <Text
+                                style={styles.methodDesc}
+                                numberOfLines={2}>
+                                {item.description}
+                              </Text>
+                            )}
+                          </View>
+                          <View
+                            style={[
+                              styles.radio,
+                              active && styles.radioActive,
+                            ]}>
+                            {active ? <View style={styles.radioDot} /> : null}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
                   )}
-                </>
-              )}
 
-              {!!formError && <Text style={styles.formError}>{formError}</Text>}
-            </ScrollView>
+                  {selectedMethod && !fieldsQuery.isFetching ? (
+                    <View style={styles.detailsCard}>
+                      <View style={styles.detailsHeader}>
+                        <Text style={styles.detailsTitle}>
+                          {methodLabel} details
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setSelectedMethod(null)}
+                          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                          <Text style={styles.changeLink}>Change</Text>
+                        </TouchableOpacity>
+                      </View>
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
-              disabled={!canSubmit}
-              onPress={handleSubmit}>
-              <Text style={styles.submitText}>
-                {pendingWithdrawal
-                  ? 'Withdrawal pending'
-                  : 'Request withdrawal'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+                      {fieldsQuery.isError ? (
+                        <TouchableOpacity
+                          style={styles.errorBox}
+                          onPress={() => fieldsQuery.refetch()}>
+                          <Text style={styles.errorBoxText}>
+                            {fieldsQuery.error?.message ||
+                              'Failed to load fields'}
+                          </Text>
+                          <Text style={styles.retryText}>Tap to retry</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        fields.map(renderField)
+                      )}
+                    </View>
+                  ) : null}
+
+                  {!!formError && (
+                    <View style={styles.formErrorBox}>
+                      <Icon
+                        name="alert-circle-outline"
+                        size={16}
+                        color="#DC2626"
+                      />
+                      <Text style={styles.formError}>{formError}</Text>
+                    </View>
+                  )}
+                </ScrollView>
+
+                <View style={styles.footer}>
+                  <TouchableOpacity
+                    activeOpacity={0.92}
+                    style={[
+                      styles.submitBtn,
+                      !canSubmit && styles.submitBtnDisabled,
+                    ]}
+                    disabled={!canSubmit}
+                    onPress={handleSubmit}>
+                    <LinearGradient
+                      colors={
+                        canSubmit
+                          ? ['#009E93', '#008178']
+                          : ['#A8C7C3', '#90B3AE']
+                      }
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                      style={styles.submitGradient}>
+                      <Text style={styles.submitText}>
+                        {pendingWithdrawal
+                          ? 'Withdrawal pending'
+                          : 'Request withdrawal'}
+                      </Text>
+                      {!pendingWithdrawal ? (
+                        <Icon
+                          name="arrow-forward"
+                          size={18}
+                          color="#FFFFFF"
+                          style={styles.submitIcon}
+                        />
+                      ) : null}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+
+                <View
+                  style={[
+                    styles.loaderOverlay,
+                    !showLoader && styles.loaderHidden,
+                  ]}
+                  pointerEvents={showLoader ? 'auto' : 'none'}>
+                  <Loader visible={showLoader} overlay={false} size={44} />
+                </View>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        ) : (
+          <View />
+        )}
       </Modal>
-
-      <Loader visible={showLoader} />
     </>
   );
 };
@@ -416,49 +548,160 @@ const styles = StyleSheet.create({
   root: {flex: 1, justifyContent: 'flex-end'},
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(17, 24, 32, 0.48)',
+    backgroundColor: 'rgba(10, 18, 28, 0.55)',
+  },
+  sheetWrap: {
+    maxHeight: SHEET_MAX,
+    width: '100%',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '92%',
-    paddingHorizontal: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    maxHeight: SHEET_MAX,
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0A121C',
+        shadowOffset: {width: 0, height: -8},
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+      },
+      android: {elevation: 24},
+    }),
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+  },
+  loaderHidden: {
+    opacity: 0,
+  },
+  handleRow: {
+    alignItems: 'center',
     paddingTop: 10,
+    paddingBottom: 4,
+    backgroundColor: '#E8F7F5',
   },
   handle: {
-    alignSelf: 'center',
-    width: 42,
-    height: 4,
+    width: 44,
+    height: 5,
     borderRadius: 999,
-    backgroundColor: '#D8DEE6',
-    marginBottom: 14,
+    backgroundColor: 'rgba(0, 129, 120, 0.28)',
   },
-  header: {
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 18,
+  },
+  heroTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 12,
   },
-  title: {fontSize: 20, fontWeight: '700', color: '#111820'},
-  subtitle: {marginTop: 4, fontSize: 13, color: '#8190A7'},
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  heroBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#008178',
+    letterSpacing: 0.2,
+  },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3F5F7',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scrollContent: {paddingBottom: 16},
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F1A24',
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    color: '#5B6B7C',
+    lineHeight: 18,
+  },
+  balancePill: {
+    marginTop: 14,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 129, 120, 0.12)',
+  },
+  balancePillLabel: {fontSize: 12, color: '#8190A7', fontWeight: '600'},
+  balancePillValue: {fontSize: 16, fontWeight: '800', color: '#008178'},
+  steps: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#C9D8D5',
+  },
+  stepDotActive: {backgroundColor: '#008178'},
+  stepLine: {
+    width: 28,
+    height: 2,
+    backgroundColor: '#C9D8D5',
+    marginHorizontal: 6,
+  },
+  stepLineActive: {backgroundColor: '#008178'},
+  stepCaption: {
+    marginLeft: 8,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#008178',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 12,
+  },
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: '#FFF4E5',
-    borderRadius: 12,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
     padding: 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  pendingIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFEDD5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pendingText: {
     flex: 1,
@@ -467,65 +710,65 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#4A5568',
+    color: '#6B7C8F',
     marginBottom: 10,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
-  sectionGap: {marginTop: 18},
-  amountWrap: {
+  sectionGap: {marginTop: 20},
+  amountCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F6F8FA',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E8EDF2',
-    paddingHorizontal: 14,
-    minHeight: 56,
+    backgroundColor: '#F4F8F7',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#D9E8E5',
+    paddingHorizontal: 16,
+    minHeight: 64,
   },
   currencyPrefix: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#008178',
-    marginRight: 6,
+    marginRight: 4,
   },
   amountInput: {
     flex: 1,
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111820',
-    paddingVertical: 12,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0F1A24',
+    paddingVertical: 14,
   },
-  hint: {marginTop: 8, fontSize: 12, color: '#8190A7'},
+  hint: {marginTop: 8, fontSize: 12, color: '#8A97A8'},
   methodCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F9FB',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#E8EDF2',
+    borderColor: '#E4EBF0',
     padding: 14,
     marginBottom: 10,
   },
   methodCardActive: {
-    backgroundColor: '#EAF7F5',
+    backgroundColor: '#F0FAF8',
     borderColor: '#008178',
   },
-  methodCardDisabled: {opacity: 0.55},
+  methodCardDisabled: {opacity: 0.5},
   methodIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#E8F7F5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  methodIconActive: {backgroundColor: '#D7F0ED'},
+  methodIconActive: {backgroundColor: '#008178'},
   methodInfo: {flex: 1, minWidth: 0, paddingRight: 8},
-  methodLabel: {fontSize: 15, fontWeight: '700', color: '#111820'},
+  methodLabel: {fontSize: 15, fontWeight: '700', color: '#0F1A24'},
   methodLabelActive: {color: '#008178'},
   methodDesc: {
     marginTop: 3,
@@ -534,46 +777,63 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#C5CDD8',
+    borderColor: '#C9D4DF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioActive: {borderColor: '#008178'},
   radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
     backgroundColor: '#008178',
   },
-  fieldBlock: {marginBottom: 14},
+  detailsCard: {
+    marginTop: 8,
+    backgroundColor: '#F7FAFA',
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E3EEEE',
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  detailsTitle: {fontSize: 14, fontWeight: '700', color: '#0F1A24'},
+  changeLink: {fontSize: 13, fontWeight: '700', color: '#008178'},
+  fieldBlock: {marginBottom: 12},
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#111820',
+    color: '#334155',
     marginBottom: 8,
   },
+  requiredMark: {color: '#DC2626'},
   input: {
-    backgroundColor: '#F6F8FA',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8EDF2',
+    borderColor: '#DCE5EC',
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#111820',
+    color: '#0F1A24',
   },
   selectTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F6F8FA',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8EDF2',
+    borderColor: '#DCE5EC',
     paddingHorizontal: 14,
     minHeight: 50,
   },
@@ -582,14 +842,22 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
-  selectValue: {flex: 1, fontSize: 15, color: '#111820', paddingRight: 8},
-  selectPlaceholder: {color: '#8190A7'},
+  selectValue: {flex: 1, fontSize: 15, color: '#0F1A24', paddingRight: 8},
+  selectPlaceholder: {color: '#9AA7B8'},
+  chevronPill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E8F7F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   selectMenu: {
     borderWidth: 1,
     borderTopWidth: 0,
     borderColor: '#008178',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
@@ -603,12 +871,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E8EDF2',
   },
   selectOptionLast: {borderBottomWidth: 0},
-  selectOptionActive: {backgroundColor: '#EAF7F5'},
-  selectOptionText: {fontSize: 15, color: '#111820'},
-  selectOptionTextActive: {color: '#008178', fontWeight: '600'},
+  selectOptionActive: {backgroundColor: '#F0FAF8'},
+  selectOptionText: {fontSize: 15, color: '#0F1A24'},
+  selectOptionTextActive: {color: '#008178', fontWeight: '700'},
   errorBox: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 8,
   },
@@ -616,24 +884,46 @@ const styles = StyleSheet.create({
   retryText: {
     marginTop: 6,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#008178',
   },
+  formErrorBox: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   formError: {
-    marginTop: 4,
-    marginBottom: 4,
+    flex: 1,
     fontSize: 13,
     color: '#DC2626',
     lineHeight: 18,
   },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E8EEF2',
+    backgroundColor: '#FFFFFF',
+  },
   submitBtn: {
-    backgroundColor: '#008178',
-    borderRadius: 14,
-    minHeight: 52,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  submitBtnDisabled: {opacity: 0.9},
+  submitGradient: {
+    minHeight: 54,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    flexDirection: 'row',
+    paddingHorizontal: 18,
   },
-  submitBtnDisabled: {opacity: 0.45},
-  submitText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+  submitText: {fontSize: 16, fontWeight: '800', color: '#FFFFFF'},
+  submitIcon: {marginLeft: 8},
 });

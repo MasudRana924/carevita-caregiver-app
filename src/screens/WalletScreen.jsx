@@ -58,6 +58,10 @@ const getWithdrawalMeta = item => {
 
 const WalletScreen = ({navigation, route}) => {
   const showBack = route?.params?.showBack === true;
+  const [showBalance, setShowBalance] = useState(false);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+
   const {data, isLoading, refetch} = useWallet({page: 1, limit: 20});
   const withdrawalsQuery = useWithdrawals({page: 1, limit: 20});
   const wallet = data?.data || {};
@@ -68,9 +72,6 @@ const WalletScreen = ({navigation, route}) => {
   const pendingWithdrawal = withdrawals.find(
     item => String(item.status || '').toUpperCase() === 'PENDING',
   );
-  const [showBalance, setShowBalance] = useState(false);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation?.addListener('focus', () => {
