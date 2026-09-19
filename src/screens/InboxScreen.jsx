@@ -11,6 +11,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useNotifications, useInboxUnreadCount} from '../api/queries';
 import {useMarkAllInboxRead} from '../api/mutations';
 import Header from '../components/common/Header';
+import Loader from '../components/common/Loader';
 import NotificationSkeleton from '../components/home/NotificationSkeleton';
 import {apiRequest} from '../services/api';
 import {unwrapList} from '../api/envelope';
@@ -115,9 +116,11 @@ const InboxScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Loader visible={markAll.isPending} overlay />
       <Header
         title="Inbox"
         showBack={false}
+        leftIcon="mail-outline"
         rightComponent={
           unread > 0 ? (
             <TouchableOpacity

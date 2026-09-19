@@ -47,7 +47,7 @@ const ChangePasswordScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <Loader visible={changePassword.isPending} />
+      <Loader visible={changePassword.isPending} overlay />
       <Header title="Change password" onBack={() => navigation?.goBack()} />
       <KeyboardAvoidingView
         style={styles.content}

@@ -112,7 +112,7 @@ const AvailabilityScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <Loader visible={saveMutation.isPending} />
+      <Loader visible={saveMutation.isPending} overlay />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>

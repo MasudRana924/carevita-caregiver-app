@@ -18,6 +18,7 @@ import {useAcceptBooking, useRejectBooking, useStartBooking, useCompleteBooking}
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
+import Header from '../components/common/Header';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -253,14 +254,13 @@ const BookingsScreen = ({navigation, route}) => {
     completeBooking.isPending;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <Loader visible={busy} />
-
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle}>My Bookings</Text>
-        </View>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Loader visible={busy} overlay />
+      <Header
+        title="Bookings"
+        showBack={false}
+        leftIcon="calendar-outline"
+      />
 
       <View style={styles.filtersWrap}>
         <ScrollView

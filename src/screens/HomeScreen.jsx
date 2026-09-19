@@ -310,7 +310,7 @@ const HomeScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <Loader visible={busy} />
+      <Loader visible={busy} overlay />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}

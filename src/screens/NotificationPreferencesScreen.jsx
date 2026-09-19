@@ -60,7 +60,7 @@ const NotificationPreferencesScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <Loader visible={saveMutation.isPending} />
+      <Loader visible={saveMutation.isPending} overlay />
       <Header title="Notifications" onBack={() => navigation?.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.intro}>

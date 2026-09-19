@@ -10,6 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
+import WalletSkeleton from '../components/wallet/WalletSkeleton';
 import {useWallet, useWithdrawals} from '../api/queries';
 import {unwrapList} from '../api/envelope';
 
@@ -98,10 +99,14 @@ const WalletScreen = ({navigation, route}) => {
       <Header
         title="Wallet"
         showBack={showBack}
+        leftIcon={showBack ? undefined : 'wallet-outline'}
         onBack={() => navigation?.goBack()}
       />
-      <Loader visible={balanceLoading} />
+      <Loader visible={balanceLoading} overlay />
 
+      {isLoading ? (
+        <WalletSkeleton />
+      ) : (
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.content}
@@ -194,9 +199,7 @@ const WalletScreen = ({navigation, route}) => {
 
         <Text style={styles.sectionTitle}>Transactions</Text>
 
-        {isLoading ? (
-          <Text style={styles.emptyText}>Loading wallet...</Text>
-        ) : transactions.length === 0 ? (
+        {transactions.length === 0 ? (
           <View style={styles.empty}>
             <Icon name="wallet-outline" size={40} color="#008178" />
             <Text style={styles.emptyTitle}>No transactions yet</Text>
@@ -253,6 +256,7 @@ const WalletScreen = ({navigation, route}) => {
           })
         )}
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 };

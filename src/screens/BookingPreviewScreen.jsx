@@ -139,7 +139,7 @@ const BookingPreviewScreen = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <Loader visible={isSubmitting} />
+      <Loader visible={isSubmitting} overlay />
       <Header title="Booking Preview" onBack={() => navigation?.goBack()} />
 
       <ScrollView

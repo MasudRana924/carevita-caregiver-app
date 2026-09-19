@@ -200,13 +200,14 @@ const CaregiverProfileScreen = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <Loader visible={saving} />
+      <Loader visible={saving} overlay />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
         <Header
           title={isSetup ? 'Complete your profile' : 'Caregiver profile'}
           showBack={!isSetup}
+          leftIcon={isSetup ? 'person-outline' : undefined}
           onBack={() => navigation?.goBack()}
         />
 

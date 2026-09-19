@@ -15,6 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {launchImageLibrary} from 'react-native-image-picker';
 import Loader from '../components/common/Loader';
+import Header from '../components/common/Header';
 import SearchableDropdown from '../components/common/SearchableDropdown';
 import Toast from '../components/common/Toast';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
@@ -25,7 +26,7 @@ import {useCaregiverProfile} from '../api/queries';
 import {useUpdateCaregiverProfile} from '../api/mutations';
 
 const TEAL = '#0B8A80';
-const PAGE_BG = '#F4F8F7';
+const PAGE_BG = '#FFFFFF';
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const GENDERS = [
   {value: 'Female', label: 'Female'},
@@ -231,25 +232,12 @@ const EditProfile = ({navigation}) => {
   return (
     <SafeAreaView
       style={styles.safeArea}
-      edges={['top', 'left', 'right', 'bottom']}>
-      <Loader visible={saving} />
+      edges={['bottom', 'left', 'right']}>
+      <Loader visible={saving} overlay />
+      <Header title="Edit Profile" onBack={() => navigation?.goBack()} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation?.goBack()}>
-            <Icon name="arrow-back" size={22} color="#15202B" />
-          </TouchableOpacity>
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle}>Edit Profile</Text>
-            <Text style={styles.headerSub}>
-              Update your caregiver details
-            </Text>
-          </View>
-        </View>
-
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}

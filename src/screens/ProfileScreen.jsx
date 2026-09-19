@@ -12,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../context/AuthContext';
 import {useUserProfile, useCaregiverProfile} from '../api/queries';
+import Header from '../components/common/Header';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -93,7 +94,8 @@ const ProfileScreen = ({navigation}) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Header title="Profile" showBack={false} leftIcon="person-outline" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>

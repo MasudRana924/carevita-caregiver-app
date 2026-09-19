@@ -295,7 +295,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <Loader visible={busy} />
+      <Loader visible={busy} overlay />
       <Header title="Booking details" onBack={() => navigation?.goBack()} />
 
       <ScrollView
