@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Image,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../context/AuthContext';
 import {useUserProfile, useCaregiverProfile} from '../api/queries';
 import Header from '../components/common/Header';
+import LogoutConfirmModal from '../components/common/LogoutConfirmModal';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -71,7 +71,7 @@ const ProfileScreen = ({navigation}) => {
   const {logout, user} = useAuth();
   const {data: profileData, isLoading} = useUserProfile();
   const {data: caregiverData} = useCaregiverProfile();
-  useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const authUser = profileData?.data || user || {};
   const caregiver = caregiverData?.data || {};
@@ -82,15 +82,9 @@ const ProfileScreen = ({navigation}) => {
     authUser.is_verified === true;
   const settings = getSettings(navigation);
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      {text: 'Cancel', style: 'cancel'},
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: () => logout(),
-      },
-    ]);
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
   };
 
   return (
@@ -189,11 +183,17 @@ const ProfileScreen = ({navigation}) => {
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.logoutButton}
-          onPress={handleLogout}>
+          onPress={() => setShowLogoutModal(true)}>
           <Icon name="log-out-outline" size={18} color="#E74C3C" />
           <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <LogoutConfirmModal
+        visible={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </SafeAreaView>
   );
 };
