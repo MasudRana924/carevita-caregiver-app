@@ -5,13 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
-import WithdrawModal from '../components/wallet/WithdrawModal';
 import {useWallet, useWithdrawals} from '../api/queries';
 import {unwrapList} from '../api/envelope';
 
@@ -60,7 +58,6 @@ const WalletScreen = ({navigation, route}) => {
   const showBack = route?.params?.showBack === true;
   const [showBalance, setShowBalance] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const {data, isLoading, refetch} = useWallet({page: 1, limit: 20});
   const withdrawalsQuery = useWithdrawals({page: 1, limit: 20});
@@ -76,9 +73,11 @@ const WalletScreen = ({navigation, route}) => {
   useEffect(() => {
     const unsubscribe = navigation?.addListener('focus', () => {
       setShowBalance(false);
+      refetch();
+      withdrawalsQuery.refetch();
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, refetch, withdrawalsQuery]);
 
   const handleToggleBalance = async () => {
     if (!showBalance) {
@@ -92,16 +91,6 @@ const WalletScreen = ({navigation, route}) => {
       }
     }
     setShowBalance(!showBalance);
-  };
-
-  const handleWithdrawSuccess = response => {
-    refetch();
-    withdrawalsQuery.refetch();
-    Alert.alert(
-      'Withdrawal requested',
-      response?.message ||
-        'Your withdrawal request has been submitted and is pending review.',
-    );
   };
 
   return (
@@ -139,7 +128,12 @@ const WalletScreen = ({navigation, route}) => {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.withdrawBtn}
-            onPress={() => setWithdrawOpen(true)}>
+            onPress={() =>
+              navigation?.navigate('Withdraw', {
+                balance: wallet.balance ?? 0,
+                pendingWithdrawal: !!pendingWithdrawal,
+              })
+            }>
             <Icon name="arrow-up-circle-outline" size={18} color="#008178" />
             <Text style={styles.withdrawBtnText}>
               {pendingWithdrawal ? 'View withdrawal' : 'Withdraw'}
@@ -259,14 +253,6 @@ const WalletScreen = ({navigation, route}) => {
           })
         )}
       </ScrollView>
-
-      <WithdrawModal
-        visible={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        balance={wallet.balance ?? 0}
-        pendingWithdrawal={!!pendingWithdrawal}
-        onSuccess={handleWithdrawSuccess}
-      />
     </SafeAreaView>
   );
 };

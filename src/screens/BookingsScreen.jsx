@@ -20,7 +20,7 @@ import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
 
 const TEAL = '#0B8A80';
-const PAGE_BG = '#F4F8F7';
+const PAGE_BG = '#FFFFFF';
 
 const FILTERS = [
   {key: '', label: 'All'},
@@ -259,12 +259,6 @@ const BookingsScreen = ({navigation, route}) => {
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={styles.headerTitle}>My Bookings</Text>
-          <Text style={styles.headerSub}>
-            Manage your recent and upcoming booking
-          </Text>
-        </View>
-        <View style={styles.headerIcon}>
-          <Icon name="calendar-outline" size={20} color={TEAL} />
         </View>
       </View>
 
@@ -475,7 +469,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerCopy: {flex: 1, paddingRight: 12},
-  headerTitle: {fontSize: 22, fontWeight: '800', color: '#15202B'},
+  headerTitle: {fontSize: 22, fontWeight: '700', color: '#15202B'},
   headerSub: {marginTop: 4, fontSize: 13, color: '#8A97A6'},
   headerIcon: {
     width: 40,

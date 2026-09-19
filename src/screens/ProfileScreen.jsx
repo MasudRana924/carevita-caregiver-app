@@ -14,7 +14,7 @@ import {useAuth} from '../context/AuthContext';
 import {useUserProfile, useCaregiverProfile} from '../api/queries';
 
 const TEAL = '#0B8A80';
-const PAGE_BG = '#F4F8F7';
+const PAGE_BG = '#FFFFFF';
 
 const getInitials = name => {
   if (!name) {

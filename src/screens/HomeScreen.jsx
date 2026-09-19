@@ -42,7 +42,7 @@ import {
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 
 const TEAL = '#0B8A80';
-const PAGE_BG = '#F4F8F7';
+const PAGE_BG = '#FFFFFF';
 
 const unwrapBookings = payload => unwrapList(payload);
 

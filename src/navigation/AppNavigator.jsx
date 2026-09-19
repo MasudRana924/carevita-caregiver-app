@@ -25,6 +25,8 @@ import AvailabilityScreen from '../screens/AvailabilityScreen';
 import ReviewsScreen from '../screens/ReviewsScreen';
 import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
 import EkycVerificationScreen from '../screens/EkycVerificationScreen';
+import WithdrawScreen from '../screens/WithdrawScreen';
+import WithdrawDetailsScreen from '../screens/WithdrawDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -173,6 +175,11 @@ function AppNavigator() {
             />
             <Stack.Screen name="Availability" component={AvailabilityScreen} />
             <Stack.Screen name="Reviews" component={ReviewsScreen} />
+            <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+            <Stack.Screen
+              name="WithdrawDetails"
+              component={WithdrawDetailsScreen}
+            />
             <Stack.Screen
               name="NotificationPreferences"
               component={NotificationPreferencesScreen}

@@ -40,9 +40,7 @@ const HomeHeader = ({navigation, unreadCount = 0}) => {
           <Text style={styles.userName} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            You're ready to help families today
-          </Text>
+
         </View>
       </View>
 
@@ -80,9 +78,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   profileButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     overflow: 'hidden',
     marginRight: 12,
     backgroundColor: '#E8F3F1',
