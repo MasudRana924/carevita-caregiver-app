@@ -133,7 +133,7 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const {userToken, isLoading, hasCaregiverProfile, isEkycVerified} = useAuth();
+  const {userToken, isLoading, isEkycVerified} = useAuth();
 
   if (isLoading) {
     return (
@@ -156,7 +156,7 @@ function AppNavigator() {
             component={EkycVerificationScreen}
             options={{gestureEnabled: false}}
           />
-        ) : hasCaregiverProfile ? (
+        ) : (
           <>
             <Stack.Screen
               name="Main"
@@ -185,13 +185,6 @@ function AppNavigator() {
               component={NotificationPreferencesScreen}
             />
           </>
-        ) : (
-          <Stack.Screen
-            name="CaregiverProfileSetup"
-            component={CaregiverProfileScreen}
-            initialParams={{mode: 'setup'}}
-            options={{gestureEnabled: false}}
-          />
         )
       ) : (
         <>
