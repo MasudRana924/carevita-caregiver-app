@@ -7,7 +7,7 @@ const WalletSkeleton = () => {
   return (
     <View style={styles.container}>
       <View style={styles.balanceCard}>
-        <Bone style={styles.balanceLabel} />
+        <Bone style={styles.topRow} />
         <Bone style={styles.balanceValue} />
         <Bone style={styles.currency} />
         <Bone style={styles.withdrawBtn} />
@@ -33,25 +33,38 @@ export default WalletSkeleton;
 const styles = StyleSheet.create({
   container: {paddingHorizontal: 16, paddingBottom: 28},
   bone: {
-    backgroundColor: '#E8EEF2',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 8,
   },
   balanceCard: {
-    backgroundColor: '#F0FAF8',
-    borderRadius: 18,
-    padding: 20,
+    backgroundColor: '#067A6E',
+    borderRadius: 22,
+    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingBottom: 54,
     marginBottom: 22,
+    minHeight: 168,
+    overflow: 'hidden',
   },
-  balanceLabel: {width: 120, height: 14},
-  balanceValue: {marginTop: 12, width: 160, height: 32, borderRadius: 10},
-  currency: {marginTop: 10, width: 48, height: 12},
+  topRow: {width: 150, height: 14},
+  balanceValue: {marginTop: 16, width: 140, height: 34, borderRadius: 10},
+  currency: {marginTop: 10, width: 40, height: 12},
   withdrawBtn: {
-    marginTop: 18,
-    width: 120,
-    height: 40,
-    borderRadius: 999,
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 130,
+    height: 42,
+    borderTopLeftRadius: 999,
+    borderBottomRightRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
-  sectionTitle: {width: 110, height: 16, marginBottom: 14},
+  sectionTitle: {
+    width: 110,
+    height: 16,
+    marginBottom: 14,
+    backgroundColor: '#E8EEF2',
+  },
   txCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -60,9 +73,15 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  txIcon: {width: 40, height: 40, borderRadius: 12, marginRight: 12},
+  txIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: '#E8EEF2',
+  },
   txInfo: {flex: 1},
-  txTitle: {width: '70%', height: 14},
-  txMeta: {marginTop: 8, width: '50%', height: 11},
-  txAmount: {width: 56, height: 14},
+  txTitle: {width: '70%', height: 14, backgroundColor: '#E8EEF2'},
+  txMeta: {marginTop: 8, width: '50%', height: 11, backgroundColor: '#E8EEF2'},
+  txAmount: {width: 56, height: 14, backgroundColor: '#E8EEF2'},
 });

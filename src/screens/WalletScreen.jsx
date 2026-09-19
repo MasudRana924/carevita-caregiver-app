@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
@@ -112,38 +113,66 @@ const WalletScreen = ({navigation, route}) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Available balance</Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleToggleBalance}
-              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-              <Icon
-                name={showBalance ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color="#D7F0ED"
-              />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.balanceValue}>
-            {showBalance ? `৳${formatAmount(wallet.balance ?? 0)}` : '৳****'}
-          </Text>
-          <Text style={styles.currency}>{wallet.currency || 'BDT'}</Text>
+          <LinearGradient
+            colors={['#0A8F82', '#067A6E', '#045F56']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={styles.balanceGradient}>
+            <View style={styles.decorCircleOne} />
+            <View style={styles.decorCircleTwo} />
 
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.withdrawBtn}
-            onPress={() =>
-              navigation?.navigate('Withdraw', {
-                balance: wallet.balance ?? 0,
-                pendingWithdrawal: !!pendingWithdrawal,
-              })
-            }>
-            <Icon name="arrow-up-circle-outline" size={18} color="#008178" />
-            <Text style={styles.withdrawBtnText}>
-              {pendingWithdrawal ? 'View withdrawal' : 'Withdraw'}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.balanceTop}>
+              <Icon name="wallet-outline" size={18} color="#B8E8E1" />
+              <Text style={styles.balanceLabel}>Available balance</Text>
+            </View>
+
+            <View style={styles.balanceRow}>
+              <Text style={styles.currencySymbol}>৳</Text>
+              <Text style={styles.balanceValue}>
+                {showBalance
+                  ? formatAmount(wallet.balance ?? 0)
+                  : '*****'}
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleToggleBalance}
+                style={styles.eyeBtn}
+                hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                <Icon
+                  name={showBalance ? 'eye-outline' : 'eye-off-outline'}
+                  size={22}
+                  color="#B8E8E1"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.currency}>{wallet.currency || 'BDT'}</Text>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.withdrawBtnWrap}
+              onPress={() =>
+                navigation?.navigate('Withdraw', {
+                  balance: wallet.balance ?? 0,
+                  pendingWithdrawal: !!pendingWithdrawal,
+                })
+              }>
+              <LinearGradient
+                colors={['#FF6B8A', '#E83E6B']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.withdrawBtn}>
+                <View style={styles.withdrawTaka}>
+                  <Text style={styles.withdrawTakaText}>৳</Text>
+                </View>
+                {/* <View style={styles.withdrawDivider} /> */}
+                <Text style={styles.withdrawBtnText}>
+                  {pendingWithdrawal ? 'View' : 'Withdraw'}
+                </Text>
+                {/* <Icon name="arrow-forward" size={14} color="#FFFFFF" /> */}
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
 
         {withdrawals.length > 0 && (
@@ -268,39 +297,111 @@ const styles = StyleSheet.create({
   flex: {flex: 1},
   content: {paddingHorizontal: 16, paddingBottom: 28},
   balanceCard: {
-    backgroundColor: '#008178',
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 22,
     marginBottom: 22,
+    overflow: 'hidden',
   },
-  balanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  balanceGradient: {
+    minHeight: 168,
+    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingBottom: 54,
+    position: 'relative',
   },
-  balanceLabel: {fontSize: 13, color: '#D7F0ED'},
-  balanceValue: {
-    marginTop: 6,
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  decorCircleOne: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -50,
+    right: -30,
   },
-  currency: {marginTop: 6, fontSize: 13, color: '#D7F0ED'},
-  withdrawBtn: {
-    marginTop: 18,
-    alignSelf: 'flex-start',
+  decorCircleTwo: {
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    bottom: -35,
+    left: -20,
+  },
+  balanceTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    paddingHorizontal: 16,
+  },
+  balanceLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  balanceRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  currencySymbol: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginRight: 6,
+  },
+  balanceValue: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  eyeBtn: {
+    marginLeft: 10,
+    padding: 2,
+  },
+  currency: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.72)',
+  },
+  withdrawBtnWrap: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+  },
+  withdrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 14,
+    paddingRight: 14,
     paddingVertical: 10,
+    borderTopLeftRadius: 999,
+    borderBottomLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 22,
+    gap: 8,
+  },
+  withdrawTaka: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  withdrawTakaText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E83E6B',
+  },
+  withdrawDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   withdrawBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#008178',
+    color: '#FFFFFF',
   },
   sectionTitle: {
     fontSize: 15,
