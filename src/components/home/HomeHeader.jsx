@@ -5,8 +5,12 @@ import {useAuth} from '../../context/AuthContext';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
+  if (hour < 12) {
+    return 'Good morning';
+  }
+  if (hour < 17) {
+    return 'Good afternoon';
+  }
   return 'Good evening';
 };
 
@@ -28,7 +32,7 @@ const HomeHeader = ({navigation, unreadCount = 0}) => {
             <Image source={{uri: photo}} style={styles.profileImage} />
           ) : (
             <View style={styles.placeholderAvatar}>
-              <Icon name="person" size={22} color="#7A8B9A" />
+              <Icon name="person" size={26} color="#5B8F86" />
             </View>
           )}
         </TouchableOpacity>
@@ -49,13 +53,7 @@ const HomeHeader = ({navigation, unreadCount = 0}) => {
         style={styles.notificationButton}
         onPress={() => navigation?.navigate('Inbox')}>
         <Icon name="notifications-outline" size={22} color="#1B2430" />
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </Text>
-          </View>
-        )}
+        {unreadCount > 0 ? <View style={styles.badgeDot} /> : null}
       </TouchableOpacity>
     </View>
   );
@@ -65,7 +63,7 @@ export default HomeHeader;
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 64,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -78,12 +76,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   profileButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     overflow: 'hidden',
     marginRight: 12,
-    backgroundColor: '#E8F3F1',
+    backgroundColor: '#D8EFE9',
   },
   profileImage: {
     width: '100%',
@@ -92,7 +90,7 @@ const styles = StyleSheet.create({
   placeholderAvatar: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#E8F3F1',
+    backgroundColor: '#D8EFE9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -103,55 +101,49 @@ const styles = StyleSheet.create({
   goodMorning: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#7A8B9A',
+    color: '#8A97A6',
     fontWeight: '500',
   },
   wave: {
     fontSize: 13,
   },
   userName: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 22,
+    lineHeight: 28,
     color: '#15202B',
     fontWeight: '800',
     marginTop: 1,
   },
-  subtitle: {
-    marginTop: 2,
+  roleRow: {
+    marginTop: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  roleText: {
     fontSize: 12,
-    lineHeight: 16,
     color: '#8A97A6',
+    fontWeight: '500',
   },
   notificationButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8EEF2',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0B1F2A',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: {width: 0, height: 2},
-    elevation: 2,
   },
-  badge: {
+  badgeDot: {
     position: 'absolute',
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
     backgroundColor: '#E34242',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    right: 6,
-    top: 6,
+    right: 10,
+    top: 10,
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
-  },
-  badgeText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 });

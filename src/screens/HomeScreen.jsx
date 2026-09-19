@@ -320,17 +320,18 @@ const HomeScreen = ({navigation}) => {
         <HomeHeader navigation={navigation} unreadCount={unread} />
 
         <View style={styles.availCard}>
-          <View style={styles.availLeft}>
-            <View style={styles.availCopy}>
-              <Text style={styles.availTitle}>
-                {isAvailable ? "You're available" : "You're offline"}
-              </Text>
-              <Text style={styles.availSub}>
-                {isAvailable
-                  ? 'Families can send you new booking requests'
-                  : 'Turn on to receive new booking requests'}
-              </Text>
-            </View>
+          <View style={styles.availIcon}>
+            <Icon name="calendar-outline" size={20} color="#0B8A80" />
+          </View>
+          <View style={styles.availCopy}>
+            <Text style={styles.availTitle}>
+              {isAvailable ? "You're available" : "You're offline"}
+            </Text>
+            <Text style={styles.availSub}>
+              {isAvailable
+                ? 'Families can send you new booking requests'
+                : 'Turn on to receive new booking requests'}
+            </Text>
           </View>
           <View style={styles.availRight}>
             <TouchableOpacity
@@ -348,13 +349,13 @@ const HomeScreen = ({navigation}) => {
                 ]}
               />
             </TouchableOpacity>
-            <Text
+            {/* <Text
               style={[
                 styles.availState,
                 {color: isAvailable ? '#22C55E' : '#8A97A6'},
               ]}>
               {isAvailable ? 'On' : 'Off'}
-            </Text>
+            </Text> */}
           </View>
         </View>
 
@@ -408,20 +409,16 @@ const HomeScreen = ({navigation}) => {
 
         <SectionHeader
           title="Needs your reply"
-          count={assigned.length}
-          actionLabel={assigned.length ? 'View all' : null}
+          icon="mail-outline"
+          iconBg="#FFE8EE"
+          iconColor="#E83E6B"
+          actionLabel="View all"
           onPress={() =>
             navigation.navigate('Bookings', {status: 'PROVIDER_ASSIGNED'})
           }
         />
         {featured ? (
           <View style={styles.requestCard}>
-            <View style={styles.requestTop}>
-              <View style={styles.requestBadge}>
-                <Text style={styles.requestBadgeText}>ACTION NEEDED</Text>
-              </View>
-            </View>
-
             <TouchableOpacity
               style={styles.personRow}
               activeOpacity={0.85}
@@ -451,7 +448,7 @@ const HomeScreen = ({navigation}) => {
                   </Text>
                 </View>
               </View>
-              <Icon name="chevron-forward" size={18} color="#27df0b" />
+              <Icon name="chevron-forward" size={18} color="#B7C2CC" />
             </TouchableOpacity>
 
             <View style={styles.actionRow}>
@@ -476,7 +473,8 @@ const HomeScreen = ({navigation}) => {
           </View>
         ) : (
           <EmptyCard
-            icon="mail-open-outline"
+            tone="pink"
+            icon="mail-outline"
             title="No requests waiting"
             text={
               isAvailable
@@ -488,7 +486,9 @@ const HomeScreen = ({navigation}) => {
 
         <SectionHeader
           title="Today's work"
-          count={todayBookings.length}
+          icon="calendar-outline"
+          iconBg="#DDF5EF"
+          iconColor="#0B8A80"
           actionLabel="Open bookings"
           onPress={() => navigation.navigate('Bookings')}
         />
@@ -498,9 +498,9 @@ const HomeScreen = ({navigation}) => {
           onPress={() => navigation.navigate('Bookings')}>
           <View style={styles.scheduleIcon}>
             <Icon
-              name={todayBookings.length ? 'calendar' : 'sunny-outline'}
-              size={18}
-              color={TEAL}
+              name={todayBookings.length ? 'calendar-outline' : 'sunny-outline'}
+              size={20}
+              color="#0B8A80"
             />
           </View>
           <View style={styles.scheduleCopy}>
@@ -522,15 +522,18 @@ const HomeScreen = ({navigation}) => {
 
         <SectionHeader
           title="Recent activity"
-          count={recent.length}
-          actionLabel={recent.length ? 'View all' : null}
+          icon="time-outline"
+          iconBg="#E4F0FF"
+          iconColor="#3B82F6"
+          actionLabel="View all"
           onPress={() => navigation.navigate('Bookings')}
         />
         {recent.length === 0 ? (
           <EmptyCard
-            icon="time-outline"
+            tone="blue"
+            icon="calendar-outline"
             title="No bookings yet"
-            text="Accepted and past bookings will appear here for quick follow-up."
+            text="When you get a booking, it will appear here."
           />
         ) : (
           <View style={styles.recentCard}>
@@ -689,53 +692,69 @@ const ServiceClockArt = () => (
   </View>
 );
 
-const SectionHeader = ({title, count, actionLabel, onPress}) => (
+const SectionHeader = ({
+  title,
+  icon,
+  iconBg,
+  iconColor,
+  actionLabel,
+  onPress,
+}) => (
   <View style={styles.sectionHead}>
     <View style={styles.sectionTitleRow}>
+      <View style={[styles.sectionIcon, {backgroundColor: iconBg}]}>
+        <Icon name={icon} size={15} color={iconColor} />
+      </View>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {count > 0 ? (
-        <View style={styles.countPill}>
-          <Text style={styles.countPillText}>{count}</Text>
-        </View>
-      ) : null}
     </View>
     {actionLabel ? (
-      <TouchableOpacity onPress={onPress} hitSlop={8}>
+      <TouchableOpacity
+        style={styles.viewAllBtn}
+        onPress={onPress}
+        hitSlop={8}
+        activeOpacity={0.8}>
         <Text style={styles.viewAll}>{actionLabel}</Text>
+        <Icon name="chevron-forward" size={14} color={TEAL} />
       </TouchableOpacity>
     ) : null}
   </View>
 );
 
-const SnapshotCard = ({icon, value, label, hint, onPress}) => (
-  <TouchableOpacity
-    style={styles.snapshotCard}
-    activeOpacity={0.85}
-    onPress={onPress}>
-    <View style={styles.snapshotIcon}>
-      <Icon name={icon} size={15} color={TEAL} />
-    </View>
-    <Text style={styles.snapshotValue} numberOfLines={1}>
-      {value}
-    </Text>
-    <Text style={styles.snapshotLabel} numberOfLines={1}>
-      {label}
-    </Text>
-    <Text style={styles.snapshotHint} numberOfLines={1}>
-      {hint}
-    </Text>
-  </TouchableOpacity>
-);
+const EmptyCard = ({icon, title, text, tone = 'green'}) => {
+  const tones = {
+    pink: {
+      card: '#FFF5F7',
+      iconWrap: '#FFE4EB',
+      icon: '#E83E6B',
+    },
+    blue: {
+      card: '#F0F6FF',
+      iconWrap: '#DBEAFE',
+      icon: '#3B82F6',
+    },
+    green: {
+      card: '#F2FAF7',
+      iconWrap: '#DDF5EF',
+      icon: '#0B8A80',
+    },
+  };
+  const palette = tones[tone] || tones.green;
 
-const EmptyCard = ({icon, title, text}) => (
-  <View style={styles.emptyCard}>
-    <View style={styles.emptyIcon}>
-      <Icon name={icon || 'information-circle-outline'} size={22} color={TEAL} />
+  return (
+    <View style={[styles.emptyCard, {backgroundColor: palette.card}]}>
+      <View style={[styles.emptyIcon, {backgroundColor: palette.iconWrap}]}>
+        <Icon
+          name={icon || 'information-circle-outline'}
+          size={26}
+          color={palette.icon}
+        />
+        {tone === 'pink' ? <View style={styles.emptyBadgeDot} /> : null}
+      </View>
+      {!!title && <Text style={styles.emptyTitle}>{title}</Text>}
+      <Text style={styles.emptyText}>{text}</Text>
     </View>
-    {!!title && <Text style={styles.emptyTitle}>{title}</Text>}
-    <Text style={styles.emptyText}>{text}</Text>
-  </View>
-);
+  );
+};
 
 export default HomeScreen;
 
@@ -743,29 +762,27 @@ const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: PAGE_BG},
   scrollContent: {paddingHorizontal: 16, paddingBottom: 32},
   availCard: {
-    marginTop: 16,
-    backgroundColor: '#EAF7F4',
+    marginTop: 18,
+    backgroundColor: '#EAF8F4',
     borderRadius: 18,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  availLeft: {flex: 1, flexDirection: 'row', alignItems: 'center', marginRight: 10},
-  checkCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#2ECC71',
+  availIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#D4F0E8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
-  checkCircleOff: {backgroundColor: '#A0AEC0'},
-  availCopy: {flex: 1},
+  availCopy: {flex: 1, marginRight: 10},
   availTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  availSub: {marginTop: 3, fontSize: 12, lineHeight: 16, color: '#6F7F8C'},
-  availRight: {alignItems: 'center', minWidth: 64},
+  availSub: {marginTop: 3, fontSize: 10, lineHeight: 17, color: '#6F7F8C'},
+  availRight: {alignItems: 'center', minWidth: 52},
   toggleTrack: {
     width: 50,
     height: 30,
@@ -1076,50 +1093,30 @@ const styles = StyleSheet.create({
     color: '#8A97A6',
   },
   sectionHead: {
-    marginTop: 22,
-    marginBottom: 10,
+    marginTop: 24,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
-  sectionTitle: {fontSize: 16, fontWeight: '700', color: '#15202B'},
-  countPill: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    paddingHorizontal: 7,
-    backgroundColor: '#E8F3F1',
+  sectionTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1},
+  sectionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countPillText: {fontSize: 11, fontWeight: '800', color: TEAL},
-  viewAll: {fontSize: 12, fontWeight: '600', color: TEAL},
+  sectionTitle: {fontSize: 14, fontWeight: '400', color: '#15202B'},
+  viewAllBtn: {flexDirection: 'row', alignItems: 'center', gap: 2},
+  viewAll: {fontSize: 13, fontWeight: '600', color: TEAL},
   requestCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
-
+    borderWidth: 1,
+    borderColor: '#F0F3F5',
   },
-  requestTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  requestBadge: {
-    backgroundColor: '#EAF4FF',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  requestBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#2B6CB0',
-    letterSpacing: 0.3,
-  },
-  bookingNumber: {fontSize: 11, color: '#8A97A6', fontWeight: '600'},
   personRow: {flexDirection: 'row', alignItems: 'center'},
   avatar: {width: 42, height: 42, borderRadius: 21, marginRight: 10},
   avatarFallback: {
@@ -1161,28 +1158,30 @@ const styles = StyleSheet.create({
   },
   rejectText: {fontSize: 13, fontWeight: '700', color: '#E74C3C'},
   scheduleCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#EAF8F4',
+    borderRadius: 18,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
   },
   scheduleIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#E8F3F1',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#D4F0E8',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   scheduleCopy: {flex: 1},
-  scheduleTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  scheduleMeta: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
+  scheduleTitle: {fontSize: 15, fontWeight: '600', color: '#15202B'},
+  scheduleMeta: {marginTop: 3, fontSize: 12, lineHeight: 17, color: '#6F7F8C'},
   recentCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#F0F3F5',
   },
   recentRow: {
     flexDirection: 'row',
@@ -1212,30 +1211,40 @@ const styles = StyleSheet.create({
   },
   statusText: {fontSize: 10, fontWeight: '800', textTransform: 'capitalize'},
   emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 22,
-    paddingHorizontal: 18,
+    borderRadius: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 22,
     alignItems: 'center',
   },
   emptyIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#E8F3F1',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
+    position: 'relative',
+  },
+  emptyBadgeDot: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#E34242',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   emptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#15202B',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   emptyText: {
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
     color: '#8A97A6',
     textAlign: 'center',
   },
