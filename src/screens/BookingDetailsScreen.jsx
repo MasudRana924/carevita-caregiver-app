@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,10 @@ import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import Header from '../components/common/Header';
 import BookingDetailsSkeleton from '../components/home/BookingDetailsSkeleton';
 import Loader from '../components/common/Loader';
+import Toast from '../components/common/Toast';
+import OfferCountdown from '../components/booking/OfferCountdown';
+import useNowTick from '../hooks/useNowTick';
+import {getOfferRemainingMs, isOfferExpired} from '../utils/bookingTime';
 
 const STATUS_STYLES = {
   PENDING_PAYMENT: {bg: '#FFF4E5', text: '#D97706'},
@@ -40,7 +44,7 @@ const STATUS_STYLES = {
 };
 
 const BookingDetailsScreen = ({navigation, route}) => {
-  const {bookingId} = route.params || {};
+  const {bookingId, offerExpiresAt: routeOfferExpiresAt} = route.params || {};
   const {data: bookingData, isLoading, refetch} = useBookingDetails(bookingId);
   const acceptBooking = useAcceptBooking();
   const rejectBooking = useRejectBooking();
@@ -62,6 +66,52 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const [reasonModal, setReasonModal] = useState(null);
   const [reason, setReason] = useState('');
   const [disputeDetails, setDisputeDetails] = useState('');
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: 'error',
+  });
+  const offerExpiredHandled = useRef(false);
+
+  const canRespondStatus = booking?.status === 'PROVIDER_ASSIGNED';
+  const nowTs = useNowTick(canRespondStatus);
+  const offerBooking = useMemo(() => {
+    if (!booking) {
+      return null;
+    }
+    if (booking.offer_expires_at || !routeOfferExpiresAt) {
+      return booking;
+    }
+    return {...booking, offer_expires_at: routeOfferExpiresAt};
+  }, [booking, routeOfferExpiresAt]);
+  const offerExpired = canRespondStatus
+    ? isOfferExpired(offerBooking, nowTs, routeOfferExpiresAt)
+    : false;
+
+  useEffect(() => {
+    offerExpiredHandled.current = false;
+  }, [bookingId, booking?.offer_expires_at, routeOfferExpiresAt]);
+
+  useEffect(() => {
+    if (!canRespondStatus || !offerBooking || offerExpiredHandled.current) {
+      return;
+    }
+    const remaining = getOfferRemainingMs(
+      offerBooking,
+      nowTs,
+      routeOfferExpiresAt,
+    );
+    if (remaining == null || remaining > 0) {
+      return;
+    }
+    offerExpiredHandled.current = true;
+    setToast({
+      visible: true,
+      message: 'Offer expired / reassigned',
+      type: 'error',
+    });
+    refetch();
+  }, [canRespondStatus, offerBooking, nowTs, routeOfferExpiresAt, refetch]);
 
   const formatDate = dateString => {
     if (!dateString) return '--';
@@ -104,7 +154,6 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const statusStyle =
     STATUS_STYLES[booking?.status] || {bg: '#F0F2F5', text: '#8190A7'};
   const statusLabel = (booking?.status || '').replace(/_/g, ' ');
-  const canRespond = booking?.status === 'PROVIDER_ASSIGNED';
   const waitingForPay = booking?.status === 'PROVIDER_ACCEPTED';
   const canStart = booking?.can_start === true;
   const canComplete = booking?.can_complete === true;
@@ -184,6 +233,14 @@ const BookingDetailsScreen = ({navigation, route}) => {
   };
 
   const handleAccept = () => {
+    if (offerExpired) {
+      setToast({
+        visible: true,
+        message: 'Offer expired / reassigned',
+        type: 'error',
+      });
+      return;
+    }
     Alert.alert('Accept booking', 'Accept this booking request?', [
       {text: 'Not now', style: 'cancel'},
       {
@@ -191,7 +248,10 @@ const BookingDetailsScreen = ({navigation, route}) => {
         onPress: async () => {
           try {
             await acceptBooking.mutateAsync(bookingId);
-            Alert.alert('Accepted', 'Booking accepted. Waiting for the family to pay.');
+            Alert.alert(
+              'Accepted',
+              'Booking accepted. Waiting for the family to pay.',
+            );
             refetch();
           } catch (error) {
             Alert.alert('Cannot accept', getAcceptConflictMessage(error));
@@ -210,7 +270,10 @@ const BookingDetailsScreen = ({navigation, route}) => {
     try {
       if (reasonModal === 'reject') {
         await rejectBooking.mutateAsync({id: bookingId, reason: trimmed});
-        Alert.alert('Rejected', 'This request was declined. It will be reassigned.');
+        Alert.alert(
+          'Rejected',
+          'Request declined. It left your active list and may be reassigned.',
+        );
         setReasonModal(null);
         setReason('');
         navigation?.goBack();
@@ -274,7 +337,10 @@ const BookingDetailsScreen = ({navigation, route}) => {
       label: 'Time',
       value: `${formatTime(booking.start_time)} – ${formatTime(booking.end_time)}`,
     },
-    {label: 'Duration', value: booking.duration_hours ? `${booking.duration_hours} hours` : '--'},
+    {
+      label: 'Duration',
+      value: booking.duration_hours ? `${booking.duration_hours} hours` : '--',
+    },
     {
       label: 'Service',
       value: (booking.service_type || '').replace(/_/g, ' '),
@@ -296,19 +362,43 @@ const BookingDetailsScreen = ({navigation, route}) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
       <Loader visible={busy} overlay />
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast(prev => ({...prev, visible: false}))}
+      />
       <Header title="Booking details" onBack={() => navigation?.goBack()} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
+        {canRespondStatus && (
+          <View style={styles.offerBanner}>
+            <Icon name="mail-unread-outline" size={22} color="#008178" />
+            <View style={styles.startBannerText}>
+              <Text style={styles.startTitle}>New booking offer</Text>
+              <Text style={styles.startSub}>
+                Accept or reject before the timer runs out.
+              </Text>
+              <OfferCountdown
+                booking={offerBooking}
+                nowTs={nowTs}
+                fallbackExpiresAt={routeOfferExpiresAt}
+                style={styles.offerCountdown}
+              />
+            </View>
+          </View>
+        )}
         {waitingForPay && (
           <View style={styles.startBanner}>
             <Icon name="card-outline" size={22} color="#008178" />
             <View style={styles.startBannerText}>
               <Text style={styles.startTitle}>Waiting for payment</Text>
               <Text style={styles.startSub}>
-                You accepted this booking. Start becomes available after the family pays.
+                You accepted this booking. Start becomes available after the
+                family pays.
               </Text>
             </View>
           </View>
@@ -330,7 +420,8 @@ const BookingDetailsScreen = ({navigation, route}) => {
             <View style={styles.startBannerText}>
               <Text style={styles.startTitle}>Service in progress</Text>
               <Text style={styles.startSub}>
-                Tap End when the booking is finished. Earnings go to your wallet.
+                Tap End when the booking is finished. Earnings go to your
+                wallet.
               </Text>
             </View>
           </View>
@@ -354,7 +445,8 @@ const BookingDetailsScreen = ({navigation, route}) => {
               <Text style={styles.heroLabel}>Total amount</Text>
               <Text style={styles.heroAmount}>৳{booking.total_amount}</Text>
             </View>
-            <View style={[styles.statusBadge, {backgroundColor: statusStyle.bg}]}>
+            <View
+              style={[styles.statusBadge, {backgroundColor: statusStyle.bg}]}>
               <Text style={[styles.statusText, {color: statusStyle.text}]}>
                 {statusLabel}
               </Text>
@@ -468,13 +560,22 @@ const BookingDetailsScreen = ({navigation, route}) => {
         )}
       </ScrollView>
 
-      {(canRespond || canCancel || canStart || canComplete || canDispute) && (
+      {(canRespondStatus ||
+        canCancel ||
+        canStart ||
+        canComplete ||
+        canDispute) && (
         <View style={styles.bottomContainer}>
-          {canRespond && (
+          {canRespondStatus && (
             <>
               <TouchableOpacity
                 activeOpacity={0.85}
-                style={[styles.actionButton, styles.cancelButton]}
+                style={[
+                  styles.actionButton,
+                  styles.cancelButton,
+                  offerExpired && styles.actionDisabled,
+                ]}
+                disabled={offerExpired}
                 onPress={() => {
                   setReason('Not available that day');
                   setReasonModal('reject');
@@ -485,7 +586,12 @@ const BookingDetailsScreen = ({navigation, route}) => {
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
-                style={[styles.actionButton, styles.payButton]}
+                style={[
+                  styles.actionButton,
+                  styles.payButton,
+                  offerExpired && styles.actionDisabled,
+                ]}
+                disabled={offerExpired}
                 onPress={handleAccept}>
                 <Text style={styles.payButtonText}>Accept</Text>
               </TouchableOpacity>
@@ -520,7 +626,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
               </Text>
             </TouchableOpacity>
           )}
-          {canDispute && !canRespond && (
+          {canDispute && !canRespondStatus && (
             <TouchableOpacity
               activeOpacity={0.85}
               style={[styles.actionButton, styles.cancelButton]}
@@ -575,7 +681,9 @@ const BookingDetailsScreen = ({navigation, route}) => {
                 onPress={() => setReasonModal(null)}>
                 <Text style={styles.modalGhostText}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalPrimary} onPress={submitReason}>
+              <TouchableOpacity
+                style={styles.modalPrimary}
+                onPress={submitReason}>
                 <Text style={styles.payButtonText}>
                   {reasonModal === 'reject'
                     ? 'Reject'
@@ -625,6 +733,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  offerBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#E6F4F3',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    gap: 10,
+  },
+  offerCountdown: {marginTop: 10},
   startBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -720,6 +838,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  actionDisabled: {opacity: 0.45},
   payButton: {backgroundColor: '#008178'},
   payButtonText: {fontSize: 16, fontWeight: '600', color: '#FFFFFF'},
   cancelButton: {
@@ -735,7 +854,12 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalCard: {backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18},
-  modalTitle: {fontSize: 17, fontWeight: '700', color: '#111820', marginBottom: 12},
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111820',
+    marginBottom: 12,
+  },
   reasonInput: {
     minHeight: 90,
     borderRadius: 12,

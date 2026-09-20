@@ -5,6 +5,17 @@ const getBookingId = data =>
 
 const getInboxId = data => data?.inbox_id || data?.inboxId || data?.id || null;
 
+const getOfferExpiresAt = data => {
+  const extra = data?.extraData || data?.extra_data || {};
+  return (
+    data?.offer_expires_at ||
+    data?.offerExpiresAt ||
+    extra?.offer_expires_at ||
+    extra?.offerExpiresAt ||
+    null
+  );
+};
+
 const normalize = value => String(value || '').toUpperCase();
 
 export const parseNotificationData = data => {
@@ -30,8 +41,17 @@ const navigateRoot = (navigation, name, params) => {
   navigation.navigate(name, params);
 };
 
-const goToBookingDetails = (navigation, bookingId, inboxId) => {
-  navigateRoot(navigation, 'BookingDetails', {bookingId, inboxId});
+const goToBookingDetails = (
+  navigation,
+  bookingId,
+  inboxId,
+  offerExpiresAt,
+) => {
+  navigateRoot(navigation, 'BookingDetails', {
+    bookingId,
+    inboxId,
+    offerExpiresAt: offerExpiresAt || undefined,
+  });
 };
 
 const goToWallet = navigation => {
@@ -68,6 +88,7 @@ export const handleNotificationClick = (rawData, navigation) => {
 
   const bookingId = getBookingId(data);
   const inboxId = getInboxId(data);
+  const offerExpiresAt = getOfferExpiresAt(data);
   const type = normalize(data?.type || data?.event);
   const action = normalize(data?.action);
   const screen = String(data?.screen || '').toLowerCase();
@@ -83,7 +104,7 @@ export const handleNotificationClick = (rawData, navigation) => {
 
   if (shouldOpenBooking(type, action, screen)) {
     if (bookingId) {
-      goToBookingDetails(navigation, bookingId, inboxId);
+      goToBookingDetails(navigation, bookingId, inboxId, offerExpiresAt);
     } else {
       navigateRoot(navigation, type === 'BOOKING_CREATED' ? 'Inbox' : 'Bookings');
     }
@@ -91,7 +112,7 @@ export const handleNotificationClick = (rawData, navigation) => {
   }
 
   if (bookingId) {
-    goToBookingDetails(navigation, bookingId, inboxId);
+    goToBookingDetails(navigation, bookingId, inboxId, offerExpiresAt);
     return;
   }
 

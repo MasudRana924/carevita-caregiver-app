@@ -111,10 +111,24 @@ const VerifyPhoneScreen = ({navigation, route}) => {
         console.log('✅ Auth tokens stored locally');
         await notificationService.registerAfterAuth(token);
       } else {
-        Alert.alert('Error', response.message || 'OTP verification failed');
+        const code = String(response?.code || '').toUpperCase();
+        Alert.alert(
+          code === 'OTP_INVALID' ? 'Invalid OTP' : 'Error',
+          response.message ||
+            (code === 'OTP_INVALID'
+              ? 'The OTP you entered is invalid. Please try again.'
+              : 'OTP verification failed'),
+        );
       }
     } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      const code = String(error?.code || '').toUpperCase();
+      Alert.alert(
+        code === 'OTP_INVALID' ? 'Invalid OTP' : 'Error',
+        error?.message ||
+          (code === 'OTP_INVALID'
+            ? 'The OTP you entered is invalid. Please try again.'
+            : 'Something went wrong. Please try again.'),
+      );
       console.error('❌ Verify OTP error:', error);
     } finally {
       setLoading(false);

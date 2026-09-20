@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,14 @@ import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
 import Header from '../components/common/Header';
+import Toast from '../components/common/Toast';
+import OfferCountdown from '../components/booking/OfferCountdown';
+import useNowTick from '../hooks/useNowTick';
+import {
+  filterActiveBookings,
+  getOfferRemainingMs,
+  isOfferExpired,
+} from '../utils/bookingTime';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -152,6 +160,13 @@ const BookingsScreen = ({navigation, route}) => {
   const [status, setStatus] = useState(initialStatus);
   const [rejectId, setRejectId] = useState(null);
   const [reason, setReason] = useState('Not available that day');
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: 'error',
+  });
+  const expiredIdsRef = useRef(new Set());
+  const nowTs = useNowTick(true);
 
   useEffect(() => {
     if (route?.params?.status !== undefined) {
@@ -167,13 +182,42 @@ const BookingsScreen = ({navigation, route}) => {
   const startBooking = useStartBooking();
   const completeBooking = useCompleteBooking();
 
-  const allBookings = unwrapBookings(bookingsData);
+  const rawBookings = unwrapBookings(bookingsData);
+  const allBookings = useMemo(
+    () => filterActiveBookings(rawBookings, nowTs),
+    [rawBookings, nowTs],
+  );
   const bookings = useMemo(() => {
     if (!status) {
       return allBookings;
     }
     return allBookings.filter(item => matchesFilter(item, status));
   }, [allBookings, status]);
+
+  useEffect(() => {
+    let expiredNow = false;
+    rawBookings.forEach(booking => {
+      if (booking?.status !== 'PROVIDER_ASSIGNED' || !booking?.id) {
+        return;
+      }
+      const remaining = getOfferRemainingMs(booking, nowTs);
+      if (remaining == null || remaining > 0) {
+        return;
+      }
+      if (!expiredIdsRef.current.has(booking.id)) {
+        expiredIdsRef.current.add(booking.id);
+        expiredNow = true;
+      }
+    });
+    if (expiredNow) {
+      setToast({
+        visible: true,
+        message: 'Offer expired / reassigned',
+        type: 'error',
+      });
+      refetch();
+    }
+  }, [rawBookings, nowTs, refetch]);
 
   const handleStart = bookingId => {
     Alert.alert('Start service', 'Start this booking now?', [
@@ -215,7 +259,16 @@ const BookingsScreen = ({navigation, route}) => {
     ]);
   };
 
-  const handleAccept = bookingId => {
+  const handleAccept = (bookingId, booking) => {
+    if (isOfferExpired(booking, nowTs)) {
+      setToast({
+        visible: true,
+        message: 'Offer expired / reassigned',
+        type: 'error',
+      });
+      refetch();
+      return;
+    }
     Alert.alert('Accept booking', 'Accept this booking request?', [
       {text: 'Not now', style: 'cancel'},
       {
@@ -256,6 +309,12 @@ const BookingsScreen = ({navigation, route}) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
       <Loader visible={busy} overlay />
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast(prev => ({...prev, visible: false}))}
+      />
       <Header
         title="Bookings"
         showBack={false}
@@ -313,6 +372,7 @@ const BookingsScreen = ({navigation, route}) => {
         ) : (
           bookings.map(booking => {
             const isNew = booking.status === 'PROVIDER_ASSIGNED';
+            const expired = isNew && isOfferExpired(booking, nowTs);
             const statusMeta = getStatusMeta(booking.status);
             return (
               <View key={booking.id} style={styles.card}>
@@ -321,10 +381,14 @@ const BookingsScreen = ({navigation, route}) => {
                   onPress={() =>
                     navigation?.navigate('BookingDetails', {
                       bookingId: booking.id,
+                      offerExpiresAt: booking.offer_expires_at,
                     })
                   }>
                 {isNew && (
-                  <Text style={styles.newLabel}>New Booking Request</Text>
+                  <View style={styles.newHeader}>
+                    <Text style={styles.newLabel}>New Booking Request</Text>
+                    <OfferCountdown booking={booking} nowTs={nowTs} />
+                  </View>
                 )}
 
                 <View style={styles.row}>
@@ -377,15 +441,23 @@ const BookingsScreen = ({navigation, route}) => {
                 {isNew && (
                   <View style={styles.actionRow}>
                     <TouchableOpacity
-                      style={styles.acceptBtn}
+                      style={[
+                        styles.acceptBtn,
+                        expired && styles.actionDisabled,
+                      ]}
                       activeOpacity={0.85}
-                      onPress={() => handleAccept(booking.id)}>
+                      disabled={expired}
+                      onPress={() => handleAccept(booking.id, booking)}>
                       <Icon name="checkmark" size={16} color="#FFFFFF" />
                       <Text style={styles.acceptText}>Accept Booking</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.rejectBtn}
+                      style={[
+                        styles.rejectBtn,
+                        expired && styles.actionDisabled,
+                      ]}
                       activeOpacity={0.85}
+                      disabled={expired}
                       onPress={() => {
                         setReason('Not available that day');
                         setRejectId(booking.id);
@@ -529,13 +601,21 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+  newHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 10,
+  },
   newLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#15202B',
-    marginBottom: 10,
+    flexShrink: 1,
   },
   row: {flexDirection: 'row', alignItems: 'flex-start'},
+  actionDisabled: {opacity: 0.45},
   avatar: {width: 42, height: 42, borderRadius: 21, marginRight: 10},
   avatarFallback: {
     width: 42,

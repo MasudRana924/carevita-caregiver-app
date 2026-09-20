@@ -1,6 +1,7 @@
 const DHAKA_OFFSET = '+06:00';
 const REMINDER_WINDOW_MS = 65 * 60 * 1000;
 const OVERDUE_WINDOW_MS = 15 * 60 * 1000;
+export const DEFAULT_ACCEPT_TIMEOUT_MINUTES = 15;
 
 const HIDDEN_STATUSES = [
   'CANCELLED',
@@ -100,4 +101,99 @@ export const parseRatingValue = (data, body) => {
     return Number(match[1]);
   }
   return 5;
+};
+
+/**
+ * Resolve offer expiry timestamp for PROVIDER_ASSIGNED bookings.
+ * Prefers API `offer_expires_at`, else assigned/created time + accept_timeout_minutes.
+ */
+export const getOfferExpiresAtMs = (booking, fallbackExpiresAt) => {
+  const raw =
+    booking?.offer_expires_at ||
+    fallbackExpiresAt ||
+    booking?.offerExpiresAt ||
+    null;
+  if (raw) {
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.getTime();
+    }
+  }
+
+  const timeoutMin = Number(booking?.accept_timeout_minutes);
+  const minutes =
+    Number.isFinite(timeoutMin) && timeoutMin > 0
+      ? timeoutMin
+      : DEFAULT_ACCEPT_TIMEOUT_MINUTES;
+
+  const created =
+    booking?.assigned_at ||
+    booking?.provider_assigned_at ||
+    booking?.created_at;
+  if (!created) {
+    return null;
+  }
+  const base = new Date(created).getTime();
+  if (Number.isNaN(base)) {
+    return null;
+  }
+  return base + minutes * 60 * 1000;
+};
+
+export const getOfferRemainingMs = (
+  booking,
+  now = Date.now(),
+  fallbackExpiresAt,
+) => {
+  const expiresAt = getOfferExpiresAtMs(booking, fallbackExpiresAt);
+  if (expiresAt == null) {
+    return null;
+  }
+  return expiresAt - now;
+};
+
+export const isOfferExpired = (
+  booking,
+  now = Date.now(),
+  fallbackExpiresAt,
+) => {
+  const remaining = getOfferRemainingMs(booking, now, fallbackExpiresAt);
+  if (remaining == null) {
+    return false;
+  }
+  return remaining <= 0;
+};
+
+/** Live label: "Accept within Xm" / "Accept within Xs" / "Offer expired" */
+export const formatOfferAcceptLabel = remainingMs => {
+  if (remainingMs == null) {
+    return null;
+  }
+  if (remainingMs <= 0) {
+    return 'Offer expired';
+  }
+  const totalSec = Math.max(1, Math.ceil(remainingMs / 1000));
+  if (totalSec < 60) {
+    return `Accept within ${totalSec}s`;
+  }
+  return `Accept within ${Math.ceil(totalSec / 60)}m`;
+};
+
+export const isActiveAssignedOffer = (
+  booking,
+  now = Date.now(),
+  fallbackExpiresAt,
+) =>
+  booking?.status === 'PROVIDER_ASSIGNED' &&
+  !isOfferExpired(booking, now, fallbackExpiresAt);
+
+/** Drop expired PROVIDER_ASSIGNED offers from active lists. */
+export const filterActiveBookings = (bookings, now = Date.now()) => {
+  const list = Array.isArray(bookings) ? bookings : [];
+  return list.filter(booking => {
+    if (booking?.status !== 'PROVIDER_ASSIGNED') {
+      return true;
+    }
+    return !isOfferExpired(booking, now);
+  });
 };

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,9 @@ import {
 import {
   findReminderBooking,
   formatCountdown,
+  filterActiveBookings,
+  getOfferRemainingMs,
+  isOfferExpired,
 } from '../utils/bookingTime';
 import {
   REVIEW_RECEIVED_EVENT,
@@ -40,6 +43,8 @@ import {
   clearPendingReview,
 } from '../utils/homeAlerts';
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
+import Toast from '../components/common/Toast';
+import OfferCountdown from '../components/booking/OfferCountdown';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -163,9 +168,19 @@ const HomeScreen = ({navigation}) => {
   const [reason, setReason] = useState('Not available that day');
   const [nowTs, setNowTs] = useState(Date.now);
   const [reviewAlert, setReviewAlert] = useState(null);
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: 'error',
+  });
+  const expiredIdsRef = useRef(new Set());
 
   const profile = profileQuery.data?.data || {};
-  const assigned = unwrapBookings(assignedQuery.data);
+  const assignedRaw = unwrapBookings(assignedQuery.data);
+  const assigned = useMemo(
+    () => filterActiveBookings(assignedRaw, nowTs),
+    [assignedRaw, nowTs],
+  );
   const allBookings = unwrapBookings(allQuery.data);
   const wallet = walletQuery.data?.data || {};
   const unread = unreadQuery.data?.unread ?? unreadQuery.data?.data?.unread ?? 0;
@@ -199,6 +214,32 @@ const HomeScreen = ({navigation}) => {
       appSub.remove();
     };
   }, []);
+
+  useEffect(() => {
+    let expiredNow = false;
+    assignedRaw.forEach(booking => {
+      if (booking?.status !== 'PROVIDER_ASSIGNED' || !booking?.id) {
+        return;
+      }
+      const remaining = getOfferRemainingMs(booking, nowTs);
+      if (remaining == null || remaining > 0) {
+        return;
+      }
+      if (!expiredIdsRef.current.has(booking.id)) {
+        expiredIdsRef.current.add(booking.id);
+        expiredNow = true;
+      }
+    });
+    if (expiredNow) {
+      setToast({
+        visible: true,
+        message: 'Offer expired / reassigned',
+        type: 'error',
+      });
+      assignedQuery.refetch();
+      allQuery.refetch();
+    }
+  }, [assignedRaw, nowTs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let mounted = true;
@@ -256,7 +297,16 @@ const HomeScreen = ({navigation}) => {
     }
   };
 
-  const handleAccept = bookingId => {
+  const handleAccept = (bookingId, booking) => {
+    if (isOfferExpired(booking, nowTs)) {
+      setToast({
+        visible: true,
+        message: 'Offer expired / reassigned',
+        type: 'error',
+      });
+      assignedQuery.refetch();
+      return;
+    }
     Alert.alert('Accept booking', 'Accept this booking request?', [
       {text: 'Not now', style: 'cancel'},
       {
@@ -289,7 +339,13 @@ const HomeScreen = ({navigation}) => {
   };
 
   const openBooking = bookingId => {
-    navigation.navigate('BookingDetails', {bookingId});
+    const match =
+      assigned.find(item => item.id === bookingId) ||
+      allBookings.find(item => item.id === bookingId);
+    navigation.navigate('BookingDetails', {
+      bookingId,
+      offerExpiresAt: match?.offer_expires_at,
+    });
   };
 
   const dismissReview = async () => {
@@ -311,6 +367,12 @@ const HomeScreen = ({navigation}) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <Loader visible={busy} overlay />
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast(prev => ({...prev, visible: false}))}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -447,21 +509,34 @@ const HomeScreen = ({navigation}) => {
                       : ''}
                   </Text>
                 </View>
+                <OfferCountdown
+                  booking={featured}
+                  nowTs={nowTs}
+                  style={styles.offerCountdown}
+                />
               </View>
               <Icon name="chevron-forward" size={18} color="#B7C2CC" />
             </TouchableOpacity>
 
             <View style={styles.actionRow}>
               <TouchableOpacity
-                style={styles.acceptBtn}
+                style={[
+                  styles.acceptBtn,
+                  isOfferExpired(featured, nowTs) && styles.actionDisabled,
+                ]}
                 activeOpacity={0.85}
-                onPress={() => handleAccept(featured.id)}>
+                disabled={isOfferExpired(featured, nowTs)}
+                onPress={() => handleAccept(featured.id, featured)}>
                 <Icon name="checkmark" size={16} color="#FFFFFF" />
                 <Text style={styles.acceptText}>Accept</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.rejectBtn}
+                style={[
+                  styles.rejectBtn,
+                  isOfferExpired(featured, nowTs) && styles.actionDisabled,
+                ]}
                 activeOpacity={0.85}
+                disabled={isOfferExpired(featured, nowTs)}
                 onPress={() => {
                   setReason('Not available that day');
                   setRejectId(featured.id);
@@ -1132,7 +1207,9 @@ const styles = StyleSheet.create({
   personName: {fontSize: 15, fontWeight: '800', color: '#15202B'},
   personMeta: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
   metaLine: {flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3},
+  offerCountdown: {marginTop: 8},
   actionRow: {flexDirection: 'row', gap: 10, marginTop: 14},
+  actionDisabled: {opacity: 0.45},
   acceptBtn: {
     flex: 1.2,
     height: 44,

@@ -98,6 +98,7 @@ const InboxScreen = ({navigation}) => {
       }
 
       const nested = parseNotificationData(detail.data);
+      const extra = nested.extraData || nested.extra_data || {};
       handleNotificationClick(
         {
           ...nested,
@@ -106,6 +107,12 @@ const InboxScreen = ({navigation}) => {
           screen: nested.screen,
           booking_id: resolveInboxBookingId(detail) || nested.booking_id,
           inbox_id: detail.id || notification.id,
+          offer_expires_at:
+            nested.offer_expires_at ||
+            nested.offerExpiresAt ||
+            extra.offer_expires_at ||
+            extra.offerExpiresAt ||
+            detail.offer_expires_at,
         },
         navigation,
       );
