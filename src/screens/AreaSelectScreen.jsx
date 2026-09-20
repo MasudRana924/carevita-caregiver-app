@@ -3,10 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
-  TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -14,9 +11,12 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import SearchableDropdown from '../components/common/SearchableDropdown';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
 import {getThanasByDistrict} from '../data/bangladeshThanas';
 import {storage} from '../utils/storage';
+import {showError} from '../context/ErrorModalContext';
 
 const AreaSelectScreen = ({navigation, route}) => {
   const {
@@ -40,11 +40,11 @@ const AreaSelectScreen = ({navigation, route}) => {
 
   const handleNext = async () => {
     if (!district || !thana) {
-      Alert.alert('Select area', 'Please select both district and thana');
+      showError('Please select both district and thana', 'Select area');
       return;
     }
     if (!fullAddress.trim()) {
-      Alert.alert('Full address', 'Please enter your full address');
+      showError('Please enter your full address', 'Full address');
       return;
     }
 
@@ -107,35 +107,24 @@ const AreaSelectScreen = ({navigation, route}) => {
             icon="location-outline"
           />
 
-          <Text style={styles.label}>Full address</Text>
-          <View style={styles.addressBox}>
-            <Icon
-              name="home-outline"
-              size={18}
-              color="#8190A7"
-              style={styles.addressIcon}
-            />
-            <TextInput
-              style={styles.addressInput}
-              placeholder="House, road, block, landmark..."
-              placeholderTextColor="#8190A7"
-              value={fullAddress}
-              onChangeText={setFullAddress}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
+          <AppInput
+            label="Full address"
+            icon="home-outline"
+            value={fullAddress}
+            onChangeText={setFullAddress}
+            placeholder="House, road, block, landmark..."
+            multiline
+          />
         </ScrollView>
 
-        <View style={styles.bottomContainer}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.nextButton, !canContinue && styles.disabledButton]}
+        <AppButtonBar>
+          <AppButton
+            title="Next"
             onPress={handleNext}
-            disabled={!canContinue}>
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
+            disabled={!canContinue}
+            style={styles.flexBtn}
+          />
+        </AppButtonBar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -189,54 +178,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#8190A7',
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111820',
-    marginBottom: 8,
-  },
-  addressBox: {
-    minHeight: 100,
-    borderRadius: 14,
-    backgroundColor: '#F6F6F6',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  addressIcon: {
-    marginTop: 2,
-    marginRight: 10,
-  },
-  addressInput: {
-    flex: 1,
-    minHeight: 76,
-    fontSize: 15,
-    color: '#111820',
-    padding: 0,
-  },
-  bottomContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-
-
-  },
-  nextButton: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#B5C0D0',
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  flexBtn: {flex: 1},
 });

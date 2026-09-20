@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {FORM, formStyles} from './formStyles';
 
 const SearchableDropdown = ({
   data = [],
@@ -73,11 +74,11 @@ const SearchableDropdown = ({
         activeOpacity={0.85}
         onPress={handleToggle}>
         <View style={styles.buttonContent}>
-          <Icon name={icon} size={18} color="#8190A7" />
+          <Icon name={icon} size={18} color={FORM.icon} />
           <TextInput
             style={styles.input}
             placeholder={placeholder}
-            placeholderTextColor="#8190A7"
+            placeholderTextColor={FORM.placeholder}
             value={searchText}
             onChangeText={handleSearch}
             onFocus={() => {
@@ -90,13 +91,13 @@ const SearchableDropdown = ({
               onPress={handleClear}
               style={styles.clearButton}
               hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-              <Icon name="close-circle" size={18} color="#8190A7" />
+              <Icon name="close-circle" size={18} color={FORM.icon} />
             </TouchableOpacity>
           ) : (
             <Icon
               name={isOpen ? 'chevron-up' : 'chevron-down'}
               size={18}
-              color="#8190A7"
+              color={FORM.icon}
             />
           )}
         </View>
@@ -130,7 +131,7 @@ const SearchableDropdown = ({
                       {item}
                     </Text>
                     {selected && (
-                      <Icon name="checkmark" size={18} color="#008178" />
+                      <Icon name="checkmark" size={18} color={FORM.teal} />
                     )}
                   </TouchableOpacity>
                 );
@@ -158,44 +159,37 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111820',
-    marginBottom: 8,
+    ...formStyles.label,
   },
   dropdownButton: {
-    backgroundColor: '#F6F6F6',
-    borderRadius: 14,
+    backgroundColor: FORM.page,
+    borderRadius: 27,
     borderWidth: 1,
-    borderColor: '#E3E8F0',
+    borderColor: FORM.border,
   },
   dropdownButtonOpen: {
-    borderColor: '#008178',
+    borderColor: FORM.teal,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    height: 52,
+    paddingHorizontal: 16,
+    height: 54,
     gap: 10,
   },
   input: {
-    flex: 1,
-    height: '100%',
-    fontSize: 15,
-    color: '#111820',
-    paddingVertical: 0,
+    ...formStyles.input,
   },
   clearButton: {
     padding: 2,
   },
   dropdownPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: FORM.page,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: '#008178',
+    borderColor: FORM.teal,
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 14,
     maxHeight: 220,
@@ -223,7 +217,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   dropdownItemTextSelected: {
-    color: '#008178',
+    color: FORM.teal,
     fontWeight: '600',
   },
   noResults: {
@@ -233,6 +227,6 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 13,
-    color: '#8190A7',
+    color: FORM.muted,
   },
 });

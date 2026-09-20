@@ -12,15 +12,48 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {FORM, formStyles} from '../common/formStyles';
 
 export const AUTH = {
-  teal: '#0B8A80',
-  title: '#0E2A24',
-  muted: '#6F7F8C',
+  teal: FORM.teal,
+  title: FORM.title,
+  muted: FORM.muted,
   mint: '#F3F8F6',
-  button: '#0B5F4E',
-  page: '#FFFFFF',
+  button: FORM.button,
+  page: FORM.page,
 };
+
+/** @deprecated Prefer AppInput / AppButton; kept for auth screens compatibility */
+export const authStyles = StyleSheet.create({
+  ...formStyles,
+  primaryButton: {
+    ...formStyles.primaryButton,
+    marginTop: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: 22,
+    gap: 4,
+  },
+  footerText: {
+    fontSize: 13,
+    color: FORM.muted,
+  },
+  footerLink: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: FORM.button,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+});
 
 const AuthShell = ({
   navigation,
@@ -75,7 +108,7 @@ const AuthShell = ({
             </View>
 
             <Text style={styles.title}>
-              {title} <Text style={styles.titleHeart}>♡</Text>
+              {title} <Text style={styles.titleHeart}></Text>
             </Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
@@ -105,75 +138,6 @@ const AuthShell = ({
 };
 
 export default AuthShell;
-
-export const authStyles = StyleSheet.create({
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: AUTH.title,
-    marginBottom: 8,
-  },
-  inputRow: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: AUTH.page,
-    borderWidth: 1,
-    borderColor: '#E3EDE8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    fontSize: 15,
-    color: AUTH.title,
-    paddingVertical: 0,
-  },
-  primaryButton: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: AUTH.button,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#9BB8B0',
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    marginTop: 22,
-    gap: 4,
-  },
-  footerText: {
-    fontSize: 13,
-    color: AUTH.muted,
-  },
-  footerLink: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: AUTH.button,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#DC2626',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-});
 
 const styles = StyleSheet.create({
   safe: {flex: 1, backgroundColor: AUTH.page},

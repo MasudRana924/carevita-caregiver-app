@@ -20,6 +20,7 @@ import {
   handleNotificationClick,
   resolveInboxBookingId,
 } from '../utils/notificationHandler';
+import {showError} from '../context/ErrorModalContext';
 
 const InboxScreen = ({navigation}) => {
   const {data: notificationsData, isLoading, refetch} = useNotifications({
@@ -137,10 +138,12 @@ const InboxScreen = ({navigation}) => {
                   refetch();
                   unreadQuery.refetch();
                 } catch (error) {
-                  console.log('Mark all read failed');
+                  showError(error?.message || 'Failed to mark all as read');
                 }
               }}>
-              <Text style={styles.markAll}>Read all</Text>
+              <Text style={styles.markAll} numberOfLines={1}>
+                Read all
+              </Text>
             </TouchableOpacity>
           ) : null
         }
@@ -300,6 +303,7 @@ const styles = StyleSheet.create({
   markAll: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#008178',
+    color: '#0B8A80',
+    flexShrink: 0,
   },
 });

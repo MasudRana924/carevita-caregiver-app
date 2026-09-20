@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Image,
   Alert,
   KeyboardAvoidingView,
@@ -17,6 +16,8 @@ import {launchImageLibrary} from 'react-native-image-picker';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
 import SearchableDropdown from '../components/common/SearchableDropdown';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
 import {getThanasByDistrict} from '../data/bangladeshThanas';
 import {requestGalleryPermission} from '../utils/permissions';
@@ -26,6 +27,7 @@ import {
   useCreateCaregiverProfile,
   useUpdateCaregiverProfile,
 } from '../api/mutations';
+import {showError} from '../context/ErrorModalContext';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const GENDERS = [
@@ -132,9 +134,9 @@ const CaregiverProfileScreen = ({navigation, route}) => {
     try {
       const granted = await requestGalleryPermission();
       if (!granted) {
-        Alert.alert(
-          'Permission required',
+        showError(
           'Please allow photo library access to add a profile photo.',
+          'Permission required',
         );
         return;
       }
@@ -150,13 +152,13 @@ const CaregiverProfileScreen = ({navigation, route}) => {
         setPhoto(result.assets[0]);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to open image picker');
+      showError('Failed to open image picker');
     }
   };
 
   const handleSave = async () => {
     if (!form.district.trim() || !form.thana.trim()) {
-      Alert.alert('Required', 'Please select district and thana');
+      showError('Please select district and thana', 'Required');
       return;
     }
 
@@ -192,7 +194,7 @@ const CaregiverProfileScreen = ({navigation, route}) => {
         navigation?.goBack();
       }
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to save profile');
+      showError(error?.message || 'Failed to save profile');
     }
   };
 
@@ -255,43 +257,35 @@ const CaregiverProfileScreen = ({navigation, route}) => {
             placeholder={form.district ? 'Select thana' : 'Select district first'}
           />
 
-          <Text style={styles.label}>Bio</Text>
-          <TextInput
-            style={[styles.input, styles.multiline]}
+          <AppInput
+            label="Bio"
             value={form.bio}
             onChangeText={text => updateField('bio', text)}
             placeholder="Short introduction"
-            placeholderTextColor="#8190A7"
             multiline
           />
 
-          <Text style={styles.label}>Experience (years)</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Experience (years)"
             value={form.experience_years}
             onChangeText={text => updateField('experience_years', text)}
             placeholder="e.g. 5"
-            placeholderTextColor="#8190A7"
             keyboardType="numeric"
           />
 
-          <Text style={styles.label}>Hourly rate (BDT)</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Hourly rate (BDT)"
             value={form.hourly_rate}
             onChangeText={text => updateField('hourly_rate', text)}
             placeholder="e.g. 250"
-            placeholderTextColor="#8190A7"
             keyboardType="numeric"
           />
 
-          <Text style={styles.label}>Education</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Education"
             value={form.education}
             onChangeText={text => updateField('education', text)}
             placeholder="e.g. HSC, caregiving certificate"
-            placeholderTextColor="#8190A7"
           />
 
           <Text style={styles.label}>Blood group</Text>
@@ -336,22 +330,18 @@ const CaregiverProfileScreen = ({navigation, route}) => {
             ))}
           </View>
 
-          <Text style={styles.label}>Date of birth</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Date of birth"
             value={form.date_of_birth}
             onChangeText={text => updateField('date_of_birth', text)}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#8190A7"
           />
 
-          <Text style={styles.label}>Service areas</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Service areas"
             value={form.service_areas}
             onChangeText={text => updateField('service_areas', text)}
             placeholder="Dhaka or Dhaka,Mirpur"
-            placeholderTextColor="#8190A7"
           />
 
           {!isSetup && (
@@ -382,17 +372,14 @@ const CaregiverProfileScreen = ({navigation, route}) => {
           )}
         </ScrollView>
 
-        <View style={styles.bottom}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.saveButton}
+        <AppButtonBar>
+          <AppButton
+            title={isSetup ? 'Create profile' : 'Save changes'}
             onPress={handleSave}
-            disabled={saving}>
-            <Text style={styles.saveText}>
-              {isSetup ? 'Create profile' : 'Save changes'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            disabled={saving}
+            style={styles.flexBtn}
+          />
+        </AppButtonBar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -452,22 +439,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 8,
   },
-  input: {
-    height: 52,
-    backgroundColor: '#F6F6F6',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: '#111820',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    marginBottom: 12,
-  },
-  multiline: {
-    height: 96,
-    textAlignVertical: 'top',
-    paddingTop: 12,
-  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -515,19 +486,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   toggleKnobOn: {alignSelf: 'flex-end'},
-  bottom: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F2F5',
-  },
-  saveButton: {
-    height: 52,
-    backgroundColor: '#008178',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveText: {fontSize: 16, fontWeight: '600', color: '#FFFFFF'},
+  flexBtn: {flex: 1},
 });

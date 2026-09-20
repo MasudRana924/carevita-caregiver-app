@@ -11,12 +11,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
 import { caregiverService } from '../api/services';
 import { unwrapData } from '../api/envelope';
 import { useAuth } from '../context/AuthContext';
-import Toast from '../components/common/Toast';
+import { showError } from '../context/ErrorModalContext';
 import Loader from '../components/common/Loader';
-import {AUTH, authStyles} from '../components/auth/AuthShell';
+import AppButton from '../components/common/AppButton';
+import {AUTH} from '../components/auth/AuthShell';
 import {
   EKYC_REDIRECT_URL,
   applyEkycStatus,
@@ -53,18 +55,9 @@ const EkycVerificationScreen = () => {
     getEkycSessionStatus(pendingEkyc) || getEkycSessionStatus(user) || null,
   );
   const [checking, setChecking] = useState(false);
-  const [toast, setToast] = useState({
-    visible: false,
-    message: '',
-    type: 'error',
-  });
   const handlingCallback = useRef(false);
   const startedRef = useRef(false);
   const statusRequestRef = useRef(null);
-
-  const showError = message => {
-    setToast({ visible: true, message, type: 'error' });
-  };
 
   const markApproved = useCallback(
     async payload => {
@@ -292,22 +285,16 @@ const EkycVerificationScreen = () => {
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
         {phase === 'in_review' ? (
-          <TouchableOpacity
-            style={authStyles.primaryButton}
-            activeOpacity={0.85}
+          <AppButton
+            title="Check status"
             onPress={fetchStatusOnce}
-            disabled={checking}>
-            <Text style={authStyles.primaryButtonText}>Check status</Text>
-          </TouchableOpacity>
+            disabled={checking}
+          />
         ) : (
-          <TouchableOpacity
-            style={authStyles.primaryButton}
-            activeOpacity={0.85}
-            onPress={startSession}>
-            <Text style={authStyles.primaryButtonText}>
-              {phase === 'pending' ? 'Continue verification' : 'Retry'}
-            </Text>
-          </TouchableOpacity>
+          <AppButton
+            title={phase === 'pending' ? 'Continue verification' : 'Retry'}
+            onPress={startSession}
+          />
         )}
         <TouchableOpacity style={styles.logout} onPress={logout}>
           <Text style={styles.logoutText}>Log out</Text>
@@ -316,23 +303,23 @@ const EkycVerificationScreen = () => {
     );
   };
 
+  const showWebView = phase === 'webview' && !!verificationUrl;
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={
+        showWebView
+          ? ['bottom', 'left', 'right']
+          : ['top', 'left', 'right', 'bottom']
+      }>
       <StatusBar barStyle="dark-content" backgroundColor={AUTH.page} />
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
-      />
-      {phase === 'webview' && verificationUrl ? (
+      {showWebView ? (
         <View style={styles.flex}>
-          <View style={styles.webHeader}>
-            {/* <Text style={styles.webTitle}>Identity verification</Text> */}
-            <TouchableOpacity onPress={leaveWebView} hitSlop={8}>
-              <Text style={styles.closeText}>X</Text>
-            </TouchableOpacity>
-          </View>
+          <Header
+            title="Identity verification"
+            onBack={leaveWebView}
+          />
           <WebView
             source={{ uri: verificationUrl }}
             startInLoadingState
@@ -393,13 +380,4 @@ const styles = StyleSheet.create({
   },
   logout: {alignItems: 'center', marginTop: 16},
   logoutText: { fontSize: 14, fontWeight: '600', color: AUTH.muted },
-  webHeader: {
-    height: 52,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  webTitle: { fontSize: 16, fontWeight: '700', color: AUTH.title },
-  closeText: { fontSize: 14, fontWeight: '700', color: AUTH.button },
 });

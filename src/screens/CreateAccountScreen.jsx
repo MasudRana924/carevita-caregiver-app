@@ -1,10 +1,13 @@
 import React, {useState} from 'react';
-import {View, Text, TextInput, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
+import AppInput from '../components/common/AppInput';
+import AppButton from '../components/common/AppButton';
 import AuthShell, {AUTH, authStyles} from '../components/auth/AuthShell';
 import {registerUser, extractAuthPayload} from '../services/api';
 import notificationService from '../services/notificationService';
+import {showError} from '../context/ErrorModalContext';
 
 const CreateAccountScreen = ({navigation}) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,19 +27,19 @@ const CreateAccountScreen = ({navigation}) => {
     const {name, email, password} = form;
 
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
+      showError('Please enter your name');
       return;
     }
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      showError('Please enter your email');
       return;
     }
     if (!password.trim()) {
-      Alert.alert('Error', 'Please enter a password');
+      showError('Please enter a password');
       return;
     }
     if (!agreed) {
-      Alert.alert('Error', 'Please agree to the Terms of Service');
+      showError('Please agree to the Terms of Service');
       return;
     }
 
@@ -48,10 +51,10 @@ const CreateAccountScreen = ({navigation}) => {
         await notificationService.registerAfterAuth(token);
         navigation?.navigate('VerifyPhone', {email: email.trim()});
       } else {
-        Alert.alert('Error', response.message || 'Registration failed');
+        showError(response.message || 'Registration failed');
       }
     } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      showError('Something went wrong. Please try again.');
       console.error('Register error:', error);
     } finally {
       setLoading(false);
@@ -66,55 +69,36 @@ const CreateAccountScreen = ({navigation}) => {
       subtitle="Register to receive bookings and earn from your care work.">
       <Loader visible={loading} overlay />
 
-      <Text style={authStyles.label}>Full Name</Text>
-      <View style={authStyles.inputRow}>
-        <Icon name="person-outline" size={18} color="#8A97A6" />
-        <TextInput
-          style={authStyles.input}
-          placeholder="Enter your full name"
-          placeholderTextColor="#B0BAC4"
-          value={form.name}
-          onChangeText={text => updateField('name', text)}
-          autoCapitalize="words"
-        />
-      </View>
+      <AppInput
+        label="Full Name"
+        icon="person-outline"
+        value={form.name}
+        onChangeText={text => updateField('name', text)}
+        placeholder="Enter your full name"
+        autoCapitalize="words"
+      />
 
-      <Text style={authStyles.label}>Email Address</Text>
-      <View style={authStyles.inputRow}>
-        <Icon name="mail-outline" size={18} color="#8A97A6" />
-        <TextInput
-          style={authStyles.input}
-          placeholder="Enter your email"
-          placeholderTextColor="#B0BAC4"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={form.email}
-          onChangeText={text => updateField('email', text)}
-        />
-      </View>
+      <AppInput
+        label="Email Address"
+        icon="mail-outline"
+        value={form.email}
+        onChangeText={text => updateField('email', text)}
+        placeholder="Enter your email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
-      <Text style={authStyles.label}>Password</Text>
-      <View style={authStyles.inputRow}>
-        <Icon name="lock-closed-outline" size={18} color="#8A97A6" />
-        <TextInput
-          style={authStyles.input}
-          placeholder="Create a password"
-          placeholderTextColor="#B0BAC4"
-          secureTextEntry={!showPassword}
-          value={form.password}
-          onChangeText={text => updateField('password', text)}
-        />
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setShowPassword(prev => !prev)}
-          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-          <Icon
-            name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-            size={18}
-            color="#8A97A6"
-          />
-        </TouchableOpacity>
-      </View>
+      <AppInput
+        label="Password"
+        icon="lock-closed-outline"
+        value={form.password}
+        onChangeText={text => updateField('password', text)}
+        placeholder="Create a password"
+        secureTextEntry={!showPassword}
+        autoCapitalize="none"
+        rightIcon={showPassword ? 'eye-outline' : 'eye-off-outline'}
+        onRightPress={() => setShowPassword(prev => !prev)}
+      />
 
       <TouchableOpacity
         activeOpacity={0.8}
@@ -129,13 +113,7 @@ const CreateAccountScreen = ({navigation}) => {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={authStyles.primaryButton}
-        disabled={loading}
-        onPress={handleRegister}>
-        <Text style={authStyles.primaryButtonText}>Register</Text>
-      </TouchableOpacity>
+      <AppButton title="Register" onPress={handleRegister} disabled={loading} />
 
       <View style={authStyles.footer}>
         <Text style={authStyles.footerText}>Already have an account?</Text>

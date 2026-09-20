@@ -5,9 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Image,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -15,6 +13,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
 import SearchableDropdown from '../components/common/SearchableDropdown';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {useAddFamilyMember, useUpdateFamilyMember} from '../api/mutations';
 import {useFamilyMember} from '../api/queries';
@@ -24,6 +24,7 @@ import {requestGalleryPermission} from '../utils/permissions';
 import FamilyDetailsSkeleton from '../components/home/FamilyDetailsSkeleton';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
 import {getThanasByDistrict} from '../data/bangladeshThanas';
+import {showError} from '../context/ErrorModalContext';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const RELATIONSHIPS = ['Father', 'Mother', 'Spouse', 'Son', 'Daughter', 'Brother', 'Sister', 'Grandfather', 'Grandmother', 'Other'];
@@ -98,9 +99,9 @@ const AddFamilyMember = ({navigation, route}) => {
     try {
       const granted = await requestGalleryPermission();
       if (!granted) {
-        Alert.alert(
-          'Permission Required',
+        showError(
           'Please allow photo library access to add a photo.',
+          'Permission Required',
         );
         return;
       }
@@ -113,10 +114,7 @@ const AddFamilyMember = ({navigation, route}) => {
 
       if (result.didCancel) return;
       if (result.errorCode) {
-        Alert.alert(
-          'Error',
-          result.errorMessage || 'Failed to open image picker',
-        );
+        showError(result.errorMessage || 'Failed to open image picker');
         return;
       }
       if (result.assets?.[0]?.uri) {
@@ -124,7 +122,7 @@ const AddFamilyMember = ({navigation, route}) => {
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      Alert.alert('Error', 'Failed to open image picker');
+      showError('Failed to open image picker');
     }
   };
 
@@ -152,15 +150,15 @@ const AddFamilyMember = ({navigation, route}) => {
     } = formData;
 
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter name');
+      showError('Please enter name');
       return;
     }
     if (!relationship.trim()) {
-      Alert.alert('Error', 'Please select relationship');
+      showError('Please select relationship');
       return;
     }
     if (!phone.trim()) {
-      Alert.alert('Error', 'Please enter phone number');
+      showError('Please enter phone number');
       return;
     }
 
@@ -200,12 +198,11 @@ const AddFamilyMember = ({navigation, route}) => {
       navigation?.goBack();
     } catch (error) {
       console.error('Failed to save family member:', error);
-      showToast(
+      showError(
         error?.message ||
           (isEditMode
             ? 'Failed to update family member'
             : 'Failed to add family member'),
-        'error',
       );
     }
   };
@@ -257,13 +254,11 @@ const AddFamilyMember = ({navigation, route}) => {
           </TouchableOpacity>
           <Text style={styles.photoHint}>Tap to add photo</Text>
 
-          <Text style={styles.label}>Name *</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Name *"
             value={formData.name}
             onChangeText={text => setFormData({...formData, name: text})}
             placeholder="Enter name"
-            placeholderTextColor="#8190A7"
           />
 
           <Text style={styles.label}>Relationship *</Text>
@@ -275,13 +270,11 @@ const AddFamilyMember = ({navigation, route}) => {
             icon="person-outline"
           />
 
-          <Text style={styles.label}>Phone *</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Phone *"
             value={formData.phone}
             onChangeText={text => setFormData({...formData, phone: text})}
             placeholder="Enter phone number"
-            placeholderTextColor="#8190A7"
             keyboardType="phone-pad"
           />
 
@@ -294,15 +287,13 @@ const AddFamilyMember = ({navigation, route}) => {
             icon="water-outline"
           />
 
-          <Text style={styles.label}>Date of birth</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Date of birth"
             value={formData.date_of_birth}
             onChangeText={text =>
               setFormData({...formData, date_of_birth: text})
             }
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#8190A7"
           />
 
           <Text style={styles.label}>Gender</Text>
@@ -336,92 +327,79 @@ const AddFamilyMember = ({navigation, route}) => {
             icon="navigate-outline"
           />
 
-          <Text style={styles.label}>House</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="House"
             value={formData.house}
             onChangeText={text => setFormData({...formData, house: text})}
             placeholder="House, road, block..."
-            placeholderTextColor="#8190A7"
           />
 
-          <Text style={styles.label}>Emergency contact name</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Emergency contact name"
             value={formData.emergency_contact_name}
-            onChangeText={text => setFormData({...formData, emergency_contact_name: text})}
+            onChangeText={text =>
+              setFormData({...formData, emergency_contact_name: text})
+            }
             placeholder="Enter emergency contact name"
-            placeholderTextColor="#8190A7"
           />
 
-          <Text style={styles.label}>Emergency contact phone</Text>
-          <TextInput
-            style={styles.input}
+          <AppInput
+            label="Emergency contact phone"
             value={formData.emergency_contact_phone}
             onChangeText={text =>
               setFormData({...formData, emergency_contact_phone: text})
             }
             placeholder="Enter emergency contact phone"
-            placeholderTextColor="#8190A7"
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>Medical history</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
+          <AppInput
+            label="Medical history"
             value={formData.medical_history}
-            onChangeText={text => setFormData({...formData, medical_history: text})}
+            onChangeText={text =>
+              setFormData({...formData, medical_history: text})
+            }
             placeholder="Notes or medical information"
-            placeholderTextColor="#8190A7"
             multiline
-            textAlignVertical="top"
           />
 
-          <Text style={styles.label}>Existing conditions</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
+          <AppInput
+            label="Existing conditions"
             value={formData.existing_conditions}
-            onChangeText={text => setFormData({...formData, existing_conditions: text})}
+            onChangeText={text =>
+              setFormData({...formData, existing_conditions: text})
+            }
             placeholder="Any existing medical conditions"
-            placeholderTextColor="#8190A7"
             multiline
-            textAlignVertical="top"
           />
 
-          <Text style={styles.label}>Allergies</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
+          <AppInput
+            label="Allergies"
             value={formData.allergies}
             onChangeText={text => setFormData({...formData, allergies: text})}
             placeholder="Any known allergies"
-            placeholderTextColor="#8190A7"
             multiline
-            textAlignVertical="top"
           />
 
-          <Text style={styles.label}>Current medications</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
+          <AppInput
+            label="Current medications"
             value={formData.current_medications}
-            onChangeText={text => setFormData({...formData, current_medications: text})}
+            onChangeText={text =>
+              setFormData({...formData, current_medications: text})
+            }
             placeholder="Current medications"
-            placeholderTextColor="#8190A7"
             multiline
-            textAlignVertical="top"
           />
         </ScrollView>
 
-        <View style={styles.bottomContainer}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.submitButton}
+        <AppButtonBar>
+          <AppButton
+            title={isEditMode ? 'Update member' : 'Add member'}
             onPress={handleSubmit}
-            disabled={isPending}>
-            <Text style={styles.submitButtonText}>
-              {isEditMode ? 'Update member' : 'Add member'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            disabled={isPending}
+            style={styles.flexBtn}
+          />
+        </AppButtonBar>
       </KeyboardAvoidingView>
 
       <Toast
@@ -493,42 +471,5 @@ const styles = StyleSheet.create({
     color: '#111820',
     marginBottom: 8,
   },
-  input: {
-    height: 52,
-    backgroundColor: '#F6F6F6',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: '#111820',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 100,
-    paddingTop: 14,
-  },
-  bottomContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F2F5',
-    backgroundColor: '#FFFFFF',
-  },
-  submitButton: {
-    height: 52,
-    backgroundColor: '#008178',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#B5C0D0',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  flexBtn: {flex: 1},
 });

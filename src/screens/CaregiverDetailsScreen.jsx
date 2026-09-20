@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
   TouchableOpacity,
   ScrollView,
   Image,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
 import {useCaregiver} from '../api/queries';
 
 const CaregiverDetailsScreen = ({navigation, route}) => {
@@ -61,25 +61,18 @@ const CaregiverDetailsScreen = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
-
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.backButton}
-          onPress={() => navigation?.goBack()}>
-          <Icon name="arrow-back" size={22} color="#182331" />
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.8} style={styles.shareButton}>
-          <Icon name="share-outline" size={20} color="#182331" />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Header
+        title="Caregiver Details"
+        onBack={() => navigation?.goBack()}
+        rightComponent={
+          <TouchableOpacity
+            activeOpacity={0.8}
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+            <Icon name="share-outline" size={20} color="#182331" />
+          </TouchableOpacity>
+        }
+      />
 
       {/* =====================================================
           PAGE
@@ -314,35 +307,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFF',
-  },
-
-  // =======================================================
-  // HEADER
-  // =======================================================
-
-  header: {
-    height: 43,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    backgroundColor: '#FFF',
-  },
-
-  backButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#E9EEF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  shareButton: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // =======================================================

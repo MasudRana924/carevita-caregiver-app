@@ -8,12 +8,13 @@ import {
   Keyboard,
   Alert,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
+import AppButton from '../components/common/AppButton';
 import AuthShell, {AUTH, authStyles} from '../components/auth/AuthShell';
 import {verifyOtp, resendOtp, extractAuthPayload} from '../services/api';
 import {useAuth} from '../context/AuthContext';
 import notificationService from '../services/notificationService';
+import {showError} from '../context/ErrorModalContext';
 
 const OTP_LENGTH = 4;
 
@@ -79,10 +80,10 @@ const VerifyPhoneScreen = ({navigation, route}) => {
         setSeconds(42);
         Alert.alert('Success', 'OTP has been resent to your email');
       } else {
-        Alert.alert('Error', response.message || 'Failed to resend OTP');
+        showError(response.message || 'Failed to resend OTP');
       }
     } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      showError('Something went wrong. Please try again.');
       console.error('Resend OTP error:', error);
     } finally {
       setResending(false);
@@ -112,22 +113,22 @@ const VerifyPhoneScreen = ({navigation, route}) => {
         await notificationService.registerAfterAuth(token);
       } else {
         const code = String(response?.code || '').toUpperCase();
-        Alert.alert(
-          code === 'OTP_INVALID' ? 'Invalid OTP' : 'Error',
+        showError(
           response.message ||
             (code === 'OTP_INVALID'
               ? 'The OTP you entered is invalid. Please try again.'
               : 'OTP verification failed'),
+          code === 'OTP_INVALID' ? 'Invalid OTP' : 'Error',
         );
       }
     } catch (error) {
       const code = String(error?.code || '').toUpperCase();
-      Alert.alert(
-        code === 'OTP_INVALID' ? 'Invalid OTP' : 'Error',
+      showError(
         error?.message ||
           (code === 'OTP_INVALID'
             ? 'The OTP you entered is invalid. Please try again.'
             : 'Something went wrong. Please try again.'),
+        code === 'OTP_INVALID' ? 'Invalid OTP' : 'Error',
       );
       console.error('❌ Verify OTP error:', error);
     } finally {
@@ -185,17 +186,11 @@ const VerifyPhoneScreen = ({navigation, route}) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={!isOtpComplete || loading}
+      <AppButton
+        title="Verify"
         onPress={handleVerify}
-        style={[
-          authStyles.primaryButton,
-          !isOtpComplete && authStyles.primaryButtonDisabled,
-        ]}>
-
-        <Text style={authStyles.primaryButtonText}>Verify</Text>
-      </TouchableOpacity>
+        disabled={!isOtpComplete || loading}
+      />
     </AuthShell>
   );
 };

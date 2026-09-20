@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Image,
-  StatusBar,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
+import AppInput from '../components/common/AppInput';
 
 const nurses = [
   {
@@ -76,21 +76,11 @@ const SelectNurseScreen = ({navigation}) => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
-
-      {/* ================= HEADER ================= */}
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.backButton}
-          onPress={() => navigation?.goBack()}>
-          <Icon name="arrow-back" size={27} color="#182331" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Select Nurse</Text>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Header
+        title="Select Nurse"
+        onBack={() => navigation?.goBack()}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -99,17 +89,14 @@ const SelectNurseScreen = ({navigation}) => {
         {/* ================= SEARCH ================= */}
 
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={23} color="#7D8BA5" />
-
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search nurses..."
-              placeholderTextColor="#7D8BA5"
-              style={styles.searchInput}
-            />
-          </View>
+          <AppInput
+            icon="search-outline"
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search nurses..."
+            containerStyle={styles.searchInputWrap}
+            inputRowStyle={styles.searchInputRow}
+          />
 
           <TouchableOpacity activeOpacity={0.85} style={styles.filterButton}>
             <Icon name="options-outline" size={23} color="#FFFFFF" />
@@ -246,36 +233,6 @@ const styles = StyleSheet.create({
   },
 
   // =====================================================
-  // HEADER
-  // =====================================================
-
-  header: {
-    height: 55,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    paddingHorizontal: 18,
-  },
-
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 20,
-    backgroundColor: '#E9EEF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-
-  headerTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#11182e',
-    flex: 1,
-    textAlign: 'center',
-  },
-
-  // =====================================================
   // SCROLL
   // =====================================================
 
@@ -291,32 +248,17 @@ const styles = StyleSheet.create({
 
   searchRow: {
     width: '100%',
-    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
-
-  searchBox: {
+  searchInputWrap: {
     flex: 1,
-    height: 48,
-    borderRadius: 25,
-    backgroundColor: '#F0F2F7',
-    borderWidth: 1,
-    borderColor: '#E0E5EE',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 13,
+    marginBottom: 0,
   },
-
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 8,
-    paddingVertical: 0,
-    color: '#273447',
-    fontSize: 16,
+  searchInputRow: {
+    marginBottom: 0,
   },
-
   filterButton: {
     width: 49,
     height: 49,

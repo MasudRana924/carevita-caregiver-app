@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  StatusBar,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
 
 const services = [
   {
@@ -57,23 +57,11 @@ const NewBookingScreen = ({navigation}) => {
   const [selectedPatient, setSelectedPatient] = useState('abul');
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
-
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.backButton}
-          onPress={() => navigation?.goBack()}>
-          <Icon name="arrow-back" size={25} color="#182331" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>New Booking</Text>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Header
+        title="New Booking"
+        onBack={() => navigation?.goBack()}
+      />
 
       {/* =====================================================
           CONTENT
@@ -243,36 +231,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFF',
-  },
-
-  // =======================================================
-  // HEADER
-  // =======================================================
-
-  header: {
-    height: 61,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    paddingHorizontal: 19,
-  },
-
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#E9EEF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
-  },
-
-  headerTitle: {
-   fontSize: 15,
-    fontWeight: 'bold',
-    color: '#11182e',
-    flex: 1,
-    textAlign: 'center',
   },
 
   // =======================================================

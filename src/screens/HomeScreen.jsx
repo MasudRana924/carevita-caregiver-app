@@ -9,7 +9,6 @@ import {
   Image,
   Alert,
   Modal,
-  TextInput,
   AppState,
   DeviceEventEmitter,
 } from 'react-native';
@@ -18,6 +17,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HomeHeader from '../components/home/HomeHeader';
 import Loader from '../components/common/Loader';
+import AppInput from '../components/common/AppInput';
+import AppButton from '../components/common/AppButton';
 import {useAuth} from '../context/AuthContext';
 import {
   useBookings,
@@ -43,6 +44,7 @@ import {
   clearPendingReview,
 } from '../utils/homeAlerts';
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
+import {showError} from '../context/ErrorModalContext';
 import Toast from '../components/common/Toast';
 import OfferCountdown from '../components/booking/OfferCountdown';
 
@@ -315,7 +317,7 @@ const HomeScreen = ({navigation}) => {
           try {
             await acceptBooking.mutateAsync(bookingId);
           } catch (error) {
-            Alert.alert('Cannot accept', getAcceptConflictMessage(error));
+            showError(getAcceptConflictMessage(error), 'Cannot accept');
           }
         },
       },
@@ -324,7 +326,7 @@ const HomeScreen = ({navigation}) => {
 
   const submitReject = async () => {
     if (!rejectId || !reason.trim()) {
-      Alert.alert('Required', 'Please enter a reason');
+      showError('Please enter a reason', 'Required');
       return;
     }
     try {
@@ -334,7 +336,7 @@ const HomeScreen = ({navigation}) => {
       });
       setRejectId(null);
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to reject booking');
+      showError(error?.message || 'Failed to reject booking');
     }
   };
 
@@ -519,31 +521,24 @@ const HomeScreen = ({navigation}) => {
             </TouchableOpacity>
 
             <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={[
-                  styles.acceptBtn,
-                  isOfferExpired(featured, nowTs) && styles.actionDisabled,
-                ]}
-                activeOpacity={0.85}
+              <AppButton
+                title="Accept"
+                icon="checkmark"
                 disabled={isOfferExpired(featured, nowTs)}
-                onPress={() => handleAccept(featured.id, featured)}>
-                <Icon name="checkmark" size={16} color="#FFFFFF" />
-                <Text style={styles.acceptText}>Accept</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.rejectBtn,
-                  isOfferExpired(featured, nowTs) && styles.actionDisabled,
-                ]}
-                activeOpacity={0.85}
+                onPress={() => handleAccept(featured.id, featured)}
+                style={styles.flexBtn}
+              />
+              <AppButton
+                title="Reject"
+                variant="outline"
+                icon="close"
                 disabled={isOfferExpired(featured, nowTs)}
                 onPress={() => {
                   setReason('Not available that day');
                   setRejectId(featured.id);
-                }}>
-                <Icon name="close" size={16} color="#E74C3C" />
-                <Text style={styles.rejectText}>Reject</Text>
-              </TouchableOpacity>
+                }}
+                style={styles.flexBtn}
+              />
             </View>
           </View>
         ) : (
@@ -717,23 +712,24 @@ const HomeScreen = ({navigation}) => {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Reject booking</Text>
-            <TextInput
-              style={styles.reasonInput}
+            <AppInput
               value={reason}
               onChangeText={setReason}
               placeholder="Reason"
-              placeholderTextColor="#8A97A6"
               multiline
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalGhost}
-                onPress={() => setRejectId(null)}>
-                <Text style={styles.modalGhostText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalPrimary} onPress={submitReject}>
-                <Text style={styles.acceptText}>Reject</Text>
-              </TouchableOpacity>
+              <AppButton
+                title="Close"
+                variant="ghost"
+                onPress={() => setRejectId(null)}
+                style={styles.flexBtn}
+              />
+              <AppButton
+                title="Reject"
+                onPress={submitReject}
+                style={styles.flexBtn}
+              />
             </View>
           </View>
         </View>
@@ -1209,31 +1205,7 @@ const styles = StyleSheet.create({
   metaLine: {flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3},
   offerCountdown: {marginTop: 8},
   actionRow: {flexDirection: 'row', gap: 10, marginTop: 14},
-  actionDisabled: {opacity: 0.45},
-  acceptBtn: {
-    flex: 1.2,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: TEAL,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  acceptText: {fontSize: 13, fontWeight: '700', color: '#FFFFFF'},
-  rejectBtn: {
-    flex: 0.9,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#F0B4B0',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  rejectText: {fontSize: 13, fontWeight: '700', color: '#E74C3C'},
+  flexBtn: {flex: 1},
   scheduleCard: {
     backgroundColor: '#EAF8F4',
     borderRadius: 18,
@@ -1338,30 +1310,5 @@ const styles = StyleSheet.create({
     color: '#15202B',
     marginBottom: 12,
   },
-  reasonInput: {
-    minHeight: 90,
-    borderRadius: 12,
-    backgroundColor: '#F6F6F6',
-    padding: 12,
-    textAlignVertical: 'top',
-    color: '#15202B',
-  },
   modalActions: {flexDirection: 'row', gap: 10, marginTop: 16},
-  modalGhost: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F6F6F6',
-  },
-  modalGhostText: {fontSize: 15, fontWeight: '600', color: '#15202B'},
-  modalPrimary: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: TEAL,
-  },
 });

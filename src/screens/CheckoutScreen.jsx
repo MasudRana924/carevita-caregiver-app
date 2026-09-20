@@ -5,14 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
+import AppInput from '../components/common/AppInput';
+import AppButton from '../components/common/AppButton';
+import {showError} from '../context/ErrorModalContext';
 
 const PAYMENT_OPTIONS = [
   {
@@ -57,11 +58,11 @@ const CheckoutScreen = ({navigation, route}) => {
 
   const handlePlaceOrder = () => {
     if (!address.trim()) {
-      Alert.alert('Missing address', 'Please enter your delivery address');
+      showError('Please enter your delivery address', 'Missing address');
       return;
     }
     if (!phone.trim()) {
-      Alert.alert('Missing phone', 'Please enter your phone number');
+      showError('Please enter your phone number', 'Missing phone');
       return;
     }
 
@@ -86,43 +87,30 @@ const CheckoutScreen = ({navigation, route}) => {
           contentContainerStyle={styles.scrollContent}>
           <Text style={styles.sectionTitle}>Delivery details</Text>
 
-          <Text style={styles.label}>Address</Text>
-          <View style={styles.inputBox}>
-            <Icon name="location-outline" size={18} color="#8190A7" />
-            <TextInput
-              style={styles.input}
-              placeholder="House, road, area"
-              placeholderTextColor="#8190A7"
-              value={address}
-              onChangeText={setAddress}
-            />
-          </View>
+          <AppInput
+            label="Address"
+            icon="location-outline"
+            value={address}
+            onChangeText={setAddress}
+            placeholder="House, road, area"
+          />
 
-          <Text style={styles.label}>Phone</Text>
-          <View style={styles.inputBox}>
-            <Icon name="call-outline" size={18} color="#8190A7" />
-            <TextInput
-              style={styles.input}
-              placeholder="01XXXXXXXXX"
-              placeholderTextColor="#8190A7"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
-          </View>
+          <AppInput
+            label="Phone"
+            icon="call-outline"
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="01XXXXXXXXX"
+            keyboardType="phone-pad"
+          />
 
-          <Text style={styles.label}>Note (optional)</Text>
-          <View style={[styles.inputBox, styles.noteBox]}>
-            <TextInput
-              style={[styles.input, styles.noteInput]}
-              placeholder="Delivery instructions..."
-              placeholderTextColor="#8190A7"
-              value={note}
-              onChangeText={setNote}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
+          <AppInput
+            label="Note (optional)"
+            value={note}
+            onChangeText={setNote}
+            placeholder="Delivery instructions..."
+            multiline
+          />
 
           <Text style={styles.sectionTitle}>Payment method</Text>
           {PAYMENT_OPTIONS.map(option => {
@@ -200,12 +188,11 @@ const CheckoutScreen = ({navigation, route}) => {
             <Text style={styles.bottomLabel}>Payable</Text>
             <Text style={styles.bottomPrice}>৳{total}</Text>
           </View>
-          <TouchableOpacity
-            activeOpacity={0.85}
+          <AppButton
+            title="Place order"
+            onPress={handlePlaceOrder}
             style={styles.placeBtn}
-            onPress={handlePlaceOrder}>
-            <Text style={styles.placeBtnText}>Place order</Text>
-          </TouchableOpacity>
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -235,39 +222,6 @@ const styles = StyleSheet.create({
     color: '#111820',
     marginBottom: 14,
     marginTop: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111820',
-    marginBottom: 8,
-  },
-  inputBox: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#F6F6F6',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    marginBottom: 14,
-    gap: 10,
-  },
-  noteBox: {
-    height: 88,
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    fontSize: 15,
-    color: '#111820',
-    paddingVertical: 0,
-  },
-  noteInput: {
-    height: '100%',
   },
   paymentCard: {
     flexDirection: 'row',
@@ -407,16 +361,7 @@ const styles = StyleSheet.create({
     color: '#111820',
   },
   placeBtn: {
-    height: 48,
     paddingHorizontal: 22,
-    borderRadius: 14,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    minWidth: 140,
   },
 });

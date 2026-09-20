@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -13,6 +12,7 @@ import Loader from '../components/common/Loader';
 import Header from '../components/common/Header';
 import {useCreateBooking} from '../api/mutations';
 import {storage} from '../utils/storage';
+import {showError} from '../context/ErrorModalContext';
 
 const toStartTime = timeValue => {
   if (!timeValue) {
@@ -91,18 +91,18 @@ const BookingPreviewScreen = ({navigation, route}) => {
 
   const handleConfirm = async () => {
     if (!selectedMember || !selectedCaregiver) {
-      Alert.alert('Error', 'Missing booking details. Please go back and try again.');
+      showError('Missing booking details. Please go back and try again.');
       return;
     }
 
     const token = await storage.getAuthToken();
     if (!token) {
-      Alert.alert('Error', 'Please login to book an appointment');
+      showError('Please login to book an appointment');
       return;
     }
 
     if (!selectedHospital?.id) {
-      Alert.alert('Error', 'Please select a hospital to continue');
+      showError('Please select a hospital to continue');
       return;
     }
 
@@ -131,7 +131,7 @@ const BookingPreviewScreen = ({navigation, route}) => {
         bookingNumber: response.data?.booking_number,
       });
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to create booking. Please try again.');
+      showError(error?.message || 'Failed to create booking. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

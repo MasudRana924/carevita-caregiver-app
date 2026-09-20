@@ -254,7 +254,7 @@ const BkashCheckout = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      {/* <Header title="bKash payment" onBack={() => navigation.goBack()} /> */}
+      <Header title="bKash payment" onBack={() => navigation.goBack()} />
       <View style={styles.container}>
         {currentButtonLoading ? (
           <ActivityIndicator size="large" color="#E2136E" />

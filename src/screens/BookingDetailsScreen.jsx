@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  TextInput,
   Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -26,9 +25,12 @@ import Header from '../components/common/Header';
 import BookingDetailsSkeleton from '../components/home/BookingDetailsSkeleton';
 import Loader from '../components/common/Loader';
 import Toast from '../components/common/Toast';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import OfferCountdown from '../components/booking/OfferCountdown';
 import useNowTick from '../hooks/useNowTick';
 import {getOfferRemainingMs, isOfferExpired} from '../utils/bookingTime';
+import {showError} from '../context/ErrorModalContext';
 
 const STATUS_STYLES = {
   PENDING_PAYMENT: {bg: '#FFF4E5', text: '#D97706'},
@@ -199,7 +201,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
             Alert.alert('Started', 'Service started');
             refetch();
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to start booking');
+            showError(error?.message || 'Failed to start booking');
           }
         },
       },
@@ -225,7 +227,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
             );
             refetch();
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to complete booking');
+            showError(error?.message || 'Failed to complete booking');
           }
         },
       },
@@ -254,7 +256,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
             );
             refetch();
           } catch (error) {
-            Alert.alert('Cannot accept', getAcceptConflictMessage(error));
+            showError(getAcceptConflictMessage(error), 'Cannot accept');
           }
         },
       },
@@ -264,7 +266,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const submitReason = async () => {
     const trimmed = reason.trim();
     if (!trimmed) {
-      Alert.alert('Required', 'Please enter a reason');
+      showError('Please enter a reason', 'Required');
       return;
     }
     try {
@@ -299,7 +301,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
       setReason('');
       refetch();
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Action failed');
+      showError(error?.message || 'Action failed');
     }
   };
 
@@ -565,82 +567,65 @@ const BookingDetailsScreen = ({navigation, route}) => {
         canStart ||
         canComplete ||
         canDispute) && (
-        <View style={styles.bottomContainer}>
+        <AppButtonBar>
           {canRespondStatus && (
             <>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[
-                  styles.actionButton,
-                  styles.cancelButton,
-                  offerExpired && styles.actionDisabled,
-                ]}
+              <AppButton
+                title="Reject"
+                variant="outline"
                 disabled={offerExpired}
                 onPress={() => {
                   setReason('Not available that day');
                   setReasonModal('reject');
-                }}>
-                <Text style={[styles.payButtonText, styles.cancelButtonText]}>
-                  Reject
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[
-                  styles.actionButton,
-                  styles.payButton,
-                  offerExpired && styles.actionDisabled,
-                ]}
+                }}
+                style={styles.flexBtn}
+              />
+              <AppButton
+                title="Accept"
                 disabled={offerExpired}
-                onPress={handleAccept}>
-                <Text style={styles.payButtonText}>Accept</Text>
-              </TouchableOpacity>
+                onPress={handleAccept}
+                style={styles.flexBtn}
+              />
             </>
           )}
           {canStart && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.actionButton, styles.payButton]}
-              onPress={handleStart}>
-              <Text style={styles.payButtonText}>Start</Text>
-            </TouchableOpacity>
+            <AppButton
+              title="Start"
+              onPress={handleStart}
+              style={styles.flexBtn}
+            />
           )}
           {canComplete && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.actionButton, styles.payButton]}
-              onPress={handleComplete}>
-              <Text style={styles.payButtonText}>End</Text>
-            </TouchableOpacity>
+            <AppButton
+              title="End"
+              onPress={handleComplete}
+              style={styles.flexBtn}
+            />
           )}
           {canCancel && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.actionButton, styles.cancelButton]}
+            <AppButton
+              title="Cancel booking"
+              variant="outline"
               onPress={() => {
                 setReason('Emergency');
                 setReasonModal('cancel');
-              }}>
-              <Text style={[styles.payButtonText, styles.cancelButtonText]}>
-                Cancel booking
-              </Text>
-            </TouchableOpacity>
+              }}
+              style={styles.flexBtn}
+            />
           )}
           {canDispute && !canRespondStatus && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.actionButton, styles.cancelButton]}
+            <AppButton
+              title="Dispute"
+              variant="outline"
               onPress={() => {
                 setReason('');
                 setDisputeDetails('');
                 setReasonModal('dispute');
-              }}>
-              <Text style={[styles.payButtonText, styles.cancelButtonText]}>
-                Dispute
-              </Text>
-            </TouchableOpacity>
+              }}
+              style={styles.flexBtn}
+            />
           )}
-        </View>
+        </AppButtonBar>
       )}
 
       <Modal
@@ -657,41 +642,38 @@ const BookingDetailsScreen = ({navigation, route}) => {
                   ? 'Open dispute'
                   : 'Cancel booking'}
             </Text>
-            <TextInput
-              style={styles.reasonInput}
+            <AppInput
               value={reason}
               onChangeText={setReason}
-              placeholder={reasonModal === 'dispute' ? 'Reason' : 'Reason'}
-              placeholderTextColor="#8190A7"
+              placeholder="Reason"
               multiline
             />
             {reasonModal === 'dispute' ? (
-              <TextInput
-                style={[styles.reasonInput, {marginTop: 10}]}
+              <AppInput
                 value={disputeDetails}
                 onChangeText={setDisputeDetails}
                 placeholder="Details (optional)"
-                placeholderTextColor="#8190A7"
                 multiline
               />
             ) : null}
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalGhost}
-                onPress={() => setReasonModal(null)}>
-                <Text style={styles.modalGhostText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalPrimary}
-                onPress={submitReason}>
-                <Text style={styles.payButtonText}>
-                  {reasonModal === 'reject'
+              <AppButton
+                title="Close"
+                variant="ghost"
+                onPress={() => setReasonModal(null)}
+                style={styles.flexBtn}
+              />
+              <AppButton
+                title={
+                  reasonModal === 'reject'
                     ? 'Reject'
                     : reasonModal === 'dispute'
                       ? 'Submit'
-                      : 'Cancel'}
-                </Text>
-              </TouchableOpacity>
+                      : 'Cancel'
+                }
+                onPress={submitReason}
+                style={styles.flexBtn}
+              />
             </View>
           </View>
         </View>
@@ -822,31 +804,7 @@ const styles = StyleSheet.create({
   },
   personMeta: {fontSize: 13, color: '#8190A7', lineHeight: 18},
   bodyText: {marginTop: 12, fontSize: 14, lineHeight: 21, color: '#4A5568'},
-  bottomContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  actionButton: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionDisabled: {opacity: 0.45},
-  payButton: {backgroundColor: '#008178'},
-  payButtonText: {fontSize: 16, fontWeight: '600', color: '#FFFFFF'},
-  cancelButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DC2626',
-  },
-  cancelButtonText: {color: '#DC2626'},
+  flexBtn: {flex: 1},
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -860,30 +818,5 @@ const styles = StyleSheet.create({
     color: '#111820',
     marginBottom: 12,
   },
-  reasonInput: {
-    minHeight: 90,
-    borderRadius: 12,
-    backgroundColor: '#F6F6F6',
-    padding: 12,
-    textAlignVertical: 'top',
-    color: '#111820',
-  },
   modalActions: {flexDirection: 'row', gap: 10, marginTop: 16},
-  modalGhost: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F6F6F6',
-  },
-  modalGhostText: {fontSize: 15, fontWeight: '600', color: '#111820'},
-  modalPrimary: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#008178',
-  },
 });

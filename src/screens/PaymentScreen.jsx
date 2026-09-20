@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
 import {apiRequest} from '../services/api';
+import {showError} from '../context/ErrorModalContext';
 
 const PaymentScreen = ({route, navigation}) => {
   const {bookingId, amount, bookingNumber} = route.params || {};
@@ -19,7 +21,7 @@ const PaymentScreen = ({route, navigation}) => {
 
   const processPayment = async paymentMethod => {
     if (!bookingId) {
-      Alert.alert('Error', 'Missing booking information');
+      showError('Missing booking information');
       return;
     }
 
@@ -43,11 +45,11 @@ const PaymentScreen = ({route, navigation}) => {
           },
         ]);
       } else {
-        Alert.alert('Error', response.message || 'Payment failed');
+        showError(response.message || 'Payment failed');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      Alert.alert('Error', 'Payment initialization failed');
+      showError('Payment initialization failed');
     } finally {
       setLoading(false);
     }
@@ -65,14 +67,10 @@ const PaymentScreen = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#111820" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment</Text>
-      </View>
+      <Header
+        title="Payment"
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -144,28 +142,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3E8F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111820',
-    textAlign: 'center',
-    marginRight: 40,
   },
   scrollView: {
     flex: 1,

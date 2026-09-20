@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
 
 const NotificationsScreen = () => {
   const notifications = [
@@ -55,16 +55,17 @@ const NotificationsScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FC" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity activeOpacity={0.7}>
-          <Text style={styles.markAllRead}>Mark all read</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Header
+        title="Notifications"
+        showBack={false}
+        leftIcon="notifications-outline"
+        rightComponent={
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={styles.markAllRead}>Mark all read</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -110,24 +111,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FC',
   },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: 12,
-  },
-
-  headerTitle: {
-    fontSize: 27,
-    fontWeight: '700',
-    color: '#182331',
-    letterSpacing: -0.4,
-  },
-
   markAllRead: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#008178',
     fontWeight: '600',
   },

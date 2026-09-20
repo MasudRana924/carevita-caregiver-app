@@ -4,16 +4,15 @@ import {
   Text,
   Image,
   StyleSheet,
-  TouchableOpacity,
   StatusBar,
   ScrollView,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AppButton from '../components/common/AppButton';
 import {requestAppPermissions} from '../utils/permissions';
 
 const TEAL = '#0B8A80';
-const BUTTON = '#0B5F4E';
 const TITLE = '#0E2A24';
 
 const FEATURES = [
@@ -86,14 +85,7 @@ const WelcomeScreen = ({navigation}) => {
         </View>
 
         <View style={styles.bottom}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.primaryButton}
-            onPress={handleGetStarted}>
-            <Text style={styles.primaryButtonText}>Get Started</Text>
-
-          </TouchableOpacity>
-
+          <AppButton title="Get Started" onPress={handleGetStarted} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -180,29 +172,5 @@ const styles = StyleSheet.create({
   bottom: {
     marginTop: 'auto',
     paddingTop: 28,
-  },
-  primaryButton: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: BUTTON,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  skipBtn: {
-    alignSelf: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#8A97A6',
   },
 });

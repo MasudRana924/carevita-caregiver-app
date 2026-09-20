@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
+import AppInput from '../components/common/AppInput';
 import {useDeliveryMethods} from '../api/queries';
 
 const METHOD_ICONS = {
@@ -96,24 +96,20 @@ const WithdrawScreen = ({navigation, route}) => {
             </View>
           ) : null}
 
-          <Text style={styles.sectionLabel}>Amount</Text>
-          <View style={styles.amountCard}>
-            <Text style={styles.currencyPrefix}>৳</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={amount}
-              onChangeText={text => {
-                setAmount(text.replace(/[^0-9.]/g, ''));
-                if (formError) {
-                  setFormError('');
-                }
-              }}
-              placeholder="0.00"
-              placeholderTextColor="#C0CAD6"
-              keyboardType="decimal-pad"
-              editable={!pendingWithdrawal}
-            />
-          </View>
+          <AppInput
+            label="Amount"
+            icon="cash-outline"
+            value={amount}
+            onChangeText={text => {
+              setAmount(text.replace(/[^0-9.]/g, ''));
+              if (formError) {
+                setFormError('');
+              }
+            }}
+            placeholder="৳ 0.00"
+            keyboardType="decimal-pad"
+            editable={!pendingWithdrawal}
+          />
           <Text style={styles.hint}>
             Available ৳{balance.toFixed(2)} · Minimum ৳100
           </Text>
@@ -218,30 +214,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sectionGap: {marginTop: 20},
-  amountCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#D9E8E5',
-    paddingHorizontal: 16,
-    minHeight: 30,
-  },
-  currencyPrefix: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#008178',
-    marginRight: 4,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#0F1A24',
-    // paddingVertical: 14,
-  },
-  hint: {marginTop: 8, fontSize: 12, color: '#8A97A8'},
+  hint: {marginTop: -8, marginBottom: 8, fontSize: 12, color: '#8A97A8'},
   methodCard: {
     flexDirection: 'row',
     alignItems: 'center',

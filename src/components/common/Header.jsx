@@ -35,25 +35,25 @@ const Header = ({
             leftPressable ? (
               <TouchableOpacity
                 activeOpacity={0.7}
-                style={styles.sideBtn}
+                style={styles.sideBtnLeft}
                 onPress={handleLeftPress}
                 hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
                 <Icon name={resolvedLeftIcon} size={22} color="#172333" />
               </TouchableOpacity>
             ) : (
-              <View style={styles.sideBtn}>
+              <View style={styles.sideBtnLeft}>
                 <Icon name={resolvedLeftIcon} size={22} color="#172333" />
               </View>
             )
           ) : (
-            <View style={styles.sideBtn} />
+            <View style={styles.sideBtnLeft} />
           )}
 
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
 
-          <View style={styles.sideBtn}>
+          <View style={styles.sideBtnRight}>
             {rightComponent || null}
           </View>
         </View>
@@ -67,8 +67,6 @@ export default Header;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E8EEF2',
   },
   content: {
     minHeight: 52,
@@ -77,11 +75,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 10,
   },
-  sideBtn: {
+  sideBtnLeft: {
     width: 40,
     minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sideBtnRight: {
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingLeft: 4,
   },
   title: {
     flex: 1,

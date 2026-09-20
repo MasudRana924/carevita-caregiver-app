@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Image,
 } from 'react-native';
@@ -13,6 +12,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useSearchCaregivers} from '../api/queries';
 import Header from '../components/common/Header';
 import CaregiverSkeleton from '../components/home/CaregiverSkeleton';
+import AppInput from '../components/common/AppInput';
 import {storage} from '../utils/storage';
 
 const SelectCaregiverScreen = ({navigation, route}) => {
@@ -82,16 +82,14 @@ const SelectCaregiverScreen = ({navigation, route}) => {
         contentContainerStyle={styles.scrollContent}>
         {/* ================= SEARCH ================= */}
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={20} color="#8190A7" />
-            <TextInput
-              value={search}
-              onChangeText={handleSearch}
-              placeholder="Search by name..."
-              placeholderTextColor="#8190A7"
-              style={styles.searchInput}
-            />
-          </View>
+          <AppInput
+            icon="search-outline"
+            value={search}
+            onChangeText={handleSearch}
+            placeholder="Search by name..."
+            containerStyle={styles.searchInputWrap}
+            inputRowStyle={styles.searchInputRow}
+          />
         </View>
 
         {(!!selectedDistrict || !!selectedThana) && (
@@ -316,59 +314,15 @@ const styles = StyleSheet.create({
 
   searchRow: {
     width: '100%',
-    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
   },
-
-  searchBox: {
+  searchInputWrap: {
     flex: 1,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#F6F6F6',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 13,
+    marginBottom: 0,
   },
-
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 8,
-    paddingVertical: 0,
-    color: '#172333',
-    fontSize: 15,
-  },
-
-  filterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-  },
-
-  locationFilter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingHorizontal: 14,
-    height: 44,
-    backgroundColor: '#F6F6F6',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-  },
-
-  locationInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#172333',
+  searchInputRow: {
+    marginBottom: 0,
   },
 
   areaBanner: {

@@ -1,7 +1,9 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, TextInput, Alert} from 'react-native';
+import {View, Text, TouchableOpacity, Alert} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
+import AppInput from '../components/common/AppInput';
+import AppButton from '../components/common/AppButton';
 import AuthShell, {AUTH, authStyles} from '../components/auth/AuthShell';
 import {loginUser, extractAuthPayload} from '../services/api';
 import {useAuth} from '../context/AuthContext';
@@ -56,7 +58,8 @@ const LoginScreen = ({navigation}) => {
             String(e?.message || e)
               .toLowerCase()
               .includes('verify'),
-          ) || message.toLowerCase().includes('verify');
+          ) ||
+          message.toLowerCase().includes('verify');
         if (needsVerify) {
           navigation?.navigate('VerifyPhone', {email: email.trim()});
         }
@@ -77,43 +80,29 @@ const LoginScreen = ({navigation}) => {
       subtitle="Sign in to manage bookings and your caregiver profile.">
       <Loader visible={loading} overlay />
 
-      <Text style={authStyles.label}>Email Address</Text>
-      <View style={authStyles.inputRow}>
-        <Icon name="mail-outline" size={18} color="#8A97A6" />
-        <TextInput
-          style={authStyles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          placeholderTextColor="#B0BAC4"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-      </View>
+      <AppInput
+        label="Email Address"
+        icon="mail-outline"
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Enter your email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
-      <Text style={authStyles.label}>Password</Text>
-      <View style={authStyles.inputRow}>
-        <Icon name="lock-closed-outline" size={18} color="#8A97A6" />
-        <TextInput
-          style={authStyles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Enter your password"
-          placeholderTextColor="#B0BAC4"
-          secureTextEntry={!passUi.show}
-          autoCapitalize="none"
-        />
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setPassUi(prev => ({...prev, show: !prev.show}))}
-          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-          <Icon
-            name={passUi.show ? 'eye-outline' : 'eye-off-outline'}
-            size={18}
-            color="#8A97A6"
-          />
-        </TouchableOpacity>
-      </View>
+      <AppInput
+        label="Password"
+        icon="lock-closed-outline"
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Enter your password"
+        secureTextEntry={!passUi.show}
+        autoCapitalize="none"
+        rightIcon={passUi.show ? 'eye-outline' : 'eye-off-outline'}
+        onRightPress={() =>
+          setPassUi(prev => ({...prev, show: !prev.show}))
+        }
+      />
 
       <View style={styles.row}>
         <TouchableOpacity
@@ -147,14 +136,12 @@ const LoginScreen = ({navigation}) => {
 
       {error ? <Text style={authStyles.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={authStyles.primaryButton}
+      <AppButton
+        title="Login"
+        onPress={handleLogin}
         disabled={loading}
-        onPress={handleLogin}>
-
-        <Text style={authStyles.primaryButtonText}>Login</Text>
-      </TouchableOpacity>
+        style={{marginTop: 8}}
+      />
 
       <View style={authStyles.footer}>
         <Text style={authStyles.footerText}>Don't have an account?</Text>

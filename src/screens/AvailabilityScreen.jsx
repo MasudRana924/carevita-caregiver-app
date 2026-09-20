@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -13,9 +12,12 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import {useAvailability} from '../api/queries';
 import {useUpdateAvailability} from '../api/mutations';
 import {unwrapList} from '../api/envelope';
+import {showError} from '../context/ErrorModalContext';
 
 const DAYS = [
   {value: 0, label: 'Sunday'},
@@ -92,7 +94,7 @@ const AvailabilityScreen = ({navigation}) => {
       slot => !/^\d{2}:\d{2}$/.test(slot.start_time) || !/^\d{2}:\d{2}$/.test(slot.end_time),
     );
     if (invalid) {
-      Alert.alert('Invalid time', 'Use HH:MM, for example 09:00');
+      showError('Use HH:MM, for example 09:00', 'Invalid time');
       return;
     }
 
@@ -106,7 +108,7 @@ const AvailabilityScreen = ({navigation}) => {
       );
       navigation?.goBack();
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to save availability');
+      showError(error?.message || 'Failed to save availability');
     }
   };
 
@@ -155,27 +157,25 @@ const AvailabilityScreen = ({navigation}) => {
                 {day.is_active ? (
                   <View style={styles.timeRow}>
                     <View style={styles.timeCol}>
-                      <Text style={styles.timeLabel}>Start</Text>
-                      <TextInput
-                        style={styles.input}
+                      <AppInput
+                        label="Start"
                         value={day.start_time}
                         onChangeText={text =>
                           updateDay(day.day_of_week, {start_time: text})
                         }
                         placeholder="09:00"
-                        placeholderTextColor="#8190A7"
+                        containerStyle={styles.timeInput}
                       />
                     </View>
                     <View style={styles.timeCol}>
-                      <Text style={styles.timeLabel}>End</Text>
-                      <TextInput
-                        style={styles.input}
+                      <AppInput
+                        label="End"
                         value={day.end_time}
                         onChangeText={text =>
                           updateDay(day.day_of_week, {end_time: text})
                         }
                         placeholder="18:00"
-                        placeholderTextColor="#8190A7"
+                        containerStyle={styles.timeInput}
                       />
                     </View>
                   </View>
@@ -184,14 +184,13 @@ const AvailabilityScreen = ({navigation}) => {
             );
           })}
         </ScrollView>
-        <View style={styles.bottom}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            activeOpacity={0.85}
-            onPress={handleSave}>
-            <Text style={styles.saveText}>Save hours</Text>
-          </TouchableOpacity>
-        </View>
+        <AppButtonBar>
+          <AppButton
+            title="Save hours"
+            onPress={handleSave}
+            style={styles.flexBtn}
+          />
+        </AppButtonBar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -239,30 +238,6 @@ const styles = StyleSheet.create({
   knobOn: {alignSelf: 'flex-end'},
   timeRow: {flexDirection: 'row', gap: 10, marginTop: 12},
   timeCol: {flex: 1},
-  timeLabel: {fontSize: 12, color: '#8190A7', marginBottom: 6},
-  input: {
-    height: 46,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    color: '#111820',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-  },
-  bottom: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F2F5',
-  },
-  saveButton: {
-    height: 52,
-    backgroundColor: '#008178',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveText: {fontSize: 16, fontWeight: '600', color: '#FFFFFF'},
+  timeInput: {marginBottom: 0},
+  flexBtn: {flex: 1},
 });

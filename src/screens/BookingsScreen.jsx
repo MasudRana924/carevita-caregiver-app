@@ -8,7 +8,6 @@ import {
   Image,
   Alert,
   Modal,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -20,8 +19,11 @@ import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
 import Header from '../components/common/Header';
 import Toast from '../components/common/Toast';
+import AppInput from '../components/common/AppInput';
+import AppButton from '../components/common/AppButton';
 import OfferCountdown from '../components/booking/OfferCountdown';
 import useNowTick from '../hooks/useNowTick';
+import {showError} from '../context/ErrorModalContext';
 import {
   filterActiveBookings,
   getOfferRemainingMs,
@@ -228,7 +230,7 @@ const BookingsScreen = ({navigation, route}) => {
           try {
             await startBooking.mutateAsync(bookingId);
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to start booking');
+            showError(error?.message || 'Failed to start booking');
           }
         },
       },
@@ -252,7 +254,7 @@ const BookingsScreen = ({navigation, route}) => {
                 : 'Service completed. Earnings settled to your wallet.',
             );
           } catch (error) {
-            Alert.alert('Error', error?.message || 'Failed to complete booking');
+            showError(error?.message || 'Failed to complete booking');
           }
         },
       },
@@ -277,7 +279,7 @@ const BookingsScreen = ({navigation, route}) => {
           try {
             await acceptBooking.mutateAsync(bookingId);
           } catch (error) {
-            Alert.alert('Cannot accept', getAcceptConflictMessage(error));
+            showError(getAcceptConflictMessage(error), 'Cannot accept');
           }
         },
       },
@@ -286,7 +288,7 @@ const BookingsScreen = ({navigation, route}) => {
 
   const submitReject = async () => {
     if (!rejectId || !reason.trim()) {
-      Alert.alert('Required', 'Please enter a reason');
+      showError('Please enter a reason', 'Required');
       return;
     }
     try {
@@ -296,7 +298,7 @@ const BookingsScreen = ({navigation, route}) => {
       });
       setRejectId(null);
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to reject booking');
+      showError(error?.message || 'Failed to reject booking');
     }
   };
 
@@ -440,53 +442,44 @@ const BookingsScreen = ({navigation, route}) => {
 
                 {isNew && (
                   <View style={styles.actionRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.acceptBtn,
-                        expired && styles.actionDisabled,
-                      ]}
-                      activeOpacity={0.85}
+                    <AppButton
+                      title="Accept Booking"
+                      icon="checkmark"
                       disabled={expired}
-                      onPress={() => handleAccept(booking.id, booking)}>
-                      <Icon name="checkmark" size={16} color="#FFFFFF" />
-                      <Text style={styles.acceptText}>Accept Booking</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.rejectBtn,
-                        expired && styles.actionDisabled,
-                      ]}
-                      activeOpacity={0.85}
+                      onPress={() => handleAccept(booking.id, booking)}
+                      style={styles.flexBtn}
+                    />
+                    <AppButton
+                      title="Reject"
+                      variant="outline"
+                      icon="close"
                       disabled={expired}
                       onPress={() => {
                         setReason('Not available that day');
                         setRejectId(booking.id);
-                      }}>
-                      <Icon name="close" size={16} color="#E74C3C" />
-                      <Text style={styles.rejectText}>Reject</Text>
-                    </TouchableOpacity>
+                      }}
+                      style={styles.flexBtn}
+                    />
                   </View>
                 )}
                 {!isNew && booking.can_start && (
                   <View style={styles.actionRow}>
-                    <TouchableOpacity
-                      style={styles.acceptBtn}
-                      activeOpacity={0.85}
-                      onPress={() => handleStart(booking.id)}>
-                      <Icon name="play" size={16} color="#FFFFFF" />
-                      <Text style={styles.acceptText}>Start</Text>
-                    </TouchableOpacity>
+                    <AppButton
+                      title="Start"
+                      icon="play"
+                      onPress={() => handleStart(booking.id)}
+                      style={styles.flexBtn}
+                    />
                   </View>
                 )}
                 {!isNew && booking.can_complete && (
                   <View style={styles.actionRow}>
-                    <TouchableOpacity
-                      style={styles.acceptBtn}
-                      activeOpacity={0.85}
-                      onPress={() => handleComplete(booking.id)}>
-                      <Icon name="checkmark-done" size={16} color="#FFFFFF" />
-                      <Text style={styles.acceptText}>End</Text>
-                    </TouchableOpacity>
+                    <AppButton
+                      title="End"
+                      icon="checkmark-done"
+                      onPress={() => handleComplete(booking.id)}
+                      style={styles.flexBtn}
+                    />
                   </View>
                 )}
               </View>
@@ -503,23 +496,24 @@ const BookingsScreen = ({navigation, route}) => {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Reject booking</Text>
-            <TextInput
-              style={styles.reasonInput}
+            <AppInput
               value={reason}
               onChangeText={setReason}
               placeholder="Reason"
-              placeholderTextColor="#8A97A6"
               multiline
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalGhost}
-                onPress={() => setRejectId(null)}>
-                <Text style={styles.modalGhostText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalPrimary} onPress={submitReject}>
-                <Text style={styles.acceptText}>Reject</Text>
-              </TouchableOpacity>
+              <AppButton
+                title="Close"
+                variant="ghost"
+                onPress={() => setRejectId(null)}
+                style={styles.flexBtn}
+              />
+              <AppButton
+                title="Reject"
+                onPress={submitReject}
+                style={styles.flexBtn}
+              />
             </View>
           </View>
         </View>
@@ -615,7 +609,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   row: {flexDirection: 'row', alignItems: 'flex-start'},
-  actionDisabled: {opacity: 0.45},
   avatar: {width: 42, height: 42, borderRadius: 21, marginRight: 10},
   avatarFallback: {
     width: 42,
@@ -642,30 +635,7 @@ const styles = StyleSheet.create({
   },
   statusText: {fontSize: 11, fontWeight: '700', textAlign: 'right'},
   actionRow: {flexDirection: 'row', gap: 10, marginTop: 14},
-  acceptBtn: {
-    flex: 1.15,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: TEAL,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  acceptText: {fontSize: 13, fontWeight: '700', color: '#FFFFFF'},
-  rejectBtn: {
-    flex: 0.85,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#F0B4B0',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  rejectText: {fontSize: 13, fontWeight: '700', color: '#E74C3C'},
+  flexBtn: {flex: 1},
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -679,30 +649,5 @@ const styles = StyleSheet.create({
     color: '#15202B',
     marginBottom: 12,
   },
-  reasonInput: {
-    minHeight: 90,
-    borderRadius: 12,
-    backgroundColor: '#F6F6F6',
-    padding: 12,
-    textAlignVertical: 'top',
-    color: '#15202B',
-  },
   modalActions: {flexDirection: 'row', gap: 10, marginTop: 16},
-  modalGhost: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F6F6F6',
-  },
-  modalGhostText: {fontSize: 15, fontWeight: '600', color: '#15202B'},
-  modalPrimary: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: TEAL,
-  },
 });

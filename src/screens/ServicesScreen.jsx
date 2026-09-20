@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
 
 const ServicesScreen = () => {
   const services = [
@@ -57,13 +57,8 @@ const ServicesScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Services</Text>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <Header title="Services" showBack={false} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -104,19 +99,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: 6,
-  },
-
-  headerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#182331',
-    letterSpacing: -0.4,
   },
 
   scrollContent: {

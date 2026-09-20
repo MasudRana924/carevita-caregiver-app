@@ -5,14 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
+import {showError} from '../context/ErrorModalContext';
 
 const WEEK_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTH_NAMES = [
@@ -238,7 +239,7 @@ const BookingDateTime = ({navigation, route}) => {
 
   const handleNext = () => {
     if (!selectedDate || !selectedTime) {
-      Alert.alert('Schedule', 'Please select date and time');
+      showError('Please select date and time', 'Schedule');
       return;
     }
 
@@ -328,27 +329,23 @@ const BookingDateTime = ({navigation, route}) => {
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, styles.notesTitle]}>Notes</Text>
-        <TextInput
-          style={styles.notesInput}
+        <AppInput
+          label="Notes"
           value={notes}
           onChangeText={setNotes}
           placeholder="Write any extra details for the caregiver..."
-          placeholderTextColor="#8190A7"
           multiline
-          textAlignVertical="top"
         />
       </ScrollView>
 
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={[styles.nextButton, !canContinue && styles.disabledButton]}
+      <AppButtonBar>
+        <AppButton
+          title="Preview booking"
           onPress={handleNext}
-          disabled={!canContinue}>
-          <Text style={styles.nextButtonText}>Preview booking</Text>
-        </TouchableOpacity>
-      </View>
+          disabled={!canContinue}
+          style={styles.flexBtn}
+        />
+      </AppButtonBar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -527,42 +524,5 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: '#FFFFFF',
   },
-  notesTitle: {
-    marginTop: 8,
-    paddingHorizontal: 8,
-  },
-  notesInput: {
-    minHeight: 110,
-    marginHorizontal: 8,
-    marginBottom: 8,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    backgroundColor: '#F6F6F6',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
-    fontSize: 15,
-    color: '#111820',
-  },
-  bottomContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  nextButton: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#008178',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#B5C0D0',
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  flexBtn: {flex: 1},
 });

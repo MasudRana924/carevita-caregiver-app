@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Image,
   StatusBar,
@@ -13,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useSearchCaregivers} from '../api/queries';
 import Header from '../components/common/Header';
+import AppInput from '../components/common/AppInput';
 
 const AllCaregiversScreen = ({navigation}) => {
   const [search, setSearch] = useState('');
@@ -54,32 +54,28 @@ const AllCaregiversScreen = ({navigation}) => {
         contentContainerStyle={styles.scrollContent}>
         {/* ================= SEARCH ================= */}
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={23} color="#7D8BA5" />
-            <TextInput
-              value={search}
-              onChangeText={handleSearch}
-              placeholder="Search by name..."
-              placeholderTextColor="#7D8BA5"
-              style={styles.searchInput}
-            />
-          </View>
+          <AppInput
+            icon="search-outline"
+            value={search}
+            onChangeText={handleSearch}
+            placeholder="Search by name..."
+            containerStyle={styles.searchInputWrap}
+            inputRowStyle={styles.searchInputRow}
+          />
           <TouchableOpacity style={styles.filterButton}>
             <Icon name="options-outline" size={22} color="#1473DC" />
           </TouchableOpacity>
         </View>
 
         {/* Location Filter */}
-        <View style={styles.locationFilter}>
-          <Icon name="location-outline" size={18} color="#7D8BA5" />
-          <TextInput
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Filter by location..."
-            placeholderTextColor="#7D8BA5"
-            style={styles.locationInput}
-          />
-        </View>
+        <AppInput
+          icon="location-outline"
+          value={location}
+          onChangeText={setLocation}
+          placeholder="Filter by location..."
+          containerStyle={styles.locationInputWrap}
+          inputRowStyle={styles.searchInputRow}
+        />
 
         {/* ================= FILTERS ================= */}
         <ScrollView
@@ -225,24 +221,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 14,
+    gap: 10,
   },
 
-  searchBox: {
+  searchInputWrap: {
     flex: 1,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    marginRight: 10,
+    marginBottom: 0,
   },
 
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#172333',
+  searchInputRow: {
+    marginBottom: 0,
   },
 
   filterButton: {
@@ -254,22 +242,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ================= LOCATION FILTER =================
-  locationFilter: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  locationInputWrap: {
     marginTop: 12,
-    paddingHorizontal: 14,
-    height: 44,
-    backgroundColor: '#F5F7FA',
-    borderRadius: 12,
-  },
-
-  locationInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#172333',
+    marginBottom: 0,
   },
 
   // =====================================================

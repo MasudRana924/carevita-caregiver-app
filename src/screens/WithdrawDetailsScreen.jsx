@@ -4,19 +4,21 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
+import {FORM, formStyles} from '../components/common/formStyles';
 import {useDeliveryMethodFields} from '../api/queries';
 import {useCreateWithdrawal} from '../api/mutations';
+import {showError} from '../context/ErrorModalContext';
 
 const WithdrawDetailsScreen = ({navigation, route}) => {
   const amount = Number(route?.params?.amount) || 0;
@@ -27,7 +29,6 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
 
   const [fieldValues, setFieldValues] = useState({});
   const [openSelectKey, setOpenSelectKey] = useState(null);
-  const [formError, setFormError] = useState('');
 
   const fieldsQuery = useDeliveryMethodFields(selectedMethod, {
     enabled: !!selectedMethod,
@@ -43,9 +44,6 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
 
   const updateField = (key, value) => {
     setFieldValues(prev => ({...prev, [key]: value}));
-    if (formError) {
-      setFormError('');
-    }
   };
 
   const validate = () => {
@@ -76,7 +74,7 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
   const handleSubmit = async () => {
     const error = validate();
     if (error) {
-      setFormError(error);
+      showError(error);
       return;
     }
 
@@ -98,7 +96,7 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
         [{text: 'OK', onPress: () => navigation?.pop(2)}],
       );
     } catch (err) {
-      setFormError(err?.message || 'Failed to submit withdrawal');
+      showError(err?.message || 'Failed to submit withdrawal');
     }
   };
 
@@ -135,7 +133,7 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
               <Icon
                 name={isOpen ? 'chevron-up' : 'chevron-down'}
                 size={16}
-                color="#008178"
+                color={FORM.teal}
               />
             </View>
           </TouchableOpacity>
@@ -177,16 +175,13 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
 
     return (
       <View key={field.key} style={styles.fieldBlock}>
-        <Text style={styles.fieldLabel}>
-          {field.label}
-          {field.required ? <Text style={styles.requiredMark}> *</Text> : null}
-        </Text>
-        <TextInput
-          style={styles.input}
+        <AppInput
+          label={
+            field.required ? `${field.label} *` : field.label
+          }
           value={value}
           onChangeText={text => updateField(field.key, text)}
           placeholder={field.placeholder || field.label}
-          placeholderTextColor="#9AA7B8"
           keyboardType={field.type === 'tel' ? 'phone-pad' : 'default'}
           autoCapitalize={field.type === 'tel' ? 'none' : 'words'}
         />
@@ -249,37 +244,18 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
           ) : (
             !fieldsQuery.isFetching && fields.map(renderField)
           )}
-
-          {!!formError && (
-            <View style={styles.formErrorBox}>
-              <Icon name="alert-circle-outline" size={16} color="#DC2626" />
-              <Text style={styles.formError}>{formError}</Text>
-            </View>
-          )}
         </ScrollView>
 
-        <View style={styles.footer}>
-          <TouchableOpacity
-            activeOpacity={0.92}
-            style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
+        <AppButtonBar>
+          <AppButton
+            title={
+              pendingWithdrawal ? 'Withdrawal pending' : 'Request withdrawal'
+            }
+            onPress={handleSubmit}
             disabled={!canSubmit}
-            onPress={handleSubmit}>
-            <LinearGradient
-              colors={
-                canSubmit ? ['#009E93', '#008178'] : ['#A8C7C3', '#90B3AE']
-              }
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.submitGradient}>
-              <Text style={styles.submitText}>
-                {pendingWithdrawal
-                  ? 'Withdrawal pending'
-                  : 'Request withdrawal'}
-              </Text>
-
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+            style={styles.flexBtn}
+          />
+        </AppButtonBar>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -335,42 +311,31 @@ const styles = StyleSheet.create({
     color: '#B45309',
     lineHeight: 18,
   },
-  fieldBlock: {marginBottom: 14},
+  fieldBlock: {marginBottom: 0},
   fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
+    ...formStyles.label,
   },
-  requiredMark: {color: '#DC2626'},
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DCE5EC',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: '#0F1A24',
-  },
+  requiredMark: {color: FORM.danger},
   selectTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: FORM.page,
+    borderRadius: 27,
     borderWidth: 1,
-    borderColor: '#DCE5EC',
-    paddingHorizontal: 14,
-    minHeight: 50,
+    borderColor: FORM.border,
+    paddingHorizontal: 16,
+    height: 54,
+    marginBottom: 16,
   },
   selectTriggerOpen: {
-    borderColor: '#008178',
+    borderColor: FORM.teal,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
+    marginBottom: 0,
   },
-  selectValue: {flex: 1, fontSize: 15, color: '#0F1A24', paddingRight: 8},
-  selectPlaceholder: {color: '#9AA7B8'},
+  selectValue: {flex: 1, fontSize: 15, color: FORM.title, paddingRight: 8},
+  selectPlaceholder: {color: FORM.placeholder},
   chevronPill: {
     width: 28,
     height: 28,
@@ -382,11 +347,12 @@ const styles = StyleSheet.create({
   selectMenu: {
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: '#008178',
+    borderColor: FORM.teal,
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: FORM.page,
+    marginBottom: 16,
   },
   selectOption: {
     flexDirection: 'row',
@@ -399,56 +365,20 @@ const styles = StyleSheet.create({
   },
   selectOptionLast: {borderBottomWidth: 0},
   selectOptionActive: {backgroundColor: '#F0FAF8'},
-  selectOptionText: {fontSize: 15, color: '#0F1A24'},
-  selectOptionTextActive: {color: '#008178', fontWeight: '700'},
+  selectOptionText: {fontSize: 15, color: FORM.title},
+  selectOptionTextActive: {color: FORM.teal, fontWeight: '700'},
   errorBox: {
     backgroundColor: '#FEF2F2',
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
   },
-  errorBoxText: {fontSize: 13, color: '#DC2626', lineHeight: 18},
+  errorBoxText: {fontSize: 13, color: FORM.danger, lineHeight: 18},
   retryText: {
     marginTop: 6,
     fontSize: 12,
     fontWeight: '700',
-    color: '#008178',
+    color: FORM.teal,
   },
-  formErrorBox: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  formError: {
-    flex: 1,
-    fontSize: 13,
-    color: '#DC2626',
-    lineHeight: 18,
-  },
-  footer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  submitBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  submitBtnDisabled: {opacity: 0.9},
-  submitGradient: {
-    minHeight: 54,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    paddingHorizontal: 18,
-  },
-  submitText: {fontSize: 16, fontWeight: '800', color: '#FFFFFF'},
-  submitIcon: {marginLeft: 8},
+  flexBtn: {flex: 1},
 });

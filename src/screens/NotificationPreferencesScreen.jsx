@@ -6,6 +6,7 @@ import Loader from '../components/common/Loader';
 import {useNotificationPreferences} from '../api/queries';
 import {useUpdateNotificationPreferences} from '../api/mutations';
 import {unwrapData} from '../api/envelope';
+import {showError} from '../context/ErrorModalContext';
 
 export const PUSH_TYPES = [
   {key: 'BOOKING_CREATED', label: 'New booking assigned'},
@@ -54,7 +55,7 @@ const NotificationPreferencesScreen = ({navigation}) => {
       Alert.alert('Saved', 'Notification preferences updated');
       navigation?.goBack();
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to save preferences');
+      showError(error?.message || 'Failed to save preferences');
     }
   };
 

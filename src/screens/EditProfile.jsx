@@ -5,9 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Image,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -17,6 +15,8 @@ import {launchImageLibrary} from 'react-native-image-picker';
 import Loader from '../components/common/Loader';
 import Header from '../components/common/Header';
 import SearchableDropdown from '../components/common/SearchableDropdown';
+import AppInput from '../components/common/AppInput';
+import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import Toast from '../components/common/Toast';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
 import {getThanasByDistrict} from '../data/bangladeshThanas';
@@ -24,6 +24,7 @@ import {requestGalleryPermission} from '../utils/permissions';
 import {useAuth} from '../context/AuthContext';
 import {useCaregiverProfile} from '../api/queries';
 import {useUpdateCaregiverProfile} from '../api/mutations';
+import {showError} from '../context/ErrorModalContext';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -151,9 +152,9 @@ const EditProfile = ({navigation}) => {
     try {
       const granted = await requestGalleryPermission();
       if (!granted) {
-        Alert.alert(
-          'Permission required',
+        showError(
           'Please allow photo library access to update your profile photo.',
+          'Permission required',
         );
         return;
       }
@@ -166,27 +167,24 @@ const EditProfile = ({navigation}) => {
         return;
       }
       if (result.errorCode) {
-        Alert.alert(
-          'Error',
-          result.errorMessage || 'Failed to open image picker',
-        );
+        showError(result.errorMessage || 'Failed to open image picker');
         return;
       }
       if (result.assets?.[0]?.uri) {
         setPhoto(result.assets[0]);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to open image picker');
+      showError('Failed to open image picker');
     }
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      Alert.alert('Required', 'Please enter your name');
+      showError('Please enter your name', 'Required');
       return;
     }
     if (!form.district.trim() || !form.thana.trim()) {
-      Alert.alert('Required', 'Please select district and thana');
+      showError('Please select district and thana', 'Required');
       return;
     }
 
@@ -223,7 +221,7 @@ const EditProfile = ({navigation}) => {
       showToast(response?.message || 'Profile updated successfully');
       navigation?.goBack();
     } catch (error) {
-      showToast(error?.message || 'Failed to update profile', 'error');
+      showError(error?.message || 'Failed to update profile');
     }
   };
 
@@ -263,18 +261,14 @@ const EditProfile = ({navigation}) => {
             </View>
           </TouchableOpacity>
 
-          <FieldLabel icon="person-outline" label="Name *" />
-          <View style={styles.inputRow}>
-            <Icon name="person-outline" size={18} color="#8A97A6" />
-            <TextInput
-              style={styles.input}
-              value={form.name}
-              onChangeText={text => updateField('name', text)}
-              placeholder="Enter full name"
-              placeholderTextColor="#B0BAC4"
-              autoCapitalize="words"
-            />
-          </View>
+          <AppInput
+            label="Name *"
+            icon="person-outline"
+            value={form.name}
+            onChangeText={text => updateField('name', text)}
+            placeholder="Enter full name"
+            autoCapitalize="words"
+          />
 
           <SearchableDropdown
             label="District *"
@@ -296,69 +290,52 @@ const EditProfile = ({navigation}) => {
             containerStyle={styles.dropdown}
           />
 
-          <FieldLabel icon="cash-outline" label="Hourly rate (BDT)" />
-          <View style={styles.inputRow}>
-            <Icon name="cash-outline" size={18} color="#8A97A6" />
-            <TextInput
-              style={styles.input}
-              value={form.hourly_rate}
-              onChangeText={text =>
-                updateField('hourly_rate', text.replace(/[^0-9.]/g, ''))
-              }
-              placeholder="e.g. 250"
-              placeholderTextColor="#B0BAC4"
-              keyboardType="numeric"
-            />
-          </View>
+          <AppInput
+            label="Hourly rate (BDT)"
+            icon="cash-outline"
+            value={form.hourly_rate}
+            onChangeText={text =>
+              updateField('hourly_rate', text.replace(/[^0-9.]/g, ''))
+            }
+            placeholder="e.g. 250"
+            keyboardType="numeric"
+          />
 
-          <FieldLabel icon="document-text-outline" label="Bio" />
-          <TextInput
-            style={[styles.inputBox, styles.multiline]}
+          <AppInput
+            label="Bio"
+            icon="document-text-outline"
             value={form.bio}
             onChangeText={text => updateField('bio', text)}
             placeholder="Short introduction about your caregiving experience"
-            placeholderTextColor="#B0BAC4"
             multiline
           />
 
-          <FieldLabel icon="briefcase-outline" label="Experience (years)" />
-          <View style={styles.inputRow}>
-            <Icon name="briefcase-outline" size={18} color="#8A97A6" />
-            <TextInput
-              style={styles.input}
-              value={form.experience_years}
-              onChangeText={text =>
-                updateField('experience_years', text.replace(/[^0-9]/g, ''))
-              }
-              placeholder="e.g. 5"
-              placeholderTextColor="#B0BAC4"
-              keyboardType="numeric"
-            />
-          </View>
+          <AppInput
+            label="Experience (years)"
+            icon="briefcase-outline"
+            value={form.experience_years}
+            onChangeText={text =>
+              updateField('experience_years', text.replace(/[^0-9]/g, ''))
+            }
+            placeholder="e.g. 5"
+            keyboardType="numeric"
+          />
 
-          <FieldLabel icon="map-outline" label="Service areas" />
-          <View style={styles.inputRow}>
-            <Icon name="map-outline" size={18} color="#8A97A6" />
-            <TextInput
-              style={styles.input}
-              value={form.service_areas}
-              onChangeText={text => updateField('service_areas', text)}
-              placeholder="Dhaka or Dhaka,Mirpur"
-              placeholderTextColor="#B0BAC4"
-            />
-          </View>
+          <AppInput
+            label="Service areas"
+            icon="map-outline"
+            value={form.service_areas}
+            onChangeText={text => updateField('service_areas', text)}
+            placeholder="Dhaka or Dhaka,Mirpur"
+          />
 
-          <FieldLabel icon="school-outline" label="Education" />
-          <View style={styles.inputRow}>
-            <Icon name="school-outline" size={18} color="#8A97A6" />
-            <TextInput
-              style={styles.input}
-              value={form.education}
-              onChangeText={text => updateField('education', text)}
-              placeholder="e.g. HSC, caregiving certificate"
-              placeholderTextColor="#B0BAC4"
-            />
-          </View>
+          <AppInput
+            label="Education"
+            icon="school-outline"
+            value={form.education}
+            onChangeText={text => updateField('education', text)}
+            placeholder="e.g. HSC, caregiving certificate"
+          />
 
           <FieldLabel icon="water-outline" label="Blood group" />
           <View style={styles.chipRow}>
@@ -381,17 +358,13 @@ const EditProfile = ({navigation}) => {
             ))}
           </View>
 
-          <FieldLabel icon="calendar-outline" label="Date of birth" />
-          <View style={styles.inputRow}>
-            <Icon name="calendar-outline" size={18} color="#8A97A6" />
-            <TextInput
-              style={styles.input}
-              value={form.date_of_birth}
-              onChangeText={text => updateField('date_of_birth', text)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="#B0BAC4"
-            />
-          </View>
+          <AppInput
+            label="Date of birth"
+            icon="calendar-outline"
+            value={form.date_of_birth}
+            onChangeText={text => updateField('date_of_birth', text)}
+            placeholder="YYYY-MM-DD"
+          />
 
           <FieldLabel icon="male-female-outline" label="Gender" />
           <View style={styles.chipRow}>
@@ -438,15 +411,14 @@ const EditProfile = ({navigation}) => {
           </TouchableOpacity>
         </ScrollView>
 
-        <View style={styles.bottom}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.saveBtn}
+        <AppButtonBar>
+          <AppButton
+            title="Save changes"
             onPress={handleSave}
-            disabled={saving}>
-            <Text style={styles.saveText}>Save changes</Text>
-          </TouchableOpacity>
-        </View>
+            disabled={saving}
+            style={styles.flexBtn}
+          />
+        </AppButtonBar>
       </KeyboardAvoidingView>
 
       <Toast
@@ -471,23 +443,6 @@ export default EditProfile;
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: PAGE_BG},
   flex: {flex: 1},
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  headerCopy: {flex: 1},
-  headerTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  headerSub: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
   scrollContent: {paddingHorizontal: 16, paddingBottom: 24},
   photoCard: {
     backgroundColor: '#E7F6F3',
@@ -535,40 +490,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#15202B',
-  },
-  inputRow: {
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: '#15202B',
-    paddingVertical: 0,
-  },
-  inputBox: {
-    minHeight: 52,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#15202B',
-    marginBottom: 14,
-  },
-  multiline: {
-    minHeight: 96,
-    textAlignVertical: 'top',
   },
   chipRow: {
     flexDirection: 'row',
@@ -621,17 +542,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   toggleKnobOn: {alignSelf: 'flex-end'},
-  bottom: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-  },
-  saveBtn: {
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: TEAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+  flexBtn: {flex: 1},
 });

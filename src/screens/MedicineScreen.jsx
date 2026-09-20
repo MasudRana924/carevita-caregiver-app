@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  TextInput,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
+import AppInput from '../components/common/AppInput';
 
 const medicines = [
   {
@@ -175,24 +175,16 @@ const MedicineScreen = ({navigation}) => {
       />
 
       <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Icon name="search-outline" size={18} color="#8190A7" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search medicines..."
-            placeholderTextColor="#8190A7"
-            value={search}
-            onChangeText={setSearch}
-          />
-          {!!search && (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setSearch('')}
-              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-              <Icon name="close-circle" size={18} color="#8190A7" />
-            </TouchableOpacity>
-          )}
-        </View>
+        <AppInput
+          icon="search-outline"
+          placeholder="Search medicines..."
+          value={search}
+          onChangeText={setSearch}
+          rightIcon={search ? 'close-circle' : undefined}
+          onRightPress={search ? () => setSearch('') : undefined}
+          containerStyle={styles.searchInputWrap}
+          inputRowStyle={styles.searchInputRow}
+        />
       </View>
 
       <ScrollView
@@ -346,23 +338,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
-  searchBox: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#F6F6F6',
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    gap: 10,
+  searchInputWrap: {
+    marginBottom: 0,
   },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 15,
-    color: '#111820',
-    paddingVertical: 0,
+  searchInputRow: {
+    marginBottom: 0,
   },
   categoryList: {
     flexGrow: 0,

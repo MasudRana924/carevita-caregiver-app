@@ -5,13 +5,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import Header from '../components/common/Header';
+import AppInput from '../components/common/AppInput';
+import AppButton from '../components/common/AppButton';
 import {apiRequest} from '../services/api';
+import {showError} from '../context/ErrorModalContext';
 
 const ReviewScreen = ({route, navigation}) => {
   const {bookingId} = route.params || {};
@@ -25,12 +28,12 @@ const ReviewScreen = ({route, navigation}) => {
 
   const submitReview = async () => {
     if (rating === 0) {
-      Alert.alert('Error', 'Please select a rating');
+      showError('Please select a rating');
       return;
     }
 
     if (!review.trim()) {
-      Alert.alert('Error', 'Please write a review');
+      showError('Please write a review');
       return;
     }
 
@@ -50,11 +53,11 @@ const ReviewScreen = ({route, navigation}) => {
           },
         ]);
       } else {
-        Alert.alert('Error', response.message || 'Failed to submit review');
+        showError(response.message || 'Failed to submit review');
       }
     } catch (error) {
       console.error('Review submission error:', error);
-      Alert.alert('Error', 'Failed to submit review');
+      showError('Failed to submit review');
     } finally {
       setLoading(false);
     }
@@ -62,14 +65,10 @@ const ReviewScreen = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#111820" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Write a Review</Text>
-      </View>
+      <Header
+        title="Write a Review"
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -94,29 +93,22 @@ const ReviewScreen = ({route, navigation}) => {
         </View>
 
         <View style={styles.reviewContainer}>
-          <Text style={styles.reviewTitle}>Your review</Text>
-          <TextInput
-            style={styles.reviewInput}
-            placeholder="Share your experience with the caregiver..."
-            placeholderTextColor="#8190A7"
-            multiline
-            numberOfLines={6}
+          <AppInput
+            label="Your review"
             value={review}
             onChangeText={setReview}
-            textAlignVertical="top"
+            placeholder="Share your experience with the caregiver..."
+            multiline
+            numberOfLines={6}
           />
         </View>
 
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        <AppButton
+          title={loading ? undefined : 'Submit Review'}
           onPress={submitReview}
           disabled={loading}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitButtonText}>Submit Review</Text>
-          )}
-        </TouchableOpacity>
+          {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+        </AppButton>
       </ScrollView>
     </SafeAreaView>
   );
@@ -126,28 +118,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3E8F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111820',
-    textAlign: 'center',
-    marginRight: 40,
   },
   scrollView: {
     flex: 1,
@@ -178,35 +148,6 @@ const styles = StyleSheet.create({
   },
   reviewContainer: {
     marginBottom: 24,
-  },
-  reviewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111820',
-    marginBottom: 12,
-  },
-  reviewInput: {
-    backgroundColor: '#F6F6F6',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 14,
-    color: '#111820',
-    minHeight: 120,
-  },
-  submitButton: {
-    backgroundColor: '#008178',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#8190A7',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
 });
 
