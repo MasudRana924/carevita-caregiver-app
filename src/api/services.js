@@ -90,11 +90,14 @@ export const apiRequest = async (
   {retry = true, throwOnError = true} = {},
 ) => {
   const token = await getAuthToken();
-  const headers = {};
+  const headers = {
+    Accept: 'application/json',
+  };
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
+  // Never set Content-Type for FormData — RN/fetch must add multipart boundary
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
@@ -186,44 +189,6 @@ export const authService = {
     apiRequest('/auth/profile/photo', 'POST', formData, true),
 };
 
-const appendProfileFields = (formData, fields = {}) => {
-  Object.entries(fields).forEach(([key, value]) => {
-    if (value === undefined || value === null) {
-      return;
-    }
-
-    if (key === 'service_areas') {
-      const areas = normalizeServiceAreas(value);
-      if (areas) {
-        formData.append('service_areas', areas);
-      }
-      return;
-    }
-
-    if (typeof value === 'boolean') {
-      formData.append(key, value ? 'true' : 'false');
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      const joined = value
-        .map(item => String(item).trim())
-        .filter(Boolean)
-        .join(',');
-      if (joined) {
-        formData.append(key, joined);
-      }
-      return;
-    }
-
-    const text = String(value).trim();
-    if (!text) {
-      return;
-    }
-    formData.append(key, text);
-  });
-};
-
 /** Multipart expects: "Dhaka" | "Dhaka,Mirpur" (not JSON array) */
 const normalizeServiceAreas = value => {
   if (Array.isArray(value)) {
@@ -259,6 +224,63 @@ const normalizeServiceAreas = value => {
     .join(',');
 };
 
+const resolvePhotoUri = photoAsset => {
+  if (!photoAsset) {
+    return null;
+  }
+  if (typeof photoAsset === 'string') {
+    return photoAsset;
+  }
+  return photoAsset.uri || null;
+};
+
+/**
+ * Build caregiver profile FormData exactly like backend expects.
+ * Text fields always appended as strings; photo field name = profile_photo.
+ */
+const buildCaregiverProfileForm = (fields = {}, photoAsset = null) => {
+  const form = new FormData();
+
+  if (fields.name !== undefined && fields.name !== null) {
+    form.append('name', String(fields.name));
+  }
+
+  form.append('district', String(fields.district ?? ''));
+  form.append('thana', String(fields.thana ?? ''));
+  form.append('bio', String(fields.bio ?? ''));
+  form.append(
+    'experience_years',
+    String(fields.experience_years ?? ''),
+  );
+  form.append('hourly_rate', String(fields.hourly_rate ?? ''));
+  form.append('education', String(fields.education ?? ''));
+  form.append('blood_group', String(fields.blood_group ?? ''));
+  form.append('date_of_birth', String(fields.date_of_birth ?? ''));
+  form.append('gender', String(fields.gender ?? ''));
+  form.append(
+    'service_areas',
+    normalizeServiceAreas(fields.service_areas ?? ''),
+  );
+  form.append(
+    'is_available',
+    String(fields.is_available ?? true),
+  );
+
+  const imageUri = resolvePhotoUri(photoAsset);
+  if (imageUri && !String(imageUri).startsWith('http')) {
+    form.append('profile_photo', {
+      uri: imageUri,
+      type:
+        (typeof photoAsset === 'object' && photoAsset?.type) || 'image/jpeg',
+      name:
+        (typeof photoAsset === 'object' && photoAsset?.fileName) ||
+        'profile.jpg',
+    });
+  }
+
+  return form;
+};
+
 const toQuery = params => {
   const queryParams = new URLSearchParams();
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -276,30 +298,18 @@ export const caregiverService = {
     apiRequest('/caregiver/profile', 'GET', null, false, {throwOnError: false}),
 
   createProfile: (fields, photoAsset) => {
-    const formData = new FormData();
-    appendProfileFields(formData, fields);
-    if (photoAsset?.uri) {
-      formData.append('profile_photo', {
-        uri: photoAsset.uri,
-        type: photoAsset.type || 'image/jpeg',
-        name: photoAsset.fileName || 'profile_photo.jpg',
-      });
-    }
-    // Do NOT set Content-Type — fetch sets multipart boundary automatically
+    const formData = buildCaregiverProfileForm(fields, photoAsset);
     return apiRequest('/caregiver/profile', 'POST', formData, true);
   },
 
+  /**
+   * PUT /caregiver/profile as multipart/form-data
+   * - all text values as strings
+   * - photo field name must be profile_photo
+   * - do not set Content-Type (handled in apiRequest)
+   */
   updateProfile: (fields, photoAsset) => {
-    const formData = new FormData();
-    appendProfileFields(formData, fields);
-    if (photoAsset?.uri) {
-      formData.append('profile_photo', {
-        uri: photoAsset.uri,
-        type: photoAsset.type || 'image/jpeg',
-        name: photoAsset.fileName || 'profile_photo.jpg',
-      });
-    }
-    // Do NOT set Content-Type — fetch sets multipart boundary automatically
+    const formData = buildCaregiverProfileForm(fields, photoAsset);
     return apiRequest('/caregiver/profile', 'PUT', formData, true);
   },
 

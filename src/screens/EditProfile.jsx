@@ -188,30 +188,42 @@ const EditProfile = ({navigation}) => {
       return;
     }
 
-    // All values go as strings in multipart/form-data (Content-Type set by fetch)
+    // Same shape as backend FormData sample — all text as strings
     const fields = {
       name: form.name.trim(),
       district: form.district.trim(),
       thana: form.thana.trim(),
-      bio: form.bio.trim(),
-      experience_years: String(form.experience_years.trim()),
-      hourly_rate: String(form.hourly_rate.trim()),
-      education: form.education.trim(),
-      blood_group: form.blood_group,
-      date_of_birth: form.date_of_birth.trim(),
-      gender: normalizeGender(form.gender),
-      // API expects: "Dhaka" or "Dhaka,Mirpur" (not JSON array)
-      service_areas: formatServiceAreasForApi(form.service_areas),
+      bio: form.bio.trim() || '',
+      experience_years: String(form.experience_years.trim() ?? ''),
+      hourly_rate: String(form.hourly_rate.trim() ?? ''),
+      education: form.education.trim() || '',
+      blood_group: form.blood_group || '',
+      date_of_birth: form.date_of_birth.trim() || '',
+      gender: normalizeGender(form.gender) || '',
+      // "Dhaka" or "Dhaka,Mirpur"
+      service_areas: formatServiceAreasForApi(form.service_areas) || '',
       is_available: form.is_available === true,
     };
 
-    const photoAsset =
+    // Only send a newly picked local photo (not existing remote http URL)
+    const imageUri =
       photo?.uri && !photo.remote && !String(photo.uri).startsWith('http')
-        ? photo
+        ? photo.uri
         : null;
 
+    const photoAsset = imageUri
+      ? {
+          uri: imageUri,
+          type: photo?.type || 'image/jpeg',
+          fileName: photo?.fileName || 'profile.jpg',
+        }
+      : null;
+
     try {
-      const response = await updateMutation.mutateAsync({fields, photoAsset});
+      const response = await updateMutation.mutateAsync({
+        fields,
+        photoAsset,
+      });
       const saved = response?.data || fields;
       completeCaregiverProfile(saved);
       if (fields.name) {
