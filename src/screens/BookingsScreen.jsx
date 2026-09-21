@@ -428,11 +428,6 @@ const BookingsScreen = ({navigation, route}) => {
                   </View>
 
                   <View style={styles.statusWrap}>
-                    <Icon
-                      name={statusMeta.icon}
-                      size={14}
-                      color={statusMeta.color}
-                    />
                     <Text style={[styles.statusText, {color: statusMeta.color}]}>
                       {statusMeta.label}
                     </Text>
@@ -590,10 +585,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {fontSize: 14, color: '#8A97A6', marginTop: 6},
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
     borderRadius: 18,
     padding: 14,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
   },
   newHeader: {
     flexDirection: 'row',

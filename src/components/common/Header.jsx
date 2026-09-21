@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    // paddingHorizontal: 12,
     paddingBottom: 10,
   },
   sideBtnLeft: {
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '500',
     color: '#172333',
     textAlign: 'center',
     paddingHorizontal: 8,

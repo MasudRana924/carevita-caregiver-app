@@ -32,7 +32,7 @@ const HomeHeader = ({navigation, unreadCount = 0}) => {
             <Image source={{uri: photo}} style={styles.profileImage} />
           ) : (
             <View style={styles.placeholderAvatar}>
-              <Icon name="person" size={26} color="#5B8F86" />
+              <Icon name="person" size={20} color="#5B8F86" />
             </View>
           )}
         </TouchableOpacity>
@@ -76,9 +76,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   profileButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     overflow: 'hidden',
     marginRight: 12,
     backgroundColor: '#D8EFE9',
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   goodMorning: {
-    fontSize: 13,
+    fontSize: 10,
     lineHeight: 18,
     color: '#8A97A6',
     fontWeight: '500',
@@ -108,11 +108,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 16,
     lineHeight: 28,
     color: '#15202B',
-    fontWeight: '800',
-    marginTop: 1,
+    fontWeight: '600',
   },
   roleRow: {
     marginTop: 3,

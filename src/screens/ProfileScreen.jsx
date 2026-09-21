@@ -58,13 +58,13 @@ const getSettings = navigation => [
     icon: 'notifications-outline',
     onPress: () => navigation?.navigate('NotificationPreferences'),
   },
-  {
-    id: 'password',
-    name: 'Change password',
-    subtitle: 'Update your login password',
-    icon: 'lock-closed-outline',
-    onPress: () => navigation?.navigate('ChangePassword'),
-  },
+  // {
+  //   id: 'password',
+  //   name: 'Change password',
+  //   subtitle: 'Update your login password',
+  //   icon: 'lock-closed-outline',
+  //   onPress: () => navigation?.navigate('ChangePassword'),
+  // },
 ];
 
 const ProfileScreen = ({navigation}) => {
@@ -116,46 +116,8 @@ const ProfileScreen = ({navigation}) => {
                 </Text>
               </View>
             )}
-            <View style={styles.statusRow}>
-              <View
-                style={[
-                  styles.statusDot,
-                  {backgroundColor: isActive ? '#22C55E' : '#F59E0B'},
-                ]}
-              />
-              <Text
-                style={[
-                  styles.statusText,
-                  {color: isActive ? '#22C55E' : '#F59E0B'},
-                ]}>
-                {isActive ? 'Active' : 'Pending'}
-              </Text>
-            </View>
           </View>
-
-          <TouchableOpacity
-            activeOpacity={0.75}
-            style={styles.editCircle}
-            onPress={() => navigation?.navigate('EditProfile')}>
-            <Icon name="pencil-outline" size={16} color={TEAL} />
-          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.accountCard}
-          onPress={() => navigation?.navigate('EditProfile')}>
-          <View style={styles.accountIcon}>
-            <Icon name="person-outline" size={20} color={TEAL} />
-          </View>
-          <View style={styles.accountCopy}>
-            <Text style={styles.accountTitle}>Edit caregiver profile</Text>
-            <Text style={styles.accountSub}>
-              Update district, rate, bio, photo and availability
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={18} color="#B7C2CC" />
-        </TouchableOpacity>
 
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
@@ -278,7 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: TEAL,
   },
-  sectionTitle: {fontSize: 16, fontWeight: '800', color: '#15202B'},
+  sectionTitle: {fontSize: 16, fontWeight: '600', color: '#15202B'},
   settingCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -298,7 +260,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   settingCopy: {flex: 1, marginRight: 8},
-  settingTitle: {fontSize: 14, fontWeight: '700', color: '#15202B'},
+  settingTitle: {fontSize: 14, fontWeight: '500', color: '#15202B'},
   settingSub: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
   version: {
     textAlign: 'center',

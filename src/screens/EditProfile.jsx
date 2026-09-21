@@ -398,29 +398,6 @@ const EditProfile = ({navigation}) => {
               </TouchableOpacity>
             ))}
           </View>
-
-          <TouchableOpacity
-            style={styles.availRow}
-            activeOpacity={0.85}
-            onPress={() => updateField('is_available', !form.is_available)}>
-            <View style={styles.availCopy}>
-              <Text style={styles.availTitle}>Available for bookings</Text>
-              <Text style={styles.availSub}>
-                {form.is_available
-                  ? 'Families can assign new bookings to you'
-                  : 'You will not receive new booking requests'}
-              </Text>
-            </View>
-            <View
-              style={[styles.toggle, form.is_available && styles.toggleOn]}>
-              <View
-                style={[
-                  styles.toggleKnob,
-                  form.is_available && styles.toggleKnobOn,
-                ]}
-              />
-            </View>
-          </TouchableOpacity>
         </ScrollView>
 
         <AppButtonBar>
