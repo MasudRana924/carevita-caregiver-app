@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -69,13 +69,24 @@ const getSettings = navigation => [
 
 const ProfileScreen = ({navigation}) => {
   const {logout, user} = useAuth();
-  const {data: profileData, isLoading} = useUserProfile();
-  const {data: caregiverData} = useCaregiverProfile();
+  const {data: profileData, isLoading, refetch: refetchProfile} = useUserProfile();
+  const {data: caregiverData, refetch: refetchCaregiver} = useCaregiverProfile();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useEffect(() => {
+    const focusSub = navigation.addListener('focus', () => {
+      refetchProfile();
+      refetchCaregiver();
+    });
+    return () => {
+      focusSub();
+    };
+  }, [navigation]);
 
   const authUser = profileData?.data || user || {};
   const caregiver = caregiverData?.data || {};
-  const photo = authUser.profile_photo || caregiver.profile_photo;
+  const photo = caregiver.profile_photo || authUser.profile_photo;
+  const displayName = caregiver.name || authUser.name || 'Your profile';
   const isActive =
     caregiver.verification_status === 'APPROVED' ||
     caregiver.verification_status === 'VERIFIED' ||
@@ -99,14 +110,14 @@ const ProfileScreen = ({navigation}) => {
           ) : (
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {getInitials(authUser.name)}
+                {getInitials(displayName)}
               </Text>
             </View>
           )}
 
           <View style={styles.profileInfo}>
             <Text style={styles.profileName} numberOfLines={1}>
-              {isLoading ? 'Loading...' : authUser.name || 'Your profile'}
+              {isLoading ? 'Loading...' : displayName}
             </Text>
             {!!authUser.email && (
               <View style={styles.emailRow}>

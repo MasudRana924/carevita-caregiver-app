@@ -258,13 +258,16 @@ const HomeScreen = ({navigation}) => {
         setReviewAlert(payload);
       },
     );
-    const focusSub = navigation.addListener('focus', loadReview);
+    const focusSub = navigation.addListener('focus', () => {
+      loadReview();
+      profileQuery.refetch();
+    });
     return () => {
       mounted = false;
       eventSub.remove();
       focusSub();
     };
-  }, [navigation]);
+  }, [navigation, profileQuery]);
 
   const refreshing =
     profileQuery.isRefetching ||

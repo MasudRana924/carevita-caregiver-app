@@ -92,7 +92,6 @@ const EditProfile = ({navigation}) => {
     date_of_birth: '',
     gender: '',
     service_areas: '',
-    is_available: true,
   });
 
   useEffect(() => {
@@ -127,7 +126,6 @@ const EditProfile = ({navigation}) => {
       service_areas: Array.isArray(existing.service_areas)
         ? existing.service_areas.join(', ')
         : existing.service_areas || '',
-      is_available: existing.is_available !== false,
     });
     if (existing.profile_photo) {
       setPhoto({uri: existing.profile_photo, remote: true});
@@ -224,7 +222,6 @@ const EditProfile = ({navigation}) => {
       gender: normalizeGender(form.gender) || '',
       // "Dhaka" or "Dhaka,Mirpur"
       service_areas: formatServiceAreasForApi(form.service_areas) || '',
-      is_available: form.is_available === true,
     };
 
     // Only send a newly picked local photo (not existing remote http URL)
@@ -602,36 +599,5 @@ const styles = StyleSheet.create({
   optionTextActive: {
     color: TEAL,
   },
-  availRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    marginTop: 4,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-  },
-  availCopy: {flex: 1, paddingRight: 12},
-  availTitle: {fontSize: 15, fontWeight: '700', color: '#15202B'},
-  availSub: {fontSize: 12, color: '#8A97A6', marginTop: 4, lineHeight: 17},
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#D1D5DB',
-    padding: 3,
-    justifyContent: 'center',
-  },
-  toggleOn: {backgroundColor: TEAL},
-  toggleKnob: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#FFFFFF',
-  },
-  toggleKnobOn: {alignSelf: 'flex-end'},
   flexBtn: {flex: 1},
 });
