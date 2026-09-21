@@ -8,6 +8,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -77,6 +78,8 @@ const EditProfile = ({navigation}) => {
     message: '',
     type: 'success',
   });
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState(null);
   const [form, setForm] = useState({
     name: '',
     district: '',
@@ -146,6 +149,25 @@ const EditProfile = ({navigation}) => {
 
   const showToast = (message, type = 'success') => {
     setToast({visible: true, message, type});
+  };
+
+  const openModal = type => {
+    setModalType(type);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setModalType(null);
+  };
+
+  const handleSelect = value => {
+    if (modalType === 'blood_group') {
+      updateField('blood_group', value);
+    } else if (modalType === 'gender') {
+      updateField('gender', value);
+    }
+    closeModal();
   };
 
   const handleImagePick = async () => {
@@ -267,10 +289,6 @@ const EditProfile = ({navigation}) => {
                 <Icon name="pencil" size={10} color="#FFFFFF" />
               </View>
             </View>
-            <View style={styles.photoCopy}>
-              <Text style={styles.photoTitle}>Profile Photo</Text>
-              <Text style={styles.photoHint}>Tap to change your photo</Text>
-            </View>
           </TouchableOpacity>
 
           <AppInput
@@ -350,25 +368,16 @@ const EditProfile = ({navigation}) => {
           />
 
           <FieldLabel icon="water-outline" label="Blood group" />
-          <View style={styles.chipRow}>
-            {BLOOD_GROUPS.map(group => (
-              <TouchableOpacity
-                key={group}
-                style={[
-                  styles.chip,
-                  form.blood_group === group && styles.chipActive,
-                ]}
-                onPress={() => updateField('blood_group', group)}>
-                <Text
-                  style={[
-                    styles.chipText,
-                    form.blood_group === group && styles.chipTextActive,
-                  ]}>
-                  {group}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={styles.selectorField}
+            onPress={() => openModal('blood_group')}>
+            <View style={styles.selectorContent}>
+              <Text style={styles.selectorValue}>
+                {form.blood_group || 'Select blood group'}
+              </Text>
+              <Icon name="chevron-down" size={20} color="#8A97A6" />
+            </View>
+          </TouchableOpacity>
 
           <AppInput
             label="Date of birth"
@@ -379,25 +388,16 @@ const EditProfile = ({navigation}) => {
           />
 
           <FieldLabel icon="male-female-outline" label="Gender" />
-          <View style={styles.chipRow}>
-            {GENDERS.map(item => (
-              <TouchableOpacity
-                key={item.value}
-                style={[
-                  styles.chip,
-                  form.gender === item.value && styles.chipActive,
-                ]}
-                onPress={() => updateField('gender', item.value)}>
-                <Text
-                  style={[
-                    styles.chipText,
-                    form.gender === item.value && styles.chipTextActive,
-                  ]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={styles.selectorField}
+            onPress={() => openModal('gender')}>
+            <View style={styles.selectorContent}>
+              <Text style={styles.selectorValue}>
+                {form.gender || 'Select gender'}
+              </Text>
+              <Icon name="chevron-down" size={20} color="#8A97A6" />
+            </View>
+          </TouchableOpacity>
         </ScrollView>
 
         <AppButtonBar>
@@ -416,6 +416,62 @@ const EditProfile = ({navigation}) => {
         type={toast.type}
         onHide={() => setToast(prev => ({...prev, visible: false}))}
       />
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeModal}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={closeModal}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={styles.bottomSheetTitle}>
+              {modalType === 'blood_group' ? 'Select Blood Group' : 'Select Gender'}
+            </Text>
+            <ScrollView style={styles.optionsList}>
+              {modalType === 'blood_group' &&
+                BLOOD_GROUPS.map(group => (
+                  <TouchableOpacity
+                    key={group}
+                    style={styles.optionItem}
+                    onPress={() => handleSelect(group)}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        form.blood_group === group && styles.optionTextActive,
+                      ]}>
+                      {group}
+                    </Text>
+                    {form.blood_group === group && (
+                      <Icon name="checkmark" size={20} color={TEAL} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              {modalType === 'gender' &&
+                GENDERS.map(item => (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={styles.optionItem}
+                    onPress={() => handleSelect(item.value)}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        form.gender === item.value && styles.optionTextActive,
+                      ]}>
+                      {item.label}
+                    </Text>
+                    {form.gender === item.value && (
+                      <Icon name="checkmark" size={20} color={TEAL} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -434,27 +490,28 @@ const styles = StyleSheet.create({
   flex: {flex: 1},
   scrollContent: {paddingHorizontal: 16, paddingBottom: 24},
   photoCard: {
-    backgroundColor: '#E7F6F3',
-    borderRadius: 20,
+    // backgroundColor: '#E7F6F3',
+    // borderRadius: 26,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     marginBottom: 18,
+    alignSelf: 'center',
   },
   photoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photo: {width: 64, height: 64, borderRadius: 32},
+  photo: {width: 100, height: 100, borderRadius: 50},
   pencilBadge: {
     position: 'absolute',
     right: -2,
-    bottom: -2,
+    bottom: -1,
     width: 22,
     height: 22,
     borderRadius: 11,
@@ -480,26 +537,71 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#15202B',
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+  selectorField: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E3E8F0',
+    marginBottom: 8,
   },
-  chipActive: {
-    backgroundColor: '#E7F6F3',
-    borderColor: TEAL,
+  selectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
   },
-  chipText: {fontSize: 13, fontWeight: '600', color: '#8A97A6'},
-  chipTextActive: {color: TEAL},
+  selectorValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#15202B',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 24,
+    maxHeight: '70%',
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#15202B',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  optionsList: {
+    paddingHorizontal: 20,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  optionTextActive: {
+    color: TEAL,
+  },
   availRow: {
     flexDirection: 'row',
     alignItems: 'center',
