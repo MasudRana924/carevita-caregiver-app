@@ -1,8 +1,12 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {View, ActivityIndicator, StyleSheet} from 'react-native';
+import {createBottomTabNavigator, BottomTabBar} from '@react-navigation/bottom-tabs';
+import {
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import {useAuth} from '../context/AuthContext';
@@ -31,27 +35,37 @@ import WithdrawDetailsScreen from '../screens/WithdrawDetailsScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+function FloatingTabBar(props) {
+  const {width: windowWidth} = useWindowDimensions();
+  const tabBarWidth = Math.round(windowWidth * 0.8);
+
+  return (
+    <View pointerEvents="box-none" style={styles.tabBarHost}>
+      <View style={[styles.tabBarShell, {width: tabBarWidth}]}>
+        <BottomTabBar {...props} style={styles.tabBarInner} />
+      </View>
+    </View>
+  );
+}
+
 function MainTabs() {
-  const insets = useSafeAreaInsets();
-  const bottomInset = insets.bottom > 0 ? insets.bottom : 12;
   const {data: unreadData} = useInboxUnreadCount();
   const unread = unreadData?.unread ?? unreadData?.data?.unread ?? 0;
 
   return (
     <Tab.Navigator
       initialRouteName="Home"
+      tabBar={tabProps => <FloatingTabBar {...tabProps} />}
       screenOptions={{
         headerShown: false,
         safeAreaInsets: {bottom: 0},
         tabBarStyle: {
-          height: 56 + bottomInset,
-          paddingBottom: bottomInset,
-          paddingTop: 8,
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E3E8F0',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
           elevation: 0,
-          shadowOpacity: 0,
+          height: 62,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -203,6 +217,38 @@ const loadingStyles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+});
+
+const styles = StyleSheet.create({
+  tabBarHost: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 30,
+    alignItems: 'center',
+  },
+  tabBarShell: {
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#F3F8F6',
+    borderWidth: 1,
+    borderColor: '#E3EDE8',
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#0E2A24',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+  },
+  tabBarInner: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    elevation: 0,
+    height: 62,
+    paddingBottom: 8,
+    paddingTop: 8,
   },
 });
 
