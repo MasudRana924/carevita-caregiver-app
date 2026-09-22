@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   Modal,
   RefreshControl,
 } from 'react-native';
@@ -25,6 +24,7 @@ import OfferCountdown from '../components/booking/OfferCountdown';
 import LiveTrackingBanner from '../components/booking/LiveTrackingBanner';
 import useNowTick from '../hooks/useNowTick';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 import {
   filterActiveBookings,
   getOfferRemainingMs,
@@ -171,6 +171,7 @@ const BookingsScreen = ({navigation, route}) => {
   const [status, setStatus] = useState(initialStatus);
   const [rejectId, setRejectId] = useState(null);
   const [reason, setReason] = useState('Not available that day');
+  const [starting, setStarting] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     message: '',
@@ -245,7 +246,9 @@ const BookingsScreen = ({navigation, route}) => {
 
   const handleStart = bookingId => {
     // Direct flow: permission → GPS → start API → socket watch
+    // Local `starting` covers GPS/permission before mutateAsync sets isPending
     (async () => {
+      setStarting(true);
       try {
         await runStartBookingFlow({
           bookingId,
@@ -254,12 +257,14 @@ const BookingsScreen = ({navigation, route}) => {
       } catch (error) {
         const info = explainStartError(error);
         showError(info.message, info.title);
+      } finally {
+        setStarting(false);
       }
     })();
   };
 
   const handleComplete = bookingId => {
-    Alert.alert('End service', 'Mark this booking as completed?', [
+    showAlert('End service', 'Mark this booking as completed?', [
       {text: 'Not now', style: 'cancel'},
       {
         text: 'End',
@@ -269,7 +274,7 @@ const BookingsScreen = ({navigation, route}) => {
             const response = await completeBooking.mutateAsync(bookingId);
             const earning =
               response?.data?.caregiver_earning ?? response?.caregiver_earning;
-            Alert.alert(
+            showAlert(
               'Completed',
               earning != null
                 ? `Service completed. ৳${earning} is now in your wallet.`
@@ -293,7 +298,7 @@ const BookingsScreen = ({navigation, route}) => {
       refetch();
       return;
     }
-    Alert.alert('Accept booking', 'Accept this booking request?', [
+    showAlert('Accept booking', 'Accept this booking request?', [
       {text: 'Not now', style: 'cancel'},
       {
         text: 'Accept',
@@ -325,6 +330,7 @@ const BookingsScreen = ({navigation, route}) => {
   };
 
   const busy =
+    starting ||
     acceptBooking.isPending ||
     rejectBooking.isPending ||
     startBooking.isPending ||
@@ -489,6 +495,7 @@ const BookingsScreen = ({navigation, route}) => {
                       title="Start"
                       icon="play"
                       onPress={() => handleStart(booking.id)}
+                      disabled={starting || startBooking.isPending}
                       style={styles.flexBtn}
                     />
                   </View>

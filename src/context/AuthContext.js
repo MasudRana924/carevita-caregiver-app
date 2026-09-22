@@ -6,8 +6,8 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import {Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {showAlert} from './AlertModalContext';
 import notificationService from '../services/notificationService';
 import {authService, caregiverService} from '../api/services';
 import {setSessionExpiredHandler} from '../api/session';
@@ -150,7 +150,7 @@ export const AuthProvider = ({children}) => {
           if (result.reason === 'wrong_role' || result.reason === 'unauthorized') {
             await clearSession();
             if (result.reason === 'wrong_role') {
-              Alert.alert(
+              showAlert(
                 'Caregiver app',
                 'This account is not a caregiver. Please use the family app or register as a caregiver.',
               );
@@ -171,7 +171,7 @@ export const AuthProvider = ({children}) => {
     try {
       const authUser = normalizeAuthUser(userData) || userData;
       if (authUser?.role && authUser.role !== 'CAREGIVER') {
-        Alert.alert(
+        showAlert(
           'Caregiver app',
           'This account is not a caregiver. Please use the family app or register as a caregiver.',
         );

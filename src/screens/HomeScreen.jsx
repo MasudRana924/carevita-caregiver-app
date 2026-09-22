@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   Image,
-  Alert,
   Modal,
   AppState,
   DeviceEventEmitter,
@@ -45,6 +44,7 @@ import {
 } from '../utils/homeAlerts';
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 import Toast from '../components/common/Toast';
 import OfferCountdown from '../components/booking/OfferCountdown';
 
@@ -312,7 +312,7 @@ const HomeScreen = ({navigation}) => {
       assignedQuery.refetch();
       return;
     }
-    Alert.alert('Accept booking', 'Accept this booking request?', [
+    showAlert('Accept booking', 'Accept this booking request?', [
       {text: 'Not now', style: 'cancel'},
       {
         text: 'Accept',

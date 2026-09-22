@@ -9,6 +9,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {ErrorModalProvider} from './src/context/ErrorModalContext';
+import {AlertModalProvider} from './src/context/AlertModalContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import notificationService from './src/services/notificationService';
@@ -203,11 +204,13 @@ function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ErrorModalProvider>
-            <AppContent />
-          </ErrorModalProvider>
-        </AuthProvider>
+        <AlertModalProvider>
+          <AuthProvider>
+            <ErrorModalProvider>
+              <AppContent />
+            </ErrorModalProvider>
+          </AuthProvider>
+        </AlertModalProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

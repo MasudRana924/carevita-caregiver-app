@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -15,6 +14,7 @@ import AppInput from '../components/common/AppInput';
 import AppButton from '../components/common/AppButton';
 import {apiRequest} from '../services/api';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const ReviewScreen = ({route, navigation}) => {
   const {bookingId} = route.params || {};
@@ -46,7 +46,7 @@ const ReviewScreen = ({route, navigation}) => {
       });
 
       if (response.success) {
-        Alert.alert('Success', 'Thank you for your review!', [
+        showAlert('Success', 'Thank you for your review!', [
           {
             text: 'OK',
             onPress: () => navigation.navigate('BookingDetails', {bookingId}),

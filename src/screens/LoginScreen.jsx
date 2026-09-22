@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, TouchableOpacity} from 'react-native';
+import {showAlert} from '../context/AlertModalContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
 import AppInput from '../components/common/AppInput';
@@ -125,7 +126,7 @@ const LoginScreen = ({navigation}) => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() =>
-            Alert.alert(
+            showAlert(
               'Forgot password',
               'Please contact support to reset your password.',
             )

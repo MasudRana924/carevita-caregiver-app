@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -28,6 +27,7 @@ import {
   useUpdateCaregiverProfile,
 } from '../api/mutations';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const GENDERS = [
@@ -190,7 +190,7 @@ const CaregiverProfileScreen = ({navigation, route}) => {
       const saved = response?.data || fields;
       completeCaregiverProfile(saved);
       if (!isSetup) {
-        Alert.alert('Saved', 'Caregiver profile updated');
+        showAlert('Saved', 'Caregiver profile updated');
         navigation?.goBack();
       }
     } catch (error) {

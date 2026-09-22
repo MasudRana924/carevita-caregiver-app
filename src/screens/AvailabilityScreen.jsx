@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -18,6 +17,7 @@ import {useAvailability} from '../api/queries';
 import {useUpdateAvailability} from '../api/mutations';
 import {unwrapList} from '../api/envelope';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const DAYS = [
   {value: 0, label: 'Sunday'},
@@ -100,7 +100,7 @@ const AvailabilityScreen = ({navigation}) => {
 
     try {
       await saveMutation.mutateAsync(slots);
-      Alert.alert(
+      showAlert(
         'Saved',
         slots.length === 0
           ? 'No weekly slots. You are available all day.'

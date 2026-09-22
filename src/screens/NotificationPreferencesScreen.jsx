@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
@@ -7,6 +7,7 @@ import {useNotificationPreferences} from '../api/queries';
 import {useUpdateNotificationPreferences} from '../api/mutations';
 import {unwrapData} from '../api/envelope';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 export const PUSH_TYPES = [
   {key: 'BOOKING_CREATED', label: 'New booking assigned'},
@@ -52,7 +53,7 @@ const NotificationPreferencesScreen = ({navigation}) => {
     try {
       const body = data?.data?.preferences ? {preferences: prefs} : prefs;
       await saveMutation.mutateAsync(body);
-      Alert.alert('Saved', 'Notification preferences updated');
+      showAlert('Saved', 'Notification preferences updated');
       navigation?.goBack();
     } catch (error) {
       showError(error?.message || 'Failed to save preferences');

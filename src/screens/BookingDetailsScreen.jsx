@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -32,6 +31,7 @@ import LiveTrackingBanner from '../components/booking/LiveTrackingBanner';
 import useNowTick from '../hooks/useNowTick';
 import {getOfferRemainingMs, isOfferExpired} from '../utils/bookingTime';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 import {
   stopLiveTracking,
   resumeLiveTrackingIfNeeded,
@@ -77,6 +77,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const [reasonModal, setReasonModal] = useState(null);
   const [reason, setReason] = useState('');
   const [disputeDetails, setDisputeDetails] = useState('');
+  const [starting, setStarting] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     message: '',
@@ -213,7 +214,9 @@ const BookingDetailsScreen = ({navigation, route}) => {
 
   const handleStart = () => {
     // Direct flow (no confirm Alert): permission → GPS → start API → socket watch
+    // Local `starting` covers GPS/permission before mutateAsync sets isPending
     (async () => {
+      setStarting(true);
       try {
         await runStartBookingFlow({
           bookingId,
@@ -223,12 +226,14 @@ const BookingDetailsScreen = ({navigation, route}) => {
       } catch (error) {
         const info = explainStartError(error);
         showError(info.message, info.title);
+      } finally {
+        setStarting(false);
       }
     })();
   };
 
   const handleComplete = () => {
-    Alert.alert('End service', 'Mark this booking as completed?', [
+    showAlert('End service', 'Mark this booking as completed?', [
       {text: 'Not now', style: 'cancel'},
       {
         text: 'End',
@@ -239,7 +244,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
             const earning =
               response?.data?.caregiver_earning ??
               response?.caregiver_earning;
-            Alert.alert(
+            showAlert(
               'Completed',
               earning != null
                 ? `Service completed. ৳${earning} is now in your wallet.`
@@ -263,14 +268,14 @@ const BookingDetailsScreen = ({navigation, route}) => {
       });
       return;
     }
-    Alert.alert('Accept booking', 'Accept this booking request?', [
+    showAlert('Accept booking', 'Accept this booking request?', [
       {text: 'Not now', style: 'cancel'},
       {
         text: 'Accept',
         onPress: async () => {
           try {
             await acceptBooking.mutateAsync(bookingId);
-            Alert.alert(
+            showAlert(
               'Accepted',
               'Booking accepted. Waiting for the family to pay.',
             );
@@ -292,7 +297,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
     try {
       if (reasonModal === 'reject') {
         await rejectBooking.mutateAsync({id: bookingId, reason: trimmed});
-        Alert.alert(
+        showAlert(
           'Rejected',
           'Request declined. It left your active list and may be reassigned.',
         );
@@ -307,7 +312,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
           reason: trimmed,
           details: disputeDetails.trim(),
         });
-        Alert.alert('Submitted', 'Dispute submitted');
+        showAlert('Submitted', 'Dispute submitted');
         setReasonModal(null);
         setReason('');
         setDisputeDetails('');
@@ -316,7 +321,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
         return;
       }
       await cancelBooking.mutateAsync({id: bookingId, reason: trimmed});
-      Alert.alert('Cancelled', 'Booking cancelled');
+      showAlert('Cancelled', 'Booking cancelled');
       setReasonModal(null);
       setReason('');
       refetch();
@@ -374,6 +379,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
   ];
 
   const busy =
+    starting ||
     acceptBooking.isPending ||
     rejectBooking.isPending ||
     cancelBooking.isPending ||
@@ -618,6 +624,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
             <AppButton
               title="Start"
               onPress={handleStart}
+              disabled={starting || startBooking.isPending}
               style={styles.flexBtn}
             />
           )}

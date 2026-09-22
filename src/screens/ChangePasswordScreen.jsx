@@ -4,7 +4,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Header from '../components/common/Header';
@@ -13,6 +12,7 @@ import AppInput from '../components/common/AppInput';
 import AppButton from '../components/common/AppButton';
 import {useChangePassword} from '../api/mutations';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const ChangePasswordScreen = ({navigation}) => {
   const changePassword = useChangePassword();
@@ -36,7 +36,7 @@ const ChangePasswordScreen = ({navigation}) => {
         currentPassword: currentPassword.trim(),
         newPassword: newPassword.trim(),
       });
-      Alert.alert('Updated', 'Password changed successfully', [
+      showAlert('Updated', 'Password changed successfully', [
         {text: 'OK', onPress: () => navigation?.goBack()},
       ]);
     } catch (error) {

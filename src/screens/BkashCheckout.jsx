@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   Modal,
   Linking,
-  Alert,
 } from 'react-native';
+import {showAlert} from '../context/AlertModalContext';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {WebView} from 'react-native-webview';
 import Header from '../components/common/Header';
@@ -224,7 +224,7 @@ const BkashCheckout = ({route, navigation}) => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.bookings.detail(activeBookingId),
         });
-        Alert.alert('Success', 'Payment successful!', [
+        showAlert('Success', 'Payment successful!', [
           {
             text: 'OK',
             onPress: () =>

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   Keyboard,
-  Alert,
 } from 'react-native';
 import Loader from '../components/common/Loader';
 import AppButton from '../components/common/AppButton';
@@ -15,6 +14,7 @@ import {verifyOtp, resendOtp, extractAuthPayload} from '../services/api';
 import {useAuth} from '../context/AuthContext';
 import notificationService from '../services/notificationService';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const OTP_LENGTH = 4;
 
@@ -78,7 +78,7 @@ const VerifyPhoneScreen = ({navigation, route}) => {
       const response = await resendOtp(email);
       if (response.success) {
         setSeconds(42);
-        Alert.alert('Success', 'OTP has been resent to your email');
+        showAlert('Success', 'OTP has been resent to your email');
       } else {
         showError(response.message || 'Failed to resend OTP');
       }

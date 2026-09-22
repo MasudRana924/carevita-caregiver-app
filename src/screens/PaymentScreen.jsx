@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/common/Header';
 import {apiRequest} from '../services/api';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const PaymentScreen = ({route, navigation}) => {
   const {bookingId, amount, bookingNumber} = route.params || {};
@@ -38,7 +38,7 @@ const PaymentScreen = ({route, navigation}) => {
       });
 
       if (response.success) {
-        Alert.alert('Success', 'Payment processed successfully', [
+        showAlert('Success', 'Payment processed successfully', [
           {
             text: 'OK',
             onPress: () => navigation.navigate('BookingDetails', {bookingId}),

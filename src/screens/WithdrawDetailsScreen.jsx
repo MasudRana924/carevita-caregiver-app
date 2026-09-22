@@ -7,7 +7,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -19,6 +18,7 @@ import {FORM, formStyles} from '../components/common/formStyles';
 import {useDeliveryMethodFields} from '../api/queries';
 import {useCreateWithdrawal} from '../api/mutations';
 import {showError} from '../context/ErrorModalContext';
+import {showAlert} from '../context/AlertModalContext';
 
 const WithdrawDetailsScreen = ({navigation, route}) => {
   const amount = Number(route?.params?.amount) || 0;
@@ -89,7 +89,7 @@ const WithdrawDetailsScreen = ({navigation, route}) => {
         method: selectedMethod,
         delivery_details,
       });
-      Alert.alert(
+      showAlert(
         'Withdrawal requested',
         response?.message ||
           'Your withdrawal request has been submitted and is pending review.',
