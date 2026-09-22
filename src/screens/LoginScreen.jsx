@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import {showAlert} from '../context/AlertModalContext';
+import {showError} from '../context/ErrorModalContext';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
 import AppInput from '../components/common/AppInput';
@@ -15,17 +16,15 @@ const LoginScreen = ({navigation}) => {
   const [password, setPassword] = useState('');
   const [passUi, setPassUi] = useState({show: false, remember: true});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const {login} = useAuth();
 
   const handleLogin = async () => {
-    setError('');
     if (!email.trim()) {
-      setError('Please enter your email');
+      showError('Please enter your email', 'Required');
       return;
     }
     if (!password.trim()) {
-      setError('Please enter your password');
+      showError('Please enter your password', 'Required');
       return;
     }
 
@@ -39,8 +38,9 @@ const LoginScreen = ({navigation}) => {
         console.log('✅ Login API response received');
 
         if (user?.role && user.role !== 'CAREGIVER') {
-          setError(
+          showError(
             'This account is not a caregiver. Please use the family app.',
+            'Account Error',
           );
           return;
         }
@@ -63,11 +63,12 @@ const LoginScreen = ({navigation}) => {
           message.toLowerCase().includes('verify');
         if (needsVerify) {
           navigation?.navigate('VerifyPhone', {email: email.trim()});
+        } else {
+          showError(message, 'Login Failed');
         }
-        setError(message);
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      showError('Something went wrong. Please try again.', 'Error');
       console.error('❌ Login error:', err);
     } finally {
       setLoading(false);
@@ -134,8 +135,6 @@ const LoginScreen = ({navigation}) => {
           <Text style={styles.forgot}>Forgot password?</Text>
         </TouchableOpacity>
       </View>
-
-      {error ? <Text style={authStyles.errorText}>{error}</Text> : null}
 
       <AppButton
         title="Login"

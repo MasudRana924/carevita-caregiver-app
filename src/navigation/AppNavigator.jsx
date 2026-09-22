@@ -7,6 +7,7 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import {useAuth} from '../context/AuthContext';
@@ -38,10 +39,11 @@ const Tab = createBottomTabNavigator();
 
 function FloatingTabBar(props) {
   const {width: windowWidth} = useWindowDimensions();
-  const tabBarWidth = Math.round(windowWidth * 0.8);
+  const insets = useSafeAreaInsets();
+  const tabBarWidth = Math.round(windowWidth * 0.9);
 
   return (
-    <View pointerEvents="box-none" style={styles.tabBarHost}>
+    <View pointerEvents="box-none" style={[styles.tabBarHost, {bottom: insets.bottom + 16}]}>
       <View style={[styles.tabBarShell, {width: tabBarWidth}]}>
         <BottomTabBar {...props} style={styles.tabBarInner} />
       </View>
@@ -64,14 +66,15 @@ function MainTabs() {
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           elevation: 0,
-          height: 62,
-          paddingBottom: 8,
+          height: 70,
+          paddingBottom: 16,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
           marginTop: 2,
+          marginBottom: 4,
         },
         tabBarActiveTintColor: '#008178',
         tabBarInactiveTintColor: '#7D8BA2',
@@ -230,12 +233,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 30,
     alignItems: 'center',
   },
   tabBarShell: {
-    height: 62,
-    borderRadius: 31,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#F3F8F6',
     borderWidth: 1,
     borderColor: '#E3EDE8',
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderTopWidth: 0,
     elevation: 0,
-    height: 62,
+    height: 70,
     paddingBottom: 8,
     paddingTop: 8,
   },

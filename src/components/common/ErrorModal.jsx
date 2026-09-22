@@ -4,21 +4,21 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AppButton from './AppButton';
 import {FORM} from './formStyles';
 
 /**
- * Common error dialog — small message + OK to dismiss.
+ * Common error dialog — bottom modal with error message and close button.
  */
 const ErrorModal = ({
   visible,
   message,
   title = 'Error',
   onClose,
-  buttonLabel = 'Okay',
+  buttonLabel = 'Close',
 }) => {
   const text =
     typeof message === 'string' && message.trim()
@@ -29,24 +29,30 @@ const ErrorModal = ({
     <Modal
       visible={!!visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       statusBarTranslucent
       onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.card}>
-          <View style={styles.iconCircle}>
-            <Icon name="alert-circle-outline" size={28} color="#DC2626" />
+      <TouchableOpacity
+        style={styles.backdrop}
+        activeOpacity={1}
+        onPress={onClose}>
+        <SafeAreaView style={styles.modalContainer} edges={['bottom']}>
+          <View style={styles.card}>
+            <View style={styles.iconRow}>
+              <View style={styles.iconCircle}>
+                <Icon name="alert-circle-outline" size={24} color="#DC2626" />
+              </View>
+              <Text style={styles.title}>{title}</Text>
+            </View>
+            <Text style={styles.message}>{text}</Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Text style={styles.closeButtonText}>{buttonLabel}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{text}</Text>
-          <AppButton
-            title={buttonLabel}
-            onPress={onClose}
-            style={styles.okBtn}
-          />
-        </View>
-      </View>
+        </SafeAreaView>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -57,44 +63,61 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 28,
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
   },
   card: {
-    width: '100%',
-    maxWidth: 320,
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    paddingTop: 22,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
+    borderRadius: 15,
+    padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FEECEC',
+  iconRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    width: '100%',
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEECEC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   title: {
     fontSize: 16,
     fontWeight: '700',
     color: FORM.title,
-    marginBottom: 8,
-    textAlign: 'center',
+    flex: 1,
   },
   message: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     color: FORM.muted,
+    marginBottom: 16,
     textAlign: 'center',
-    marginBottom: 18,
   },
-  okBtn: {
-    alignSelf: 'stretch',
+  buttonContainer: {
+    alignItems: 'center',
+  },
+  closeButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
 });
