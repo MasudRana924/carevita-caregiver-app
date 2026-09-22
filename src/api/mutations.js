@@ -67,8 +67,14 @@ export const useStartBooking = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: id => bookingService.startBooking(id),
-    onSuccess: (_data, id) => {
+    mutationFn: variables => {
+      const id = typeof variables === 'object' ? variables.id : variables;
+      const location =
+        typeof variables === 'object' ? variables.location || {} : {};
+      return bookingService.startBooking(id, location);
+    },
+    onSuccess: (_data, variables) => {
+      const id = typeof variables === 'object' ? variables.id : variables;
       invalidateBookings(queryClient, id);
     },
   });

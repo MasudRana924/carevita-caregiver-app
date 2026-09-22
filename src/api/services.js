@@ -406,7 +406,11 @@ export const bookingService = {
       reason: reason || 'Emergency',
     }),
 
-  startBooking: id => apiRequest(`/caregiver/bookings/${id}/start`, 'POST'),
+  startBooking: (id, location = {}) =>
+    apiRequest(`/caregiver/bookings/${id}/start`, 'POST', location),
+
+  updateBookingLocation: (id, location = {}) =>
+    apiRequest(`/caregiver/bookings/${id}/location`, 'POST', location),
 
   completeBooking: id =>
     apiRequest(`/caregiver/bookings/${id}/complete`, 'POST'),

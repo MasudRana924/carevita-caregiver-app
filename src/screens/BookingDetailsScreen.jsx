@@ -28,9 +28,18 @@ import Toast from '../components/common/Toast';
 import AppInput from '../components/common/AppInput';
 import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import OfferCountdown from '../components/booking/OfferCountdown';
+import LiveTrackingBanner from '../components/booking/LiveTrackingBanner';
 import useNowTick from '../hooks/useNowTick';
 import {getOfferRemainingMs, isOfferExpired} from '../utils/bookingTime';
 import {showError} from '../context/ErrorModalContext';
+import {
+  stopLiveTracking,
+  resumeLiveTrackingIfNeeded,
+} from '../services/liveTrackingService';
+import {
+  runStartBookingFlow,
+  explainStartError,
+} from '../services/startBookingFlow';
 
 const STATUS_STYLES = {
   PENDING_PAYMENT: {bg: '#FFF4E5', text: '#D97706'},
@@ -93,6 +102,18 @@ const BookingDetailsScreen = ({navigation, route}) => {
   useEffect(() => {
     offerExpiredHandled.current = false;
   }, [bookingId, booking?.offer_expires_at, routeOfferExpiresAt]);
+
+  useEffect(() => {
+    if (
+      bookingId &&
+      (booking?.status === 'SERVICE_IN_PROGRESS' ||
+        booking?.status === 'IN_PROGRESS')
+    ) {
+      resumeLiveTrackingIfNeeded(bookingId).catch(error => {
+        console.warn('Resume tracking failed:', error?.message || error);
+      });
+    }
+  }, [bookingId, booking?.status]);
 
   useEffect(() => {
     if (!canRespondStatus || !offerBooking || offerExpiredHandled.current) {
@@ -191,21 +212,19 @@ const BookingDetailsScreen = ({navigation, route}) => {
     booking?.family_member?.photo || booking?.family_member_photo;
 
   const handleStart = () => {
-    Alert.alert('Start service', 'Start this booking now?', [
-      {text: 'Not now', style: 'cancel'},
-      {
-        text: 'Start',
-        onPress: async () => {
-          try {
-            await startBooking.mutateAsync(bookingId);
-            Alert.alert('Started', 'Service started');
-            refetch();
-          } catch (error) {
-            showError(error?.message || 'Failed to start booking');
-          }
-        },
-      },
-    ]);
+    // Direct flow (no confirm Alert): permission → GPS → start API → socket watch
+    (async () => {
+      try {
+        await runStartBookingFlow({
+          bookingId,
+          startBookingMutate: vars => startBooking.mutateAsync(vars),
+        });
+        refetch();
+      } catch (error) {
+        const info = explainStartError(error);
+        showError(info.message, info.title);
+      }
+    })();
   };
 
   const handleComplete = () => {
@@ -215,6 +234,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
         text: 'End',
         onPress: async () => {
           try {
+            await stopLiveTracking();
             const response = await completeBooking.mutateAsync(bookingId);
             const earning =
               response?.data?.caregiver_earning ??
@@ -405,13 +425,19 @@ const BookingDetailsScreen = ({navigation, route}) => {
             </View>
           </View>
         )}
+        {(booking?.status === 'SERVICE_IN_PROGRESS' ||
+          booking?.status === 'IN_PROGRESS' ||
+          canComplete) && (
+          <LiveTrackingBanner forceVisible />
+        )}
         {canStart && (
           <View style={styles.startBanner}>
             <Icon name="play-circle" size={22} color="#008178" />
             <View style={styles.startBannerText}>
               <Text style={styles.startTitle}>Payment received</Text>
               <Text style={styles.startSub}>
-                The family paid. You can start this booking now.
+                The family paid. You can start this booking now. Location
+                permission is required.
               </Text>
             </View>
           </View>

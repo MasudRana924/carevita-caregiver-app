@@ -39,6 +39,12 @@ export const AuthProvider = ({children}) => {
   };
 
   const clearSession = useCallback(async () => {
+    try {
+      const {stopLiveTracking} = require('../services/liveTrackingService');
+      await stopLiveTracking();
+    } catch (error) {
+      // ignore tracking cleanup errors during logout
+    }
     await AsyncStorage.removeItem('userToken');
     await AsyncStorage.removeItem('refreshToken');
     await AsyncStorage.removeItem('user');

@@ -3,9 +3,12 @@
  * Centralized endpoint definitions for all API routes
  */
 
-const BASE_URL = 'http://192.168.10.78:8000/api/v1';
-// const BASE_URL = 'https://carevita-service.onrender.com/api/v1';
+// const BASE_URL = 'http://192.168.10.78:8000/api/v1';
+const BASE_URL = "https://carevita-service.onrender.com/api/v1";
 // const BASE_URL = "http://172.16.223.1:8000/api/v1";
+
+/** Socket.IO host — same origin as REST, without /api/v1 */
+export const getApiHost = () => BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 export const ENDPOINTS = {
   HEALTH: "/health",
@@ -28,6 +31,7 @@ export const ENDPOINTS = {
     ACCEPT: (id) => `/caregiver/bookings/${id}/accept`,
     REJECT: (id) => `/caregiver/bookings/${id}/reject`,
     START: (id) => `/caregiver/bookings/${id}/start`,
+    LOCATION: (id) => `/caregiver/bookings/${id}/location`,
     COMPLETE: (id) => `/caregiver/bookings/${id}/complete`,
     WALLET: "/caregiver/wallet",
     AVAILABILITY: "/caregiver/availability",

@@ -46,7 +46,11 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to find caregivers and hospitals near you. This helps us provide better service.</string>
+	<string>We need your location to start the service and share live updates while a booking is in progress.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need background location so families can track your visit while the service is in progress.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need background location so families can track your visit while the service is in progress.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Stay updated with booking confirmations, caregiver arrivals, and important alerts.</string>
 	<key>NSCameraUsageDescription</key>
@@ -60,6 +64,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>location</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

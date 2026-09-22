@@ -22,6 +22,7 @@ import Toast from '../components/common/Toast';
 import AppInput from '../components/common/AppInput';
 import AppButton from '../components/common/AppButton';
 import OfferCountdown from '../components/booking/OfferCountdown';
+import LiveTrackingBanner from '../components/booking/LiveTrackingBanner';
 import useNowTick from '../hooks/useNowTick';
 import {showError} from '../context/ErrorModalContext';
 import {
@@ -29,6 +30,14 @@ import {
   getOfferRemainingMs,
   isOfferExpired,
 } from '../utils/bookingTime';
+import {
+  stopLiveTracking,
+  resumeLiveTrackingIfNeeded,
+} from '../services/liveTrackingService';
+import {
+  runStartBookingFlow,
+  explainStartError,
+} from '../services/startBookingFlow';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
@@ -221,20 +230,32 @@ const BookingsScreen = ({navigation, route}) => {
     }
   }, [rawBookings, nowTs, refetch]);
 
+  useEffect(() => {
+    const inProgress = rawBookings.find(
+      item =>
+        item?.status === 'SERVICE_IN_PROGRESS' ||
+        item?.status === 'IN_PROGRESS',
+    );
+    if (inProgress?.id) {
+      resumeLiveTrackingIfNeeded(inProgress.id).catch(error => {
+        console.warn('Resume tracking failed:', error?.message || error);
+      });
+    }
+  }, [rawBookings]);
+
   const handleStart = bookingId => {
-    Alert.alert('Start service', 'Start this booking now?', [
-      {text: 'Not now', style: 'cancel'},
-      {
-        text: 'Start',
-        onPress: async () => {
-          try {
-            await startBooking.mutateAsync(bookingId);
-          } catch (error) {
-            showError(error?.message || 'Failed to start booking');
-          }
-        },
-      },
-    ]);
+    // Direct flow: permission → GPS → start API → socket watch
+    (async () => {
+      try {
+        await runStartBookingFlow({
+          bookingId,
+          startBookingMutate: vars => startBooking.mutateAsync(vars),
+        });
+      } catch (error) {
+        const info = explainStartError(error);
+        showError(info.message, info.title);
+      }
+    })();
   };
 
   const handleComplete = bookingId => {
@@ -244,6 +265,7 @@ const BookingsScreen = ({navigation, route}) => {
         text: 'End',
         onPress: async () => {
           try {
+            await stopLiveTracking();
             const response = await completeBooking.mutateAsync(bookingId);
             const earning =
               response?.data?.caregiver_earning ?? response?.caregiver_earning;
@@ -322,6 +344,10 @@ const BookingsScreen = ({navigation, route}) => {
         showBack={false}
         leftIcon="calendar-outline"
       />
+
+      <View style={styles.trackingWrap}>
+        <LiveTrackingBanner />
+      </View>
 
       <View style={styles.filtersWrap}>
         <ScrollView
@@ -543,6 +569,10 @@ const styles = StyleSheet.create({
   filtersWrap: {
     height: 36,
     marginBottom: 4,
+  },
+  trackingWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
   filters: {
     paddingHorizontal: 16,

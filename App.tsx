@@ -148,6 +148,22 @@ function AppContent() {
       notificationService.initialize(userToken).catch((error: any) => {
         console.error('Failed to initialize notifications:', error);
       });
+
+      // Resume live tracking if a booking was in progress when the app was killed
+      (async () => {
+        try {
+          const {
+            getPersistedTrackingBookingId,
+            resumeLiveTrackingIfNeeded,
+          } = await import('./src/services/liveTrackingService');
+          const bookingId = await getPersistedTrackingBookingId();
+          if (bookingId) {
+            await resumeLiveTrackingIfNeeded(bookingId);
+          }
+        } catch (error: any) {
+          console.warn('Resume live tracking failed:', error?.message || error);
+        }
+      })();
     }
   }, [userToken, isLoading]);
 
