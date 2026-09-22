@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,9 @@ import {
   Image,
   Modal,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useBookingDetails, useBookingDisputes} from '../api/queries';
+import { useBookingDetails, useBookingDisputes } from '../api/queries';
 import {
   useAcceptBooking,
   useRejectBooking,
@@ -19,19 +19,19 @@ import {
   useCompleteBooking,
   useCreateDispute,
 } from '../api/mutations';
-import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
+import { unwrapList, getAcceptConflictMessage } from '../api/envelope';
 import Header from '../components/common/Header';
 import BookingDetailsSkeleton from '../components/home/BookingDetailsSkeleton';
 import Loader from '../components/common/Loader';
 import Toast from '../components/common/Toast';
 import AppInput from '../components/common/AppInput';
-import AppButton, {AppButtonBar} from '../components/common/AppButton';
+import AppButton, { AppButtonBar } from '../components/common/AppButton';
 import OfferCountdown from '../components/booking/OfferCountdown';
 import LiveTrackingBanner from '../components/booking/LiveTrackingBanner';
 import useNowTick from '../hooks/useNowTick';
-import {getOfferRemainingMs, isOfferExpired} from '../utils/bookingTime';
-import {showError} from '../context/ErrorModalContext';
-import {showAlert} from '../context/AlertModalContext';
+import { getOfferRemainingMs, isOfferExpired } from '../utils/bookingTime';
+import { showError } from '../context/ErrorModalContext';
+import { showAlert } from '../context/AlertModalContext';
 import {
   stopLiveTracking,
   resumeLiveTrackingIfNeeded,
@@ -42,21 +42,21 @@ import {
 } from '../services/startBookingFlow';
 
 const STATUS_STYLES = {
-  PENDING_PAYMENT: {bg: '#FFF4E5', text: '#D97706'},
-  PROVIDER_ASSIGNED: {bg: '#E6F4F3', text: '#008178'},
-  PROVIDER_ACCEPTED: {bg: '#E6F4F3', text: '#008178'},
-  PAYMENT_PAID: {bg: '#E6F4F3', text: '#008178'},
-  CONFIRMED: {bg: '#E6F4F3', text: '#008178'},
-  IN_PROGRESS: {bg: '#E6F4F3', text: '#008178'},
-  SERVICE_IN_PROGRESS: {bg: '#E6F4F3', text: '#008178'},
-  COMPLETED: {bg: '#E6F4F3', text: '#008178'},
-  SERVICE_COMPLETED: {bg: '#E6F4F3', text: '#008178'},
-  CANCELLED: {bg: '#FEECEC', text: '#DC2626'},
+  PENDING_PAYMENT: { bg: '#FFF4E5', text: '#D97706' },
+  PROVIDER_ASSIGNED: { bg: '#E6F4F3', text: '#008178' },
+  PROVIDER_ACCEPTED: { bg: '#E6F4F3', text: '#008178' },
+  PAYMENT_PAID: { bg: '#E6F4F3', text: '#008178' },
+  CONFIRMED: { bg: '#E6F4F3', text: '#008178' },
+  IN_PROGRESS: { bg: '#E6F4F3', text: '#008178' },
+  SERVICE_IN_PROGRESS: { bg: '#E6F4F3', text: '#008178' },
+  COMPLETED: { bg: '#E6F4F3', text: '#008178' },
+  SERVICE_COMPLETED: { bg: '#E6F4F3', text: '#008178' },
+  CANCELLED: { bg: '#FEECEC', text: '#DC2626' },
 };
 
-const BookingDetailsScreen = ({navigation, route}) => {
-  const {bookingId, offerExpiresAt: routeOfferExpiresAt} = route.params || {};
-  const {data: bookingData, isLoading, refetch} = useBookingDetails(bookingId);
+const BookingDetailsScreen = ({ navigation, route }) => {
+  const { bookingId, offerExpiresAt: routeOfferExpiresAt } = route.params || {};
+  const { data: bookingData, isLoading, refetch } = useBookingDetails(bookingId);
   const acceptBooking = useAcceptBooking();
   const rejectBooking = useRejectBooking();
   const cancelBooking = useCancelBooking();
@@ -67,10 +67,10 @@ const BookingDetailsScreen = ({navigation, route}) => {
   const disputesQuery = useBookingDisputes(bookingId, {
     enabled: Boolean(
       bookingId &&
-        (booking?.can_dispute ||
-          booking?.status === 'PAYMENT_PAID' ||
-          booking?.status === 'SERVICE_COMPLETED' ||
-          booking?.status === 'COMPLETED'),
+      (booking?.can_dispute ||
+        booking?.status === 'PAYMENT_PAID' ||
+        booking?.status === 'SERVICE_COMPLETED' ||
+        booking?.status === 'COMPLETED'),
     ),
   });
   const disputes = unwrapList(disputesQuery.data);
@@ -94,7 +94,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
     if (booking.offer_expires_at || !routeOfferExpiresAt) {
       return booking;
     }
-    return {...booking, offer_expires_at: routeOfferExpiresAt};
+    return { ...booking, offer_expires_at: routeOfferExpiresAt };
   }, [booking, routeOfferExpiresAt]);
   const offerExpired = canRespondStatus
     ? isOfferExpired(offerBooking, nowTs, routeOfferExpiresAt)
@@ -176,7 +176,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
   };
 
   const statusStyle =
-    STATUS_STYLES[booking?.status] || {bg: '#F0F2F5', text: '#8190A7'};
+    STATUS_STYLES[booking?.status] || { bg: '#F0F2F5', text: '#8190A7' };
   const statusLabel = (booking?.status || '').replace(/_/g, ' ');
   const waitingForPay = booking?.status === 'PROVIDER_ACCEPTED';
   const canStart = booking?.can_start === true;
@@ -234,7 +234,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
 
   const handleComplete = () => {
     showAlert('End service', 'Mark this booking as completed?', [
-      {text: 'Not now', style: 'cancel'},
+      { text: 'Not now', style: 'cancel' },
       {
         text: 'End',
         onPress: async () => {
@@ -269,7 +269,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
       return;
     }
     showAlert('Accept booking', 'Accept this booking request?', [
-      {text: 'Not now', style: 'cancel'},
+      { text: 'Not now', style: 'cancel' },
       {
         text: 'Accept',
         onPress: async () => {
@@ -296,7 +296,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
     }
     try {
       if (reasonModal === 'reject') {
-        await rejectBooking.mutateAsync({id: bookingId, reason: trimmed});
+        await rejectBooking.mutateAsync({ id: bookingId, reason: trimmed });
         showAlert(
           'Rejected',
           'Request declined. It left your active list and may be reassigned.',
@@ -320,7 +320,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
         disputesQuery.refetch();
         return;
       }
-      await cancelBooking.mutateAsync({id: bookingId, reason: trimmed});
+      await cancelBooking.mutateAsync({ id: bookingId, reason: trimmed });
       showAlert('Cancelled', 'Booking cancelled');
       setReasonModal(null);
       setReason('');
@@ -357,9 +357,9 @@ const BookingDetailsScreen = ({navigation, route}) => {
   }
 
   const infoRows = [
-    {label: 'Booking number', value: booking.booking_number},
-    {label: 'Status', value: statusLabel},
-    {label: 'Date', value: formatDate(booking.booking_date)},
+    { label: 'Booking number', value: booking.booking_number },
+    { label: 'Status', value: statusLabel },
+    { label: 'Date', value: formatDate(booking.booking_date) },
     {
       label: 'Time',
       value: `${formatTime(booking.start_time)} – ${formatTime(booking.end_time)}`,
@@ -376,6 +376,56 @@ const BookingDetailsScreen = ({navigation, route}) => {
       label: 'Payment',
       value: (booking.payment_status || '').replace(/_/g, ' '),
     },
+    ...(customerName ? [{ label: 'Customer', value: customerName }] : []),
+    ...(familyName
+      ? [
+          {
+            label: 'Family member',
+            value: familyAddress ? `${familyName}\n${familyAddress}` : familyName,
+          },
+        ]
+      : []),
+    ...(hospitalName
+      ? [
+          {
+            label: 'Hospital',
+            value: [hospitalName, hospitalAddress, hospitalPhone]
+              .filter(Boolean)
+              .join('\n'),
+          },
+        ]
+      : []),
+    ...(booking.notes ? [{ label: 'Notes', value: booking.notes }] : []),
+    ...(disputes.length > 0
+      ? [
+          {
+            label: 'Disputes',
+            value: disputes
+              .map(
+                item =>
+                  `${(item.status || 'OPEN').replace(/_/g, ' ')}${
+                    item.reason ? ` · ${item.reason}` : ''
+                  }`,
+              )
+              .join('\n'),
+          },
+        ]
+      : []),
+    ...(Array.isArray(booking.history) && booking.history.length > 0
+      ? [
+          {
+            label: 'History',
+            value: booking.history
+              .map(
+                item =>
+                  `${(item.old_status || '—').replace(/_/g, ' ')} → ${(
+                    item.new_status || '—'
+                  ).replace(/_/g, ' ')}${item.note ? ` · ${item.note}` : ''}`,
+              )
+              .join('\n'),
+          },
+        ]
+      : []),
   ];
 
   const busy =
@@ -394,7 +444,7 @@ const BookingDetailsScreen = ({navigation, route}) => {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
-        onHide={() => setToast(prev => ({...prev, visible: false}))}
+        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
       <Header title="Booking details" onBack={() => navigation?.goBack()} />
 
@@ -434,8 +484,8 @@ const BookingDetailsScreen = ({navigation, route}) => {
         {(booking?.status === 'SERVICE_IN_PROGRESS' ||
           booking?.status === 'IN_PROGRESS' ||
           canComplete) && (
-          <LiveTrackingBanner forceVisible />
-        )}
+            <LiveTrackingBanner forceVisible />
+          )}
         {canStart && (
           <View style={styles.startBanner}>
             <Icon name="play-circle" size={22} color="#008178" />
@@ -462,16 +512,16 @@ const BookingDetailsScreen = ({navigation, route}) => {
         )}
         {(booking.status === 'SERVICE_COMPLETED' ||
           booking.status === 'COMPLETED') && (
-          <View style={styles.startBanner}>
-            <Icon name="wallet-outline" size={22} color="#008178" />
-            <View style={styles.startBannerText}>
-              <Text style={styles.startTitle}>Earning settled</Text>
-              <Text style={styles.startSub}>
-                This service is complete. Earnings are in your wallet.
-              </Text>
+            <View style={styles.startBanner}>
+              <Icon name="wallet-outline" size={22} color="#008178" />
+              <View style={styles.startBannerText}>
+                <Text style={styles.startTitle}>Earning settled</Text>
+                <Text style={styles.startSub}>
+                  This service is complete. Earnings are in your wallet.
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
         <View style={styles.heroCard}>
           <View style={styles.heroTop}>
@@ -480,8 +530,8 @@ const BookingDetailsScreen = ({navigation, route}) => {
               <Text style={styles.heroAmount}>৳{booking.total_amount}</Text>
             </View>
             <View
-              style={[styles.statusBadge, {backgroundColor: statusStyle.bg}]}>
-              <Text style={[styles.statusText, {color: statusStyle.text}]}>
+              style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+              <Text style={[styles.statusText, { color: statusStyle.text }]}>
                 {statusLabel}
               </Text>
             </View>
@@ -497,101 +547,12 @@ const BookingDetailsScreen = ({navigation, route}) => {
                 index === infoRows.length - 1 && styles.infoRowLast,
               ]}>
               <Text style={styles.infoLabel}>{row.label}</Text>
-              <Text style={styles.infoValue} numberOfLines={1}>
+              <Text style={styles.infoValue}>
                 {row.value || '--'}
               </Text>
             </View>
           ))}
         </View>
-
-        {!!customerName && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Customer</Text>
-            <Text style={styles.personName}>{customerName}</Text>
-          </View>
-        )}
-
-        {!!familyName && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Family member</Text>
-            <View style={styles.personRow}>
-              {familyPhoto ? (
-                <Image source={{uri: familyPhoto}} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Icon name="person" size={22} color="#008178" />
-                </View>
-              )}
-              <View style={styles.personInfo}>
-                <Text style={styles.personName}>{familyName}</Text>
-                {!!familyAddress && (
-                  <Text style={styles.personMeta}>{familyAddress}</Text>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {!!hospitalName && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Hospital</Text>
-            <View style={styles.personRow}>
-              {booking.hospital?.photo ? (
-                <Image
-                  source={{uri: booking.hospital.photo}}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Icon name="business" size={22} color="#008178" />
-                </View>
-              )}
-              <View style={styles.personInfo}>
-                <Text style={styles.personName}>{hospitalName}</Text>
-                {!!hospitalAddress && (
-                  <Text style={styles.personMeta} numberOfLines={2}>
-                    {hospitalAddress}
-                  </Text>
-                )}
-                {!!hospitalPhone && (
-                  <Text style={styles.personMeta}>{hospitalPhone}</Text>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {!!booking.notes && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Operational notes</Text>
-            <Text style={styles.bodyText}>{booking.notes}</Text>
-          </View>
-        )}
-
-        {disputes.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Disputes</Text>
-            {disputes.map((item, index) => (
-              <Text key={item.id || index} style={styles.bodyText}>
-                {(item.status || 'OPEN').replace(/_/g, ' ')}
-                {item.reason ? ` · ${item.reason}` : ''}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        {Array.isArray(booking.history) && booking.history.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>History</Text>
-            {booking.history.map((item, index) => (
-              <Text key={`${item.new_status}-${index}`} style={styles.bodyText}>
-                {(item.old_status || '—').replace(/_/g, ' ')} →{' '}
-                {(item.new_status || '—').replace(/_/g, ' ')}
-                {item.note ? ` · ${item.note}` : ''}
-              </Text>
-            ))}
-          </View>
-        )}
       </ScrollView>
 
       {(canRespondStatus ||
@@ -599,67 +560,67 @@ const BookingDetailsScreen = ({navigation, route}) => {
         canStart ||
         canComplete ||
         canDispute) && (
-        <AppButtonBar>
-          {canRespondStatus && (
-            <>
+          <AppButtonBar>
+            {canRespondStatus && (
+              <>
+                <AppButton
+                  title="Reject"
+                  variant="outline"
+                  disabled={offerExpired}
+                  onPress={() => {
+                    setReason('Not available that day');
+                    setReasonModal('reject');
+                  }}
+                  style={styles.flexBtn}
+                />
+                <AppButton
+                  title="Accept"
+                  disabled={offerExpired}
+                  onPress={handleAccept}
+                  style={styles.flexBtn}
+                />
+              </>
+            )}
+            {canStart && (
               <AppButton
-                title="Reject"
+                title="Start"
+                onPress={handleStart}
+                disabled={starting || startBooking.isPending}
+                style={styles.flexBtn}
+              />
+            )}
+            {canComplete && (
+              <AppButton
+                title="End"
+                onPress={handleComplete}
+                style={styles.flexBtn}
+              />
+            )}
+            {canCancel && (
+              <AppButton
+                title="Cancel booking"
                 variant="outline"
-                disabled={offerExpired}
                 onPress={() => {
-                  setReason('Not available that day');
-                  setReasonModal('reject');
+                  setReason('Emergency');
+                  setReasonModal('cancel');
                 }}
                 style={styles.flexBtn}
               />
+            )}
+            {canDispute && !canRespondStatus && (
               <AppButton
-                title="Accept"
-                disabled={offerExpired}
-                onPress={handleAccept}
+                title="Dispute"
+                variant="outline"
+                onPress={() => {
+                  setReason('');
+                  setDisputeDetails('');
+                  setReasonModal('dispute');
+                }}
                 style={styles.flexBtn}
               />
-            </>
-          )}
-          {canStart && (
-            <AppButton
-              title="Start"
-              onPress={handleStart}
-              disabled={starting || startBooking.isPending}
-              style={styles.flexBtn}
-            />
-          )}
-          {canComplete && (
-            <AppButton
-              title="End"
-              onPress={handleComplete}
-              style={styles.flexBtn}
-            />
-          )}
-          {canCancel && (
-            <AppButton
-              title="Cancel booking"
-              variant="outline"
-              onPress={() => {
-                setReason('Emergency');
-                setReasonModal('cancel');
-              }}
-              style={styles.flexBtn}
-            />
-          )}
-          {canDispute && !canRespondStatus && (
-            <AppButton
-              title="Dispute"
-              variant="outline"
-              onPress={() => {
-                setReason('');
-                setDisputeDetails('');
-                setReasonModal('dispute');
-              }}
-              style={styles.flexBtn}
-            />
-          )}
-        </AppButtonBar>
-      )}
+            )}
+          </AppButtonBar>
+        )}
 
       <Modal
         visible={!!reasonModal}
@@ -718,9 +679,9 @@ const BookingDetailsScreen = ({navigation, route}) => {
 export default BookingDetailsScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {flex: 1, backgroundColor: '#FFFFFF'},
-  scrollView: {flex: 1},
-  scrollContent: {paddingHorizontal: 20, paddingBottom: 24},
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
@@ -757,7 +718,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     gap: 10,
   },
-  offerCountdown: {marginTop: 10},
+  offerCountdown: { marginTop: 10 },
   startBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,9 +728,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     gap: 10,
   },
-  startBannerText: {flex: 1},
-  startTitle: {fontSize: 15, fontWeight: '700', color: '#008178'},
-  startSub: {marginTop: 3, fontSize: 13, color: '#4A5568'},
+  startBannerText: { flex: 1 },
+  startTitle: { fontSize: 15, fontWeight: '700', color: '#008178' },
+  startSub: { marginTop: 3, fontSize: 13, color: '#4A5568' },
   heroCard: {
     backgroundColor: '#F6F6F6',
     borderRadius: 16,
@@ -782,12 +743,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  heroLeft: {flex: 1, paddingRight: 12},
-  heroLabel: {fontSize: 12, color: '#8190A7', marginBottom: 4},
-  heroAmount: {fontSize: 28, fontWeight: '700', color: '#111820'},
-  statusBadge: {paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20},
-  statusText: {fontSize: 12, fontWeight: '600', textTransform: 'capitalize'},
-  heroDivider: {height: 1, backgroundColor: '#EAEAEA', marginBottom: 10},
+  heroLeft: { flex: 1, paddingRight: 12 },
+  heroLabel: { fontSize: 12, color: '#8190A7', marginBottom: 4 },
+  heroAmount: { fontSize: 28, fontWeight: '700', color: '#111820' },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 },
+  statusText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
+  heroDivider: { height: 1, backgroundColor: '#EAEAEA', marginBottom: 10 },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -795,8 +756,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 12,
   },
-  infoRowLast: {paddingBottom: 0},
-  infoLabel: {fontSize: 13, color: '#8190A7'},
+  infoRowLast: { paddingBottom: 0 },
+  infoLabel: { fontSize: 13, color: '#8190A7' },
   infoValue: {
     flex: 1,
     textAlign: 'right',
@@ -817,8 +778,8 @@ const styles = StyleSheet.create({
     color: '#111820',
     marginBottom: 12,
   },
-  personRow: {flexDirection: 'row', alignItems: 'center'},
-  avatar: {width: 52, height: 52, borderRadius: 26, marginRight: 12},
+  personRow: { flexDirection: 'row', alignItems: 'center' },
+  avatar: { width: 52, height: 52, borderRadius: 26, marginRight: 12 },
   avatarPlaceholder: {
     width: 52,
     height: 52,
@@ -828,28 +789,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  personInfo: {flex: 1, minWidth: 0},
+  personInfo: { flex: 1, minWidth: 0 },
   personName: {
     fontSize: 15,
     fontWeight: '700',
     color: '#111820',
     marginBottom: 3,
   },
-  personMeta: {fontSize: 13, color: '#8190A7', lineHeight: 18},
-  bodyText: {marginTop: 12, fontSize: 14, lineHeight: 21, color: '#4A5568'},
-  flexBtn: {flex: 1},
+  personMeta: { fontSize: 13, color: '#8190A7', lineHeight: 18 },
+  bodyText: { marginTop: 12, fontSize: 14, lineHeight: 21, color: '#4A5568' },
+  flexBtn: { flex: 1 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     padding: 24,
   },
-  modalCard: {backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18},
+  modalCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18 },
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#111820',
     marginBottom: 12,
   },
-  modalActions: {flexDirection: 'row', gap: 10, marginTop: 16},
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
 });

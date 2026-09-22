@@ -13,27 +13,17 @@ const PINK = '#F43B7E';
 const PINK_SOFT = '#FCE4EC';
 const PINK_DOT = '#F8BBD0';
 
-const LogoutConfirmModal = ({visible, onCancel, onConfirm}) => {
+const LogoutConfirmModal = ({ visible, onCancel, onConfirm }) => {
   return (
     <Modal
       visible={!!visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       statusBarTranslucent
       onRequestClose={onCancel}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <View style={styles.card}>
-        
-
-          <View style={styles.iconWrap}>
-            <View style={[styles.dot, styles.dotTL]} />
-            <View style={[styles.dot, styles.dotTR]} />
-            <View style={[styles.dot, styles.dotBL]} />
-            <View style={styles.iconCircle}>
-              <Icon name="log-out-outline" size={40} color={PINK} />
-            </View>
-          </View>
 
           <Text style={styles.title}>Log out?</Text>
           <Text style={styles.message}>
@@ -51,7 +41,7 @@ const LogoutConfirmModal = ({visible, onCancel, onConfirm}) => {
               style={styles.logoutBtn}
               onPress={onConfirm}
               activeOpacity={0.85}>
-              <Icon name="log-out-outline" size={18} color="#FFFFFF" />
+              {/* <Icon name="log-out-outline" size={18} color="#FFFFFF" /> */}
               <Text style={styles.logoutText}>Log out</Text>
             </TouchableOpacity>
           </View>
@@ -67,15 +57,15 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 15,
+    paddingBottom: 15,
   },
   card: {
     width: '100%',
-    maxWidth: 340,
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 15,
     paddingTop: 28,
     paddingBottom: 22,
     paddingHorizontal: 22,
@@ -92,30 +82,21 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   iconWrap: {
-    width: 112,
-    height: 112,
+    width: 100,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
   iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: PINK_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dot: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: PINK_DOT,
-  },
-  dotTL: {top: 10, left: 14, width: 8, height: 8, borderRadius: 4},
-  dotTR: {top: 22, right: 8, width: 12, height: 12, borderRadius: 6},
-  dotBL: {bottom: 18, left: 6, width: 7, height: 7, borderRadius: 4},
+
   title: {
     fontSize: 22,
     fontWeight: '800',

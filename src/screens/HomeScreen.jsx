@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,16 @@ import {
   Modal,
   AppState,
   DeviceEventEmitter,
+  Pressable,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HomeHeader from '../components/home/HomeHeader';
 import Loader from '../components/common/Loader';
 import AppInput from '../components/common/AppInput';
 import AppButton from '../components/common/AppButton';
-import {useAuth} from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import {
   useBookings,
   useCaregiverProfile,
@@ -42,9 +43,9 @@ import {
   getPendingReview,
   clearPendingReview,
 } from '../utils/homeAlerts';
-import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
-import {showError} from '../context/ErrorModalContext';
-import {showAlert} from '../context/AlertModalContext';
+import { unwrapList, getAcceptConflictMessage } from '../api/envelope';
+import { showError } from '../context/ErrorModalContext';
+import { showAlert } from '../context/AlertModalContext';
 import Toast from '../components/common/Toast';
 import OfferCountdown from '../components/booking/OfferCountdown';
 
@@ -133,19 +134,19 @@ const getStatusMeta = status => {
   switch (status) {
     case 'PROVIDER_ACCEPTED':
     case 'CONFIRMED':
-      return {label: 'Waiting for pay', bg: '#E6F7F2', text: '#0B8A80'};
+      return { label: 'Waiting for pay', bg: '#E6F7F2', text: '#0B8A80' };
     case 'PAYMENT_PAID':
-      return {label: 'Paid', bg: '#E6F7F2', text: '#0B8A80'};
+      return { label: 'Paid', bg: '#E6F7F2', text: '#0B8A80' };
     case 'IN_PROGRESS':
     case 'SERVICE_IN_PROGRESS':
-      return {label: 'In progress', bg: '#E6F7F2', text: '#0B8A80'};
+      return { label: 'In progress', bg: '#E6F7F2', text: '#0B8A80' };
     case 'COMPLETED':
     case 'SERVICE_COMPLETED':
-      return {label: 'Completed', bg: '#E6F7F2', text: '#0B8A80'};
+      return { label: 'Completed', bg: '#E6F7F2', text: '#0B8A80' };
     case 'PROVIDER_ASSIGNED':
-      return {label: 'Assigned', bg: '#FFF4E5', text: '#E67E22'};
+      return { label: 'Assigned', bg: '#FFF4E5', text: '#E67E22' };
     case 'CANCELLED':
-      return {label: 'Cancelled', bg: '#FEECEC', text: '#DC2626'};
+      return { label: 'Cancelled', bg: '#FEECEC', text: '#DC2626' };
     default:
       return {
         label: (status || 'Upcoming').replace(/_/g, ' '),
@@ -155,12 +156,12 @@ const getStatusMeta = status => {
   }
 };
 
-const HomeScreen = ({navigation}) => {
-  const {completeCaregiverProfile} = useAuth();
+const HomeScreen = ({ navigation }) => {
+  const { completeCaregiverProfile } = useAuth();
   const profileQuery = useCaregiverProfile();
-  const assignedQuery = useBookings({status: 'PROVIDER_ASSIGNED', limit: 20});
-  const allQuery = useBookings({limit: 20});
-  const walletQuery = useWallet({limit: 5, offset: 0});
+  const assignedQuery = useBookings({ status: 'PROVIDER_ASSIGNED', limit: 20 });
+  const allQuery = useBookings({ limit: 20 });
+  const walletQuery = useWallet({ limit: 5, offset: 0 });
   const unreadQuery = useInboxUnreadCount();
   const updateProfile = useUpdateCaregiverProfile();
   const acceptBooking = useAcceptBooking();
@@ -291,7 +292,7 @@ const HomeScreen = ({navigation}) => {
   const toggleAvailability = async value => {
     try {
       const response = await updateProfile.mutateAsync({
-        fields: {is_available: value},
+        fields: { is_available: value },
       });
       if (response?.data) {
         completeCaregiverProfile(response.data);
@@ -313,7 +314,7 @@ const HomeScreen = ({navigation}) => {
       return;
     }
     showAlert('Accept booking', 'Accept this booking request?', [
-      {text: 'Not now', style: 'cancel'},
+      { text: 'Not now', style: 'cancel' },
       {
         text: 'Accept',
         onPress: async () => {
@@ -376,7 +377,7 @@ const HomeScreen = ({navigation}) => {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
-        onHide={() => setToast(prev => ({...prev, visible: false}))}
+        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -433,8 +434,8 @@ const HomeScreen = ({navigation}) => {
             onPress={() => openBooking(reminder.booking.id)}>
             <LinearGradient
               colors={['#EEFBF7', '#E3F6F0']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.timerCard}>
               <View style={styles.timerBlob} />
               <View style={styles.timerBlobSmall} />
@@ -481,7 +482,7 @@ const HomeScreen = ({navigation}) => {
           iconColor="#E83E6B"
           actionLabel="View all"
           onPress={() =>
-            navigation.navigate('Bookings', {status: 'PROVIDER_ASSIGNED'})
+            navigation.navigate('Bookings', { status: 'PROVIDER_ASSIGNED' })
           }
         />
         {featured ? (
@@ -492,7 +493,7 @@ const HomeScreen = ({navigation}) => {
               onPress={() => openBooking(featured.id)}>
               {getPhoto(featured) ? (
                 <Image
-                  source={{uri: getPhoto(featured)}}
+                  source={{ uri: getPhoto(featured) }}
                   style={styles.avatar}
                 />
               ) : (
@@ -580,9 +581,8 @@ const HomeScreen = ({navigation}) => {
             <Text style={styles.scheduleTitle}>
               {todayBookings.length === 0
                 ? 'No visits today'
-                : `${todayBookings.length} visit${
-                    todayBookings.length === 1 ? '' : 's'
-                  } today`}
+                : `${todayBookings.length} visit${todayBookings.length === 1 ? '' : 's'
+                } today`}
             </Text>
             <Text style={styles.scheduleMeta}>
               {todayBookings.length === 0
@@ -623,7 +623,7 @@ const HomeScreen = ({navigation}) => {
                   onPress={() => openBooking(booking.id)}>
                   {getPhoto(booking) ? (
                     <Image
-                      source={{uri: getPhoto(booking)}}
+                      source={{ uri: getPhoto(booking) }}
                       style={styles.recentAvatar}
                     />
                   ) : (
@@ -649,8 +649,8 @@ const HomeScreen = ({navigation}) => {
                     </View>
                   </View>
                   <View
-                    style={[styles.statusChip, {backgroundColor: status.bg}]}>
-                    <Text style={[styles.statusText, {color: status.text}]}>
+                    style={[styles.statusChip, { backgroundColor: status.bg }]}>
+                    <Text style={[styles.statusText, { color: status.text }]}>
                       {status.label}
                     </Text>
                   </View>
@@ -664,14 +664,14 @@ const HomeScreen = ({navigation}) => {
       <Modal
         visible={!!reviewAlert}
         transparent
-        animationType="fade"
+        animationType="slide"
+        statusBarTranslucent
         onRequestClose={dismissReview}>
         <View style={styles.ratingBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={dismissReview} />
           <View style={styles.ratingCard}>
-            <View style={styles.ratingIconWrap}>
-              <Icon name="star" size={28} color="#F5B400" />
-            </View>
-            <Text style={styles.ratingEyebrow}>New rating received</Text>
+
+            {/* <Text style={styles.ratingEyebrow}>New rating received</Text> */}
             <Text style={styles.ratingTitle}>
               You received {reviewAlert?.rating || 5} stars
             </Text>
@@ -687,22 +687,23 @@ const HomeScreen = ({navigation}) => {
             </View>
             <Text style={styles.ratingBody}>
               {reviewAlert?.body ||
-                `You received ${reviewAlert?.rating || 5} stars for booking ${
-                  reviewAlert?.booking_number || 'this visit'
+                `You received ${reviewAlert?.rating || 5} stars for booking ${reviewAlert?.booking_number || 'this visit'
                 }.`}
             </Text>
-            <TouchableOpacity
-              style={styles.ratingPrimary}
-              activeOpacity={0.85}
-              onPress={openReviewBooking}>
-              <Text style={styles.ratingPrimaryText}>View booking</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.ratingGhost}
-              activeOpacity={0.8}
-              onPress={dismissReview}>
-              <Text style={styles.ratingGhostText}>Close</Text>
-            </TouchableOpacity>
+            <View style={styles.ratingActions}>
+              <TouchableOpacity
+                style={styles.ratingGhost}
+                activeOpacity={0.8}
+                onPress={dismissReview}>
+                <Text style={styles.ratingGhostText}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.ratingPrimary}
+                activeOpacity={0.85}
+                onPress={openReviewBooking}>
+                <Text style={styles.ratingPrimaryText}>View booking</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -746,14 +747,14 @@ const ServiceClockArt = () => (
     <View style={styles.clockHalo} />
     <View style={styles.clockOuter}>
       <View style={styles.clockInner}>
-        <View style={[styles.tickV, {top: 6}]} />
-        <View style={[styles.tickV, {bottom: 6}]} />
-        <View style={[styles.tickH, {left: 6}]} />
-        <View style={[styles.tickH, {right: 6}]} />
-        <View style={[styles.handWrap, {transform: [{rotate: '-48deg'}]}]}>
+        <View style={[styles.tickV, { top: 6 }]} />
+        <View style={[styles.tickV, { bottom: 6 }]} />
+        <View style={[styles.tickH, { left: 6 }]} />
+        <View style={[styles.tickH, { right: 6 }]} />
+        <View style={[styles.handWrap, { transform: [{ rotate: '-48deg' }] }]}>
           <View style={styles.hourHand} />
         </View>
-        <View style={[styles.handWrap, {transform: [{rotate: '38deg'}]}]}>
+        <View style={[styles.handWrap, { transform: [{ rotate: '38deg' }] }]}>
           <View style={styles.minuteHand} />
         </View>
         <View style={styles.clockDot} />
@@ -776,7 +777,7 @@ const SectionHeader = ({
 }) => (
   <View style={styles.sectionHead}>
     <View style={styles.sectionTitleRow}>
-      <View style={[styles.sectionIcon, {backgroundColor: iconBg}]}>
+      <View style={[styles.sectionIcon, { backgroundColor: iconBg }]}>
         <Icon name={icon} size={15} color={iconColor} />
       </View>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -794,7 +795,7 @@ const SectionHeader = ({
   </View>
 );
 
-const EmptyCard = ({icon, title, text, tone = 'green'}) => {
+const EmptyCard = ({ icon, title, text, tone = 'green' }) => {
   const tones = {
     pink: {
       card: '#FFF5F7',
@@ -815,8 +816,8 @@ const EmptyCard = ({icon, title, text, tone = 'green'}) => {
   const palette = tones[tone] || tones.green;
 
   return (
-    <View style={[styles.emptyCard, {backgroundColor: palette.card}]}>
-      <View style={[styles.emptyIcon, {backgroundColor: palette.iconWrap}]}>
+    <View style={[styles.emptyCard, { backgroundColor: palette.card }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: palette.iconWrap }]}>
         <Icon
           name={icon || 'information-circle-outline'}
           size={26}
@@ -833,8 +834,8 @@ const EmptyCard = ({icon, title, text, tone = 'green'}) => {
 export default HomeScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {flex: 1, backgroundColor: PAGE_BG},
-  scrollContent: {paddingHorizontal: 16, paddingBottom: 32},
+  safeArea: { flex: 1, backgroundColor: PAGE_BG },
+  scrollContent: { paddingHorizontal: 16, paddingBottom: 32 },
   availCard: {
     marginTop: 18,
     backgroundColor: '#EAF8F4',
@@ -853,10 +854,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  availCopy: {flex: 1, marginRight: 10},
-  availTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  availSub: {marginTop: 3, fontSize: 10, lineHeight: 17, color: '#6F7F8C'},
-  availRight: {alignItems: 'center', minWidth: 52},
+  availCopy: { flex: 1, marginRight: 10 },
+  availTitle: { fontSize: 15, fontWeight: '800', color: '#15202B' },
+  availSub: { marginTop: 3, fontSize: 10, lineHeight: 17, color: '#6F7F8C' },
+  availRight: { alignItems: 'center', minWidth: 52 },
   toggleTrack: {
     width: 50,
     height: 30,
@@ -864,8 +865,8 @@ const styles = StyleSheet.create({
     padding: 3,
     justifyContent: 'center',
   },
-  toggleTrackOn: {backgroundColor: '#22C55E'},
-  toggleTrackOff: {backgroundColor: '#D5DEE6'},
+  toggleTrackOn: { backgroundColor: '#22C55E' },
+  toggleTrackOff: { backgroundColor: '#D5DEE6' },
   toggleKnob: {
     width: 24,
     height: 24,
@@ -874,12 +875,12 @@ const styles = StyleSheet.create({
     shadowColor: '#0B1F2A',
     shadowOpacity: 0.18,
     shadowRadius: 3,
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
-  toggleKnobOn: {alignSelf: 'flex-end'},
-  toggleKnobOff: {alignSelf: 'flex-start'},
-  availState: {marginTop: 6, fontSize: 11, fontWeight: '700'},
+  toggleKnobOn: { alignSelf: 'flex-end' },
+  toggleKnobOff: { alignSelf: 'flex-start' },
+  availState: { marginTop: 6, fontSize: 11, fontWeight: '700' },
   timerCard: {
     marginTop: 16,
     borderRadius: 22,
@@ -912,7 +913,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  timerCopy: {flex: 1, paddingRight: 8},
+  timerCopy: { flex: 1, paddingRight: 8 },
   timerBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -925,10 +926,10 @@ const styles = StyleSheet.create({
     shadowColor: '#0B8A80',
     shadowOpacity: 0.06,
     shadowRadius: 6,
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  timerBadgeText: {fontSize: 12, fontWeight: '700', color: TEAL},
+  timerBadgeText: { fontSize: 12, fontWeight: '700', color: TEAL },
   timerClock: {
     marginTop: 10,
     fontSize: 36,
@@ -963,7 +964,7 @@ const styles = StyleSheet.create({
     shadowColor: '#0B8A80',
     shadowOpacity: 0.18,
     shadowRadius: 10,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   clockInner: {
@@ -1055,24 +1056,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  timerPersonCopy: {flex: 1, minWidth: 0},
-  timerTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  timerMeta: {marginTop: 2, fontSize: 12, color: '#7A8B9A'},
-  timerHint: {fontSize: 12, lineHeight: 18, color: '#8A97A6'},
+  timerPersonCopy: { flex: 1, minWidth: 0 },
+  timerTitle: { fontSize: 15, fontWeight: '800', color: '#15202B' },
+  timerMeta: { marginTop: 2, fontSize: 12, color: '#7A8B9A' },
+  timerHint: { fontSize: 12, lineHeight: 18, color: '#8A97A6' },
   ratingBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(14, 42, 36, 0.45)',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 15,
+    paddingBottom: 15,
   },
   ratingCard: {
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 15,
     paddingHorizontal: 22,
     paddingTop: 28,
-    paddingBottom: 18,
+    paddingBottom: 22,
     alignItems: 'center',
   },
   ratingIconWrap: {
@@ -1093,8 +1095,8 @@ const styles = StyleSheet.create({
   },
   ratingTitle: {
     marginTop: 6,
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '500',
     color: '#0E2A24',
     textAlign: 'center',
   },
@@ -1111,24 +1113,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  ratingPrimary: {
+  ratingActions: {
+    flexDirection: 'row',
     width: '100%',
-    height: 50,
-    borderRadius: 25,
+    gap: 12,
+  },
+  ratingPrimary: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ratingPrimaryText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+  ratingPrimaryText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   ratingGhost: {
-    width: '100%',
-    height: 44,
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
-  ratingGhostText: {fontSize: 14, fontWeight: '600', color: '#8A97A6'},
-  statsRow: {flexDirection: 'row', gap: 10, marginTop: 14},
+  ratingGhostText: { fontSize: 15, fontWeight: '600', color: '#6B7280' },
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   snapshotRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1173,7 +1183,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1},
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   sectionIcon: {
     width: 30,
     height: 30,
@@ -1181,9 +1191,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectionTitle: {fontSize: 14, fontWeight: '400', color: '#15202B'},
-  viewAllBtn: {flexDirection: 'row', alignItems: 'center', gap: 2},
-  viewAll: {fontSize: 13, fontWeight: '600', color: TEAL},
+  sectionTitle: { fontSize: 14, fontWeight: '400', color: '#15202B' },
+  viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  viewAll: { fontSize: 13, fontWeight: '600', color: TEAL },
   requestCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -1191,8 +1201,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F3F5',
   },
-  personRow: {flexDirection: 'row', alignItems: 'center'},
-  avatar: {width: 42, height: 42, borderRadius: 21, marginRight: 10},
+  personRow: { flexDirection: 'row', alignItems: 'center' },
+  avatar: { width: 42, height: 42, borderRadius: 21, marginRight: 10 },
   avatarFallback: {
     width: 42,
     height: 42,
@@ -1202,13 +1212,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  personCopy: {flex: 1, minWidth: 0},
-  personName: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  personMeta: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
-  metaLine: {flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3},
-  offerCountdown: {marginTop: 8},
-  actionRow: {flexDirection: 'row', gap: 10, marginTop: 14},
-  flexBtn: {flex: 1},
+  personCopy: { flex: 1, minWidth: 0 },
+  personName: { fontSize: 15, fontWeight: '800', color: '#15202B' },
+  personMeta: { marginTop: 2, fontSize: 12, color: '#8A97A6' },
+  metaLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  offerCountdown: { marginTop: 8 },
+  actionRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  flexBtn: { flex: 1 },
   scheduleCard: {
     backgroundColor: '#EAF8F4',
     borderRadius: 18,
@@ -1225,9 +1235,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  scheduleCopy: {flex: 1},
-  scheduleTitle: {fontSize: 15, fontWeight: '600', color: '#15202B'},
-  scheduleMeta: {marginTop: 3, fontSize: 12, lineHeight: 17, color: '#6F7F8C'},
+  scheduleCopy: { flex: 1 },
+  scheduleTitle: { fontSize: 15, fontWeight: '600', color: '#15202B' },
+  scheduleMeta: { marginTop: 3, fontSize: 12, lineHeight: 17, color: '#6F7F8C' },
   recentCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -1242,8 +1252,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F3F5',
   },
-  recentRowLast: {borderBottomWidth: 0},
-  recentAvatar: {width: 38, height: 38, borderRadius: 19, marginRight: 10},
+  recentRowLast: { borderBottomWidth: 0 },
+  recentAvatar: { width: 38, height: 38, borderRadius: 19, marginRight: 10 },
   recentAvatarFallback: {
     width: 38,
     height: 38,
@@ -1253,15 +1263,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recentCopy: {flex: 1, minWidth: 0, marginRight: 8},
-  recentName: {fontSize: 14, fontWeight: '700', color: '#15202B'},
-  recentMeta: {fontSize: 11, color: '#8A97A6'},
+  recentCopy: { flex: 1, minWidth: 0, marginRight: 8 },
+  recentName: { fontSize: 14, fontWeight: '700', color: '#15202B' },
+  recentMeta: { fontSize: 11, color: '#8A97A6' },
   statusChip: {
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  statusText: {fontSize: 10, fontWeight: '800', textTransform: 'capitalize'},
+  statusText: { fontSize: 10, fontWeight: '800', textTransform: 'capitalize' },
   emptyCard: {
     borderRadius: 18,
     paddingVertical: 28,
@@ -1306,12 +1316,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  modalCard: {backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18},
+  modalCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18 },
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#15202B',
     marginBottom: 12,
   },
-  modalActions: {flexDirection: 'row', gap: 10, marginTop: 16},
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
 });
