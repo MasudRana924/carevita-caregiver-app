@@ -71,6 +71,10 @@ export const ENDPOINTS = {
     DEACTIVATE_ALL: "/notifications/tokens/deactivate-all",
     PREFERENCES: "/notifications/preferences",
   },
+
+  PRIVACY: {
+    BY_ROLE: (role = "CAREGIVER") => `/privacy-policies/${role}`,
+  },
 };
 
 export const getFullUrl = (endpoint) => `${BASE_URL}${endpoint}`;

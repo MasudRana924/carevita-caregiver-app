@@ -87,9 +87,9 @@ export const apiRequest = async (
   method = 'GET',
   body = null,
   isFormData = false,
-  {retry = true, throwOnError = true} = {},
+  {retry = true, throwOnError = true, skipAuth = false} = {},
 ) => {
-  const token = await getAuthToken();
+  const token = skipAuth ? null : await getAuthToken();
   const headers = {
     Accept: 'application/json',
   };
@@ -123,6 +123,7 @@ export const apiRequest = async (
       isAuthFailure(raw, response.status) &&
       retry &&
       token &&
+      !skipAuth &&
       !AUTH_SKIP_REFRESH.some(path => endpoint.startsWith(path))
     ) {
       const newToken = await refreshAccessToken();
@@ -130,6 +131,7 @@ export const apiRequest = async (
         return apiRequest(endpoint, method, body, isFormData, {
           retry: false,
           throwOnError,
+          skipAuth,
         });
       }
       await expireSession();
@@ -145,7 +147,9 @@ export const apiRequest = async (
       return envelope;
     }
 
-    await persistEnvelopeTokens(envelope);
+    if (!skipAuth) {
+      await persistEnvelopeTokens(envelope);
+    }
     return envelope;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -442,6 +446,15 @@ export const pushTokenService = {
     apiRequest('/notifications/tokens/deactivate-all', 'POST'),
 };
 
+/** Public — no auth token */
+export const privacyService = {
+  getByRole: (role = 'CAREGIVER') =>
+    apiRequest(`/privacy-policies/${role}`, 'GET', null, false, {
+      skipAuth: true,
+      retry: false,
+    }),
+};
+
 export default {
   apiRequest,
   authService,
@@ -452,4 +465,5 @@ export default {
   notificationService,
   notificationPreferenceService,
   pushTokenService,
+  privacyService,
 };

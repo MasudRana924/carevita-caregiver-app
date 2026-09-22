@@ -16,6 +16,7 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import CreateAccountScreen from '../screens/CreateAccountScreen';
 import VerifyPhoneScreen from '../screens/VerifyPhoneScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfile from '../screens/EditProfile';
@@ -206,6 +207,10 @@ function AppNavigator() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={CreateAccountScreen} />
           <Stack.Screen name="VerifyPhone" component={VerifyPhoneScreen} />
+          <Stack.Screen
+            name="PrivacyPolicy"
+            component={PrivacyPolicyScreen}
+          />
         </>
       )}
     </Stack.Navigator>

@@ -12,6 +12,7 @@ import {
   inboxService,
   notificationService,
   notificationPreferenceService,
+  privacyService,
 } from './services';
 import {queryKeys} from './queryKeys';
 
@@ -174,6 +175,14 @@ export const useHospital = (id, options = {}) => {
   });
 };
 
+export const usePrivacyPolicy = (role = 'CAREGIVER', options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.privacy.byRole(role),
+    queryFn: () => privacyService.getByRole(role),
+    ...options,
+  });
+};
+
 export default {
   useUserProfile,
   useCaregiverProfile,
@@ -192,4 +201,5 @@ export default {
   useBookingDisputes,
   useHospitals,
   useHospital,
+  usePrivacyPolicy,
 };

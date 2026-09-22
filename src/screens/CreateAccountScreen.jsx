@@ -39,7 +39,7 @@ const CreateAccountScreen = ({navigation}) => {
       return;
     }
     if (!agreed) {
-      showError('Please agree to the Terms of Service');
+      showError('Please accept the Privacy and Policy');
       return;
     }
 
@@ -100,18 +100,28 @@ const CreateAccountScreen = ({navigation}) => {
         onRightPress={() => setShowPassword(prev => !prev)}
       />
 
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => setAgreed(prev => !prev)}
-        style={styles.termsRow}>
-        <View style={[styles.checkbox, agreed && styles.checkboxActive]}>
-          {agreed ? <Icon name="checkmark" size={12} color="#FFFFFF" /> : null}
-        </View>
+      <View style={styles.termsRow}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setAgreed(prev => !prev)}
+          hitSlop={{top: 8, bottom: 8, left: 4, right: 4}}>
+          <View style={[styles.checkbox, agreed && styles.checkboxActive]}>
+            {agreed ? (
+              <Icon name="checkmark" size={12} color="#FFFFFF" />
+            ) : null}
+          </View>
+        </TouchableOpacity>
         <Text style={styles.termsText}>
-          I agree to Nirapod's <Text style={styles.link}>Terms</Text> and{' '}
-          <Text style={styles.link}>Privacy Policy</Text>
+          I accept all{' '}
+          <Text
+            style={styles.link}
+            onPress={() =>
+              navigation?.navigate('PrivacyPolicy', {role: 'CAREGIVER'})
+            }>
+            Privacy and Policy
+          </Text>
         </Text>
-      </TouchableOpacity>
+      </View>
 
       <AppButton title="Register" onPress={handleRegister} disabled={loading} />
 
@@ -152,5 +162,5 @@ const styles = {
     lineHeight: 20,
     color: AUTH.muted,
   },
-  link: {color: AUTH.teal, fontWeight: '700'},
+  link: {color: AUTH.button, fontWeight: '700'},
 };

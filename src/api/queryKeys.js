@@ -83,6 +83,11 @@ export const queryKeys = {
     details: () => ['hospitals', 'detail'],
     detail: id => ['hospitals', 'detail', id],
   },
+
+  privacy: {
+    all: ['privacy'],
+    byRole: role => ['privacy', role],
+  },
 };
 
 export default queryKeys;
