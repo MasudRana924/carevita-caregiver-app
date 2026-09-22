@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -44,7 +45,7 @@ function FloatingTabBar(props) {
 
   return (
     <View pointerEvents="box-none" style={[styles.tabBarHost, {bottom: insets.bottom + 16}]}>
-      <View style={[styles.tabBarShell, {width: tabBarWidth}]}>
+      <View style={[styles.tabBarShell, styles.glassEffect, {width: tabBarWidth}]}>
         <BottomTabBar {...props} style={styles.tabBarInner} />
       </View>
     </View>
@@ -238,15 +239,26 @@ const styles = StyleSheet.create({
   tabBarShell: {
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#F3F8F6',
+    backgroundColor: 'rgba(243, 248, 246, 0.9)',
     borderWidth: 1,
-    borderColor: '#E3EDE8',
+    borderColor: 'rgba(227, 237, 232, 0.8)',
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#0E2A24',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
+    // elevation: 12,
+    // shadowColor: '#0E2A24',
+    // shadowOffset: {width: 0, height: 8},
+    // shadowOpacity: 0.15,
+    // shadowRadius: 16,
+  },
+  glassEffect: {
+    ...Platform.select({
+      ios: {
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+      },
+      android: {
+        backgroundColor: 'rgba(243, 248, 246, 0.95)',
+      },
+    }),
   },
   tabBarInner: {
     flex: 1,

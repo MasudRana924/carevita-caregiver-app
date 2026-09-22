@@ -669,42 +669,44 @@ const HomeScreen = ({ navigation }) => {
         onRequestClose={dismissReview}>
         <View style={styles.ratingBackdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={dismissReview} />
-          <View style={styles.ratingCard}>
+          <SafeAreaView style={styles.ratingContainer} edges={['bottom']}>
+            <View style={styles.ratingCard}>
 
-            {/* <Text style={styles.ratingEyebrow}>New rating received</Text> */}
-            <Text style={styles.ratingTitle}>
-              You received {reviewAlert?.rating || 5} stars
-            </Text>
-            <View style={styles.starRow}>
-              {[1, 2, 3, 4, 5].map(star => (
-                <Icon
-                  key={star}
-                  name={star <= (reviewAlert?.rating || 5) ? 'star' : 'star-outline'}
-                  size={28}
-                  color="#F5B400"
-                />
-              ))}
+              {/* <Text style={styles.ratingEyebrow}>New rating received</Text> */}
+              <Text style={styles.ratingTitle}>
+                You received {reviewAlert?.rating || 5} stars
+              </Text>
+              <View style={styles.starRow}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <Icon
+                    key={star}
+                    name={star <= (reviewAlert?.rating || 5) ? 'star' : 'star-outline'}
+                    size={28}
+                    color="#F5B400"
+                  />
+                ))}
+              </View>
+              <Text style={styles.ratingBody}>
+                {reviewAlert?.body ||
+                  `You received ${reviewAlert?.rating || 5} stars for booking ${reviewAlert?.booking_number || 'this visit'
+                  }.`}
+              </Text>
+              <View style={styles.ratingActions}>
+                <TouchableOpacity
+                  style={styles.ratingGhost}
+                  activeOpacity={0.8}
+                  onPress={dismissReview}>
+                  <Text style={styles.ratingGhostText}>Close</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.ratingPrimary}
+                  activeOpacity={0.85}
+                  onPress={openReviewBooking}>
+                  <Text style={styles.ratingPrimaryText}>View booking</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text style={styles.ratingBody}>
-              {reviewAlert?.body ||
-                `You received ${reviewAlert?.rating || 5} stars for booking ${reviewAlert?.booking_number || 'this visit'
-                }.`}
-            </Text>
-            <View style={styles.ratingActions}>
-              <TouchableOpacity
-                style={styles.ratingGhost}
-                activeOpacity={0.8}
-                onPress={dismissReview}>
-                <Text style={styles.ratingGhostText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.ratingPrimary}
-                activeOpacity={0.85}
-                onPress={openReviewBooking}>
-                <Text style={styles.ratingPrimaryText}>View booking</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </SafeAreaView>
         </View>
       </Modal>
 
@@ -1065,8 +1067,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(14, 42, 36, 0.45)',
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  ratingContainer: {
     paddingHorizontal: 15,
-    paddingBottom: 15,
+    paddingBottom: 20,
   },
   ratingCard: {
     width: '100%',

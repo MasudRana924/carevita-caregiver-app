@@ -423,50 +423,52 @@ const EditProfile = ({navigation}) => {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={closeModal}>
-          <View style={styles.bottomSheet}>
-            <View style={styles.bottomSheetHandle} />
-            <Text style={styles.bottomSheetTitle}>
-              {modalType === 'blood_group' ? 'Select Blood Group' : 'Select Gender'}
-            </Text>
-            <ScrollView style={styles.optionsList}>
-              {modalType === 'blood_group' &&
-                BLOOD_GROUPS.map(group => (
-                  <TouchableOpacity
-                    key={group}
-                    style={styles.optionItem}
-                    onPress={() => handleSelect(group)}>
-                    <Text
-                      style={[
-                        styles.optionText,
-                        form.blood_group === group && styles.optionTextActive,
-                      ]}>
-                      {group}
-                    </Text>
-                    {form.blood_group === group && (
-                      <Icon name="checkmark" size={20} color={TEAL} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              {modalType === 'gender' &&
-                GENDERS.map(item => (
-                  <TouchableOpacity
-                    key={item.value}
-                    style={styles.optionItem}
-                    onPress={() => handleSelect(item.value)}>
-                    <Text
-                      style={[
-                        styles.optionText,
-                        form.gender === item.value && styles.optionTextActive,
-                      ]}>
-                      {item.label}
-                    </Text>
-                    {form.gender === item.value && (
-                      <Icon name="checkmark" size={20} color={TEAL} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-          </View>
+          <SafeAreaView style={styles.bottomSheetContainer} edges={['bottom']}>
+            <View style={styles.bottomSheet}>
+              <View style={styles.bottomSheetHandle} />
+              <Text style={styles.bottomSheetTitle}>
+                {modalType === 'blood_group' ? 'Select Blood Group' : 'Select Gender'}
+              </Text>
+              <ScrollView style={styles.optionsList}>
+                {modalType === 'blood_group' &&
+                  BLOOD_GROUPS.map(group => (
+                    <TouchableOpacity
+                      key={group}
+                      style={styles.optionItem}
+                      onPress={() => handleSelect(group)}>
+                      <Text
+                        style={[
+                          styles.optionText,
+                          form.blood_group === group && styles.optionTextActive,
+                        ]}>
+                        {group}
+                      </Text>
+                      {form.blood_group === group && (
+                        <Icon name="checkmark" size={20} color={TEAL} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                {modalType === 'gender' &&
+                  GENDERS.map(item => (
+                    <TouchableOpacity
+                      key={item.value}
+                      style={styles.optionItem}
+                      onPress={() => handleSelect(item.value)}>
+                      <Text
+                        style={[
+                          styles.optionText,
+                          form.gender === item.value && styles.optionTextActive,
+                        ]}>
+                        {item.label}
+                      </Text>
+                      {form.gender === item.value && (
+                        <Icon name="checkmark" size={20} color={TEAL} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
+            </View>
+          </SafeAreaView>
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>
@@ -556,6 +558,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+  },
+  bottomSheetContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
   },
   bottomSheet: {
     backgroundColor: '#FFFFFF',

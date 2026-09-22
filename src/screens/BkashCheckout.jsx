@@ -281,7 +281,7 @@ const BkashCheckout = ({route, navigation}) => {
           animationType="slide"
           onRequestClose={() => setShowWebView(false)}
           transparent={false}>
-          <SafeAreaView style={styles.safeArea}>
+          <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
 
             <WebView
               ref={webViewRef}

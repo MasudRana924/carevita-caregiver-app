@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const PINK = '#F43B7E';
@@ -23,29 +24,31 @@ const LogoutConfirmModal = ({ visible, onCancel, onConfirm }) => {
       onRequestClose={onCancel}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
-        <View style={styles.card}>
+        <SafeAreaView style={styles.modalContainer} edges={['bottom']}>
+          <View style={styles.card}>
 
-          <Text style={styles.title}>Log out?</Text>
-          <Text style={styles.message}>
-            Are you sure you want to log out?
-          </Text>
+            <Text style={styles.title}>Log out?</Text>
+            <Text style={styles.message}>
+              Are you sure you want to log out?
+            </Text>
 
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={onCancel}
-              activeOpacity={0.85}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={onConfirm}
-              activeOpacity={0.85}>
-              {/* <Icon name="log-out-outline" size={18} color="#FFFFFF" /> */}
-              <Text style={styles.logoutText}>Log out</Text>
-            </TouchableOpacity>
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={onCancel}
+                activeOpacity={0.85}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={onConfirm}
+                activeOpacity={0.85}>
+                {/* <Icon name="log-out-outline" size={18} color="#FFFFFF" /> */}
+                <Text style={styles.logoutText}>Log out</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -59,8 +62,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  modalContainer: {
     paddingHorizontal: 15,
-    paddingBottom: 15,
+    paddingBottom: 20,
   },
   card: {
     width: '100%',

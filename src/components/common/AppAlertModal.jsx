@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Pressable,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import AppButton from './AppButton';
 import {FORM} from './formStyles';
 
@@ -42,40 +43,42 @@ const AppAlertModal = ({
       onRequestClose={onRequestClose}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} />
-        <View style={styles.sheet}>
-          {title ? <Text style={styles.title}>{title}</Text> : null}
-          {message ? <Text style={styles.message}>{message}</Text> : null}
-          <View
-            style={[
-              styles.actions,
-              actions.length > 1 && styles.actionsRow,
-            ]}>
-            {actions.map((button, index) => {
-              const styleName = button.style || 'default';
-              const isCancel = styleName === 'cancel';
-              const isDestructive = styleName === 'destructive';
-              const isPrimary =
-                !isCancel &&
-                !isDestructive &&
-                (styleName === 'default' || index === actions.length - 1);
+        <SafeAreaView style={styles.modalContainer} edges={['bottom']}>
+          <View style={styles.sheet}>
+            {title ? <Text style={styles.title}>{title}</Text> : null}
+            {message ? <Text style={styles.message}>{message}</Text> : null}
+            <View
+              style={[
+                styles.actions,
+                actions.length > 1 && styles.actionsRow,
+              ]}>
+              {actions.map((button, index) => {
+                const styleName = button.style || 'default';
+                const isCancel = styleName === 'cancel';
+                const isDestructive = styleName === 'destructive';
+                const isPrimary =
+                  !isCancel &&
+                  !isDestructive &&
+                  (styleName === 'default' || index === actions.length - 1);
 
-              return (
-                <AppButton
-                  key={`${button.text}-${index}`}
-                  title={button.text || 'OK'}
-                  variant={isPrimary ? 'primary' : 'outline'}
-                  onPress={() => handlePress(button)}
-                  style={[
-                    styles.btn,
-                    actions.length > 1 && styles.btnFlex,
-                    isDestructive && styles.destructiveBtn,
-                  ]}
-                  textStyle={isDestructive ? styles.destructiveText : undefined}
-                />
-              );
-            })}
+                return (
+                  <AppButton
+                    key={`${button.text}-${index}`}
+                    title={button.text || 'OK'}
+                    variant={isPrimary ? 'primary' : 'outline'}
+                    onPress={() => handlePress(button)}
+                    style={[
+                      styles.btn,
+                      actions.length > 1 && styles.btnFlex,
+                      isDestructive && styles.destructiveBtn,
+                    ]}
+                    textStyle={isDestructive ? styles.destructiveText : undefined}
+                  />
+                );
+              })}
+            </View>
           </View>
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -89,10 +92,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
   },
+  modalContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+  },
   sheet: {
-    marginLeft: 15,
-    marginRight: 15,
-    marginBottom: 15,
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     paddingTop: 20,
