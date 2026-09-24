@@ -64,6 +64,19 @@ export const ENDPOINTS = {
     READ_ALL: "/inbox/read-all",
   },
 
+  CONVERSATIONS: {
+    LIST: "/conversations/my",
+    DETAIL: (id) => `/conversations/${id}`,
+    UNREAD: "/conversations/unread",
+    CREATE: "/conversations",
+  },
+
+  MESSAGES: {
+    LIST: (conversationId) => `/messages/conversation/${conversationId}`,
+    SEND: "/messages",
+    MARK_READ: (conversationId) => `/messages/conversation/${conversationId}/read`,
+  },
+
   NOTIFICATIONS: {
     TOKENS: "/notifications/tokens",
     TOKEN: (id) => `/notifications/tokens/${id}`,

@@ -24,6 +24,7 @@ import {
   useBookings,
   useCaregiverProfile,
   useInboxUnreadCount,
+  useConversationUnreadCount,
   useWallet,
 } from '../api/queries';
 import {
@@ -163,6 +164,7 @@ const HomeScreen = ({ navigation }) => {
   const allQuery = useBookings({ limit: 20 });
   const walletQuery = useWallet({ limit: 5, offset: 0 });
   const unreadQuery = useInboxUnreadCount();
+  const conversationUnreadQuery = useConversationUnreadCount();
   const updateProfile = useUpdateCaregiverProfile();
   const acceptBooking = useAcceptBooking();
   const rejectBooking = useRejectBooking();
@@ -287,6 +289,7 @@ const HomeScreen = ({ navigation }) => {
     allQuery.refetch();
     walletQuery.refetch();
     unreadQuery.refetch();
+    conversationUnreadQuery.refetch();
   };
 
   const toggleAvailability = async value => {
@@ -385,7 +388,7 @@ const HomeScreen = ({ navigation }) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
-        <HomeHeader navigation={navigation} unreadCount={unread} />
+        <HomeHeader navigation={navigation} />
 
         <View style={styles.availCard}>
           <View style={styles.availIcon}>
