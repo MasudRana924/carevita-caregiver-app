@@ -10,6 +10,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {AuthProvider, useAuth} from './src/context/AuthContext';
 import {ErrorModalProvider} from './src/context/ErrorModalContext';
 import {AlertModalProvider} from './src/context/AlertModalContext';
+import {SocketProvider} from './src/context/SocketContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import notificationService from './src/services/notificationService';
@@ -207,7 +208,9 @@ function App() {
         <AlertModalProvider>
           <AuthProvider>
             <ErrorModalProvider>
-              <AppContent />
+              <SocketProvider>
+                <AppContent />
+              </SocketProvider>
             </ErrorModalProvider>
           </AuthProvider>
         </AlertModalProvider>

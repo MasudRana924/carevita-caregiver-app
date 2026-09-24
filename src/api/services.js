@@ -373,6 +373,43 @@ export const inboxService = {
   markAllAsRead: () => apiRequest('/inbox/read-all', 'PUT'),
 };
 
+export const conversationService = {
+  getMyConversations: (params = {}) => {
+    const {page = 1, limit = 20} = params;
+    return apiRequest(
+      `/conversations/my${toQuery({page, limit})}`,
+      'GET',
+    );
+  },
+
+  getConversation: id => apiRequest(`/conversations/${id}`, 'GET'),
+
+  getUnreadCount: async () => {
+    const res = await apiRequest('/conversations/unread', 'GET');
+    const data = unwrapData(res);
+    const unread = data?.unread ?? 0;
+    return {...res, unread, data: {unread}};
+  },
+
+  createConversation: payload =>
+    apiRequest('/conversations', 'POST', payload),
+};
+
+export const messageService = {
+  getMessages: (conversationId, params = {}) => {
+    const {page = 1, limit = 20} = params;
+    return apiRequest(
+      `/messages/conversation/${conversationId}${toQuery({page, limit})}`,
+      'GET',
+    );
+  },
+
+  sendMessage: payload => apiRequest('/messages', 'POST', payload),
+
+  markAsRead: conversationId =>
+    apiRequest(`/messages/conversation/${conversationId}/read`, 'PUT'),
+};
+
 /** @deprecated Use inboxService — kept so existing imports keep working */
 export const notificationService = {
   getNotifications: params => inboxService.getInbox(params),
@@ -466,4 +503,6 @@ export default {
   notificationPreferenceService,
   pushTokenService,
   privacyService,
+  conversationService,
+  messageService,
 };

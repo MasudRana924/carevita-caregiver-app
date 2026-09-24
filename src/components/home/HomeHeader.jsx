@@ -2,6 +2,7 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../../context/AuthContext';
+import {useConversationUnreadCount} from '../../api/queries';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -14,8 +15,10 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
-const HomeHeader = ({navigation, unreadCount = 0}) => {
+const HomeHeader = ({navigation}) => {
   const {user} = useAuth();
+  const {data: unreadData} = useConversationUnreadCount();
+  const conversationUnread = unreadData?.unread ?? unreadData?.data?.unread ?? 0;
   const greeting = getGreeting();
   const displayName =
     user?.name || user?.full_name || user?.first_name || 'there';
@@ -51,9 +54,9 @@ const HomeHeader = ({navigation, unreadCount = 0}) => {
       <TouchableOpacity
         activeOpacity={0.8}
         style={styles.notificationButton}
-        onPress={() => navigation?.navigate('Inbox')}>
-        <Icon name="notifications-outline" size={22} color="#1B2430" />
-        {unreadCount > 0 ? <View style={styles.badgeDot} /> : null}
+        onPress={() => navigation?.navigate('ConversationList')}>
+        <Icon name="chatbubbles-outline" size={22} color="#1B2430" />
+        {conversationUnread > 0 ? <View style={styles.badgeDot} /> : null}
       </TouchableOpacity>
     </View>
   );

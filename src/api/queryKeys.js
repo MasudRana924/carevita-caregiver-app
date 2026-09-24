@@ -36,6 +36,21 @@ export const queryKeys = {
     unreadCount: () => ['inbox', 'unread-count'],
   },
 
+  conversations: {
+    all: ['conversations'],
+    lists: () => ['conversations', 'list'],
+    list: filters => ['conversations', 'list', filters],
+    details: () => ['conversations', 'detail'],
+    detail: id => ['conversations', 'detail', id],
+    unreadCount: () => ['conversations', 'unread-count'],
+  },
+
+  messages: {
+    all: ['messages'],
+    lists: () => ['messages', 'list'],
+    list: (conversationId, filters) => ['messages', 'list', conversationId, filters],
+  },
+
   notifications: {
     all: ['inbox'],
     lists: () => ['inbox', 'list'],
