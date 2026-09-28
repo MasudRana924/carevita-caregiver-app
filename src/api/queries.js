@@ -14,7 +14,6 @@ import {
   notificationPreferenceService,
   privacyService,
   conversationService,
-  messageService,
 } from './services';
 import {queryKeys} from './queryKeys';
 
@@ -185,37 +184,11 @@ export const usePrivacyPolicy = (role = 'CAREGIVER', options = {}) => {
   });
 };
 
-export const useConversations = (params = {}, options = {}) => {
-  return useQuery({
-    queryKey: queryKeys.conversations.list(params),
-    queryFn: () => conversationService.getMyConversations(params),
-    ...options,
-  });
-};
-
-export const useConversation = (id, options = {}) => {
-  return useQuery({
-    queryKey: queryKeys.conversations.detail(id),
-    queryFn: () => conversationService.getConversation(id),
-    enabled: !!id,
-    ...options,
-  });
-};
-
 export const useConversationUnreadCount = (options = {}) => {
   return useQuery({
     queryKey: queryKeys.conversations.unreadCount(),
     queryFn: () => conversationService.getUnreadCount(),
     refetchInterval: 30000,
-    ...options,
-  });
-};
-
-export const useMessages = (conversationId, params = {}, options = {}) => {
-  return useQuery({
-    queryKey: queryKeys.messages.list(conversationId, params),
-    queryFn: () => messageService.getMessages(conversationId, params),
-    enabled: !!conversationId,
     ...options,
   });
 };
@@ -239,8 +212,5 @@ export default {
   useHospitals,
   useHospital,
   usePrivacyPolicy,
-  useConversations,
-  useConversation,
   useConversationUnreadCount,
-  useMessages,
 };

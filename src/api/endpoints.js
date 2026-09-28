@@ -65,16 +65,10 @@ export const ENDPOINTS = {
   },
 
   CONVERSATIONS: {
-    LIST: "/conversations/my",
-    DETAIL: (id) => `/conversations/${id}`,
-    UNREAD: "/conversations/unread",
-    CREATE: "/conversations",
-  },
-
-  MESSAGES: {
-    LIST: (conversationId) => `/messages/conversation/${conversationId}`,
-    SEND: "/messages",
-    MARK_READ: (conversationId) => `/messages/conversation/${conversationId}/read`,
+    ME: "/conversations/me",
+    UNREAD: "/conversations/me/unread-count",
+    MESSAGES: "/conversations/me/messages",
+    READ: "/conversations/me/read",
   },
 
   NOTIFICATIONS: {

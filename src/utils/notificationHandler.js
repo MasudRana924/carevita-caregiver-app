@@ -79,6 +79,16 @@ export const isEkycPushType = type => {
   return value === 'EKYC_APPROVED' || value === 'EKYC_DECLINED';
 };
 
+export const isSupportChatPush = data => {
+  const type = normalize(data?.type || data?.event);
+  const screen = String(data?.screen || '').toLowerCase();
+  return (
+    type === 'SUPPORT_MESSAGE' ||
+    type === 'CONVERSATION_MESSAGE' ||
+    screen === 'support_chat'
+  );
+};
+
 /**
  * Handle notification click / FCM data and navigate by type + action
  */
@@ -94,6 +104,11 @@ export const handleNotificationClick = (rawData, navigation) => {
   const screen = String(data?.screen || '').toLowerCase();
 
   if (isEkycPushType(type)) {
+    return;
+  }
+
+  if (isSupportChatPush(data)) {
+    navigateRoot(navigation, 'SupportChat');
     return;
   }
 

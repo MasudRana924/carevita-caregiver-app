@@ -10,7 +10,8 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../context/AuthContext';
-import {useUserProfile, useCaregiverProfile} from '../api/queries';
+import {useUserProfile, useCaregiverProfile, useConversationUnreadCount} from '../api/queries';
+import {unreadCountFromQuery} from '../utils/supportChat';
 import Header from '../components/common/Header';
 import LogoutConfirmModal from '../components/common/LogoutConfirmModal';
 
@@ -72,6 +73,8 @@ const ProfileScreen = ({navigation}) => {
   const {data: profileData, isLoading, refetch: refetchProfile} = useUserProfile();
   const {data: caregiverData, refetch: refetchCaregiver} = useCaregiverProfile();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const {data: supportUnreadData} = useConversationUnreadCount();
+  const supportUnread = unreadCountFromQuery(supportUnreadData);
 
   useEffect(() => {
     const focusSub = navigation.addListener('focus', () => {
@@ -91,7 +94,17 @@ const ProfileScreen = ({navigation}) => {
     caregiver.verification_status === 'APPROVED' ||
     caregiver.verification_status === 'VERIFIED' ||
     authUser.is_verified === true;
-  const settings = getSettings(navigation);
+  const settings = [
+    {
+      id: 'support',
+      name: 'Support chat',
+      subtitle: 'Message CareMate Support',
+      icon: 'chatbubbles-outline',
+      badge: supportUnread,
+      onPress: () => navigation?.navigate('SupportChat'),
+    },
+    ...getSettings(navigation),
+  ];
 
   const confirmLogout = () => {
     setShowLogoutModal(false);
@@ -147,6 +160,13 @@ const ProfileScreen = ({navigation}) => {
               <Text style={styles.settingTitle}>{item.name}</Text>
               <Text style={styles.settingSub}>{item.subtitle}</Text>
             </View>
+            {item.badge > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {item.badge > 99 ? '99+' : item.badge}
+                </Text>
+              </View>
+            ) : null}
             <Icon name="chevron-forward" size={18} color="#C5CED6" />
           </TouchableOpacity>
         ))}
@@ -273,6 +293,17 @@ const styles = StyleSheet.create({
   settingCopy: {flex: 1, marginRight: 8},
   settingTitle: {fontSize: 14, fontWeight: '500', color: '#15202B'},
   settingSub: {marginTop: 2, fontSize: 12, color: '#8A97A6'},
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: '#E34242',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  badgeText: {color: '#FFFFFF', fontSize: 11, fontWeight: '700'},
   version: {
     textAlign: 'center',
     marginTop: 10,

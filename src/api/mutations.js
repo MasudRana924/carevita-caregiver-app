@@ -10,8 +10,6 @@ import {
   inboxService,
   caregiverService,
   notificationPreferenceService,
-  conversationService,
-  messageService,
 } from './services';
 import {queryKeys} from './queryKeys';
 
@@ -246,48 +244,6 @@ export const useUpdateCaregiverProfile = () => {
   });
 };
 
-export const useCreateConversation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: payload => conversationService.createConversation(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: queryKeys.conversations.all});
-    },
-  });
-};
-
-export const useSendMessage = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: payload => messageService.sendMessage(payload),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.messages.list(variables.conversation_id),
-      });
-      queryClient.invalidateQueries({queryKey: queryKeys.conversations.all});
-    },
-  });
-};
-
-export const useMarkMessagesAsRead = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: conversationId => messageService.markAsRead(conversationId),
-    onSuccess: (_data, conversationId) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.messages.list(conversationId),
-      });
-      queryClient.invalidateQueries({queryKey: queryKeys.conversations.all});
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.conversations.unreadCount(),
-      });
-    },
-  });
-};
-
 export default {
   useAcceptBooking,
   useRejectBooking,
@@ -307,7 +263,4 @@ export default {
   useCreateWithdrawal,
   useUpdateNotificationPreferences,
   useCreateDispute,
-  useCreateConversation,
-  useSendMessage,
-  useMarkMessagesAsRead,
 };

@@ -16,7 +16,15 @@ import SplashScreen from './src/screens/SplashScreen';
 import notificationService from './src/services/notificationService';
 import {NavigationContainer} from '@react-navigation/native';
 import NotificationBanner from './src/components/common/NotificationBanner';
-import {handleNotificationClick, parseNotificationData} from './src/utils/notificationHandler';
+import {
+  handleNotificationClick,
+  isSupportChatPush,
+  parseNotificationData,
+} from './src/utils/notificationHandler';
+import {
+  supportChatEvents,
+  unreadCountFromQuery,
+} from './src/utils/supportChat';
 import {queryKeys} from './src/api/queryKeys';
 import {setPendingReview} from './src/utils/homeAlerts';
 import {parseRatingValue} from './src/utils/bookingTime';
@@ -43,6 +51,24 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function bumpSupportBadge() {
+  queryClient.setQueryData(queryKeys.conversations.unreadCount(), (current: any) => {
+    const count = unreadCountFromQuery(current) + 1;
+    return {
+      success: true,
+      unread: count,
+      data: {
+        ...(current && typeof current === 'object' ? current.data || {} : {}),
+        unread: count,
+        unread_count: count,
+      },
+    };
+  });
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.conversations.unreadCount(),
+  });
+}
 
 function AppContent() {
   const {isLoading, userToken, applyEkycPush} = useAuth();
@@ -74,6 +100,20 @@ function AppContent() {
       payload => {
         const data = parseNotificationData(payload?.data);
         const type = String(data?.type || data?.event || '').toUpperCase();
+        if (isSupportChatPush(data)) {
+          if (supportChatEvents.isFocused()) {
+            supportChatEvents.emitRefresh();
+            return;
+          }
+          bumpSupportBadge();
+          setBanner({
+            visible: true,
+            title: payload?.title || 'CareMate Support',
+            body: payload?.body || 'New message',
+            data: payload?.data || data,
+          });
+          return;
+        }
         queryClient.invalidateQueries({queryKey: queryKeys.inbox.all});
         queryClient.invalidateQueries({queryKey: queryKeys.bookings.all});
         queryClient.invalidateQueries({queryKey: queryKeys.wallet.all});

@@ -3,6 +3,7 @@ import {View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../../context/AuthContext';
 import {useConversationUnreadCount} from '../../api/queries';
+import {unreadCountFromQuery} from '../../utils/supportChat';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -18,7 +19,7 @@ const getGreeting = () => {
 const HomeHeader = ({navigation}) => {
   const {user} = useAuth();
   const {data: unreadData} = useConversationUnreadCount();
-  const conversationUnread = unreadData?.unread ?? unreadData?.data?.unread ?? 0;
+  const conversationUnread = unreadCountFromQuery(unreadData);
   const greeting = getGreeting();
   const displayName =
     user?.name || user?.full_name || user?.first_name || 'there';
@@ -54,9 +55,15 @@ const HomeHeader = ({navigation}) => {
       <TouchableOpacity
         activeOpacity={0.8}
         style={styles.notificationButton}
-        onPress={() => navigation?.navigate('ConversationList')}>
+        onPress={() => navigation?.navigate('SupportChat')}>
         <Icon name="chatbubbles-outline" size={22} color="#1B2430" />
-        {conversationUnread > 0 ? <View style={styles.badgeDot} /> : null}
+        {conversationUnread > 0 ? (
+          <View style={styles.badgeCount}>
+            <Text style={styles.badgeCountText}>
+              {conversationUnread > 9 ? '9+' : conversationUnread}
+            </Text>
+          </View>
+        ) : null}
       </TouchableOpacity>
     </View>
   );
@@ -137,15 +144,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeDot: {
+  badgeCount: {
     position: 'absolute',
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
     backgroundColor: '#E34242',
-    right: 10,
-    top: 10,
+    right: 2,
+    top: 2,
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeCountText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

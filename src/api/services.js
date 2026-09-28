@@ -160,6 +160,75 @@ export const apiRequest = async (
   }
 };
 
+/**
+ * Multipart upload with progress. Reuses the same bearer token and 401 refresh
+ * path as apiRequest. Do not set Content-Type — XHR adds the multipart boundary.
+ */
+const uploadFormData = (endpoint, formData, onProgress) =>
+  new Promise((resolve, reject) => {
+    const attempt = async allowRefresh => {
+      const token = await getAuthToken();
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', getFullUrl(endpoint));
+      xhr.setRequestHeader('Accept', 'application/json');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+      if (xhr.upload && typeof onProgress === 'function') {
+        xhr.upload.onprogress = event => {
+          if (event.lengthComputable && event.total > 0) {
+            onProgress(
+              Math.min(100, Math.round((event.loaded / event.total) * 100)),
+            );
+          }
+        };
+      }
+      xhr.onload = () => {
+        const finish = async () => {
+          let raw = null;
+          try {
+            raw = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+          } catch (error) {
+            raw = null;
+          }
+          const status = xhr.status || 0;
+          const envelope = normalizeEnvelope(raw, status);
+          const failed =
+            status >= 400 ||
+            envelope.success === false ||
+            isAuthFailure(raw, status);
+
+          if (failed && isAuthFailure(raw, status) && allowRefresh && token) {
+            const newToken = await refreshAccessToken();
+            if (newToken) {
+              attempt(false);
+              return;
+            }
+            await expireSession();
+          }
+
+          if (failed) {
+            const error = toApiError(raw || envelope, status);
+            error.message =
+              envelope.message || getEnvelopeMessage(raw, status);
+            reject(error);
+            return;
+          }
+          resolve(envelope);
+        };
+        finish().catch(reject);
+      };
+      xhr.onerror = () => {
+        const error = new Error('Network request failed');
+        error.status = 0;
+        reject(error);
+      };
+      xhr.send(formData);
+    };
+
+    attempt(true).catch(reject);
+  });
+
 export const authService = {
   register: (name, email, password) =>
     apiRequest('/auth/register', 'POST', {
@@ -374,40 +443,58 @@ export const inboxService = {
 };
 
 export const conversationService = {
-  getMyConversations: (params = {}) => {
-    const {page = 1, limit = 20} = params;
-    return apiRequest(
-      `/conversations/my${toQuery({page, limit})}`,
-      'GET',
-    );
-  },
-
-  getConversation: id => apiRequest(`/conversations/${id}`, 'GET'),
+  getMine: () => apiRequest('/conversations/me', 'GET'),
 
   getUnreadCount: async () => {
-    const res = await apiRequest('/conversations/unread', 'GET');
+    const res = await apiRequest('/conversations/me/unread-count', 'GET');
     const data = unwrapData(res);
-    const unread = data?.unread ?? 0;
-    return {...res, unread, data: {unread}};
+    const unread = Number(data?.unread_count ?? data?.unread ?? 0) || 0;
+    return {
+      ...res,
+      unread,
+      data: {
+        ...(data && typeof data === 'object' ? data : {}),
+        unread,
+        unread_count: unread,
+      },
+    };
   },
 
-  createConversation: payload =>
-    apiRequest('/conversations', 'POST', payload),
-};
-
-export const messageService = {
-  getMessages: (conversationId, params = {}) => {
-    const {page = 1, limit = 20} = params;
+  /**
+   * Latest page: no cursor. Older: before=<oldest id>. Newer: after=<newest id>.
+   * data is always oldest → newest.
+   */
+  getMessages: (params = {}) => {
+    const {limit = 30, before, after} = params;
     return apiRequest(
-      `/messages/conversation/${conversationId}${toQuery({page, limit})}`,
+      `/conversations/me/messages${toQuery({limit, before, after})}`,
       'GET',
     );
   },
 
-  sendMessage: payload => apiRequest('/messages', 'POST', payload),
+  sendText: ({message, clientMessageId}) =>
+    apiRequest('/conversations/me/messages', 'POST', {
+      message,
+      client_message_id: clientMessageId,
+    }),
 
-  markAsRead: conversationId =>
-    apiRequest(`/messages/conversation/${conversationId}/read`, 'PUT'),
+  sendFile: ({file, message, clientMessageId, onProgress}) => {
+    const form = new FormData();
+    form.append('file', {
+      uri: file.uri,
+      name: file.name || 'upload',
+      type: file.mime || 'application/octet-stream',
+    });
+    if (message) {
+      form.append('message', String(message));
+    }
+    if (clientMessageId) {
+      form.append('client_message_id', String(clientMessageId));
+    }
+    return uploadFormData('/conversations/me/messages', form, onProgress);
+  },
+
+  markAsRead: () => apiRequest('/conversations/me/read', 'PUT'),
 };
 
 /** @deprecated Use inboxService — kept so existing imports keep working */
@@ -504,5 +591,4 @@ export default {
   pushTokenService,
   privacyService,
   conversationService,
-  messageService,
 };

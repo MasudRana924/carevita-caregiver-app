@@ -25,8 +25,7 @@ import EditProfile from '../screens/EditProfile';
 import BookingsScreen from '../screens/BookingsScreen';
 import BookingDetailsScreen from '../screens/BookingDetailsScreen';
 import InboxScreen from '../screens/InboxScreen';
-import ConversationListScreen from '../screens/ConversationListScreen';
-import ConversationDetailScreen from '../screens/ConversationDetailScreen';
+import SupportChatScreen from '../screens/SupportChatScreen';
 import WalletScreen from '../screens/WalletScreen';
 import CaregiverProfileScreen from '../screens/CaregiverProfileScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
@@ -205,14 +204,7 @@ function AppNavigator() {
               name="NotificationPreferences"
               component={NotificationPreferencesScreen}
             />
-            <Stack.Screen
-              name="ConversationList"
-              component={ConversationListScreen}
-            />
-            <Stack.Screen
-              name="ConversationDetail"
-              component={ConversationDetailScreen}
-            />
+            <Stack.Screen name="SupportChat" component={SupportChatScreen} />
           </>
         )
       ) : (

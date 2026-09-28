@@ -38,17 +38,8 @@ export const queryKeys = {
 
   conversations: {
     all: ['conversations'],
-    lists: () => ['conversations', 'list'],
-    list: filters => ['conversations', 'list', filters],
-    details: () => ['conversations', 'detail'],
-    detail: id => ['conversations', 'detail', id],
+    thread: () => ['conversations', 'me'],
     unreadCount: () => ['conversations', 'unread-count'],
-  },
-
-  messages: {
-    all: ['messages'],
-    lists: () => ['messages', 'list'],
-    list: (conversationId, filters) => ['messages', 'list', conversationId, filters],
   },
 
   notifications: {
