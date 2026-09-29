@@ -91,6 +91,18 @@ export const useCompleteBooking = () => {
   });
 };
 
+export const useReportNoStart = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({id, reason, is_emergency}) =>
+      bookingService.reportNoStart(id, {reason, is_emergency}),
+    onSuccess: (_data, variables) => {
+      invalidateBookings(queryClient, variables?.id);
+    },
+  });
+};
+
 export const useMarkInboxRead = () => {
   const queryClient = useQueryClient();
 
@@ -250,6 +262,7 @@ export default {
   useCancelBooking,
   useStartBooking,
   useCompleteBooking,
+  useReportNoStart,
   useMarkInboxRead,
   useMarkAllInboxRead,
   useLogin,

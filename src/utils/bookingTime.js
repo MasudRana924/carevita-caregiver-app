@@ -1,7 +1,7 @@
 const DHAKA_OFFSET = '+06:00';
 const REMINDER_WINDOW_MS = 65 * 60 * 1000;
 const OVERDUE_WINDOW_MS = 15 * 60 * 1000;
-export const DEFAULT_ACCEPT_TIMEOUT_MINUTES = 15;
+export const DEFAULT_ACCEPT_TIMEOUT_MINUTES = 5;
 
 const HIDDEN_STATUSES = [
   'CANCELLED',
@@ -18,6 +18,7 @@ export const getBookingStartMs = booking => {
   }
 
   const iso =
+    booking.scheduled_start_at ||
     booking.start_at ||
     booking.starts_at ||
     booking.start_datetime ||
@@ -186,6 +187,57 @@ export const isActiveAssignedOffer = (
 ) =>
   booking?.status === 'PROVIDER_ASSIGNED' &&
   !isOfferExpired(booking, now, fallbackExpiresAt);
+
+const parseIsoMs = value => {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const isPaidStatus = status => status === 'PAYMENT_PAID';
+const isInProgressStatus = status =>
+  status === 'SERVICE_IN_PROGRESS' || status === 'IN_PROGRESS';
+
+/**
+ * Start / End / no-start availability for the booked window.
+ * The API flags are a snapshot from fetch time, so when scheduled_start_at /
+ * scheduled_end_at are present the window is re-evaluated against `now`.
+ */
+export const getServiceWindowState = (booking, now = Date.now()) => {
+  const status = booking?.status;
+  const startMs = parseIsoMs(booking?.scheduled_start_at);
+  const endMs = parseIsoMs(booking?.scheduled_end_at);
+
+  const startReached =
+    startMs != null ? now >= startMs : booking?.is_start_time_reached === true;
+  const endReached =
+    endMs != null ? now >= endMs : booking?.is_end_time_reached === true;
+
+  const paid = isPaidStatus(status);
+  const inProgress = isInProgressStatus(status);
+
+  const canStart =
+    startMs != null || endMs != null
+      ? paid && startReached && !endReached
+      : booking?.can_start === true;
+  const canComplete =
+    endMs != null ? inProgress && endReached : booking?.can_complete === true;
+  const canReportNoStart =
+    booking?.can_report_no_start === true || (paid && endMs != null && endReached);
+
+  return {
+    startMs,
+    endMs,
+    showStart: paid && !canReportNoStart,
+    canStart: canStart && !canReportNoStart,
+    startNotYet: paid && !startReached,
+    showEnd: inProgress,
+    canComplete,
+    canReportNoStart,
+  };
+};
 
 /** Drop expired PROVIDER_ASSIGNED offers from active lists. */
 export const filterActiveBookings = (bookings, now = Date.now()) => {

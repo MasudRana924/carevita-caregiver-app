@@ -543,6 +543,12 @@ export const bookingService = {
   completeBooking: id =>
     apiRequest(`/caregiver/bookings/${id}/complete`, 'POST'),
 
+  reportNoStart: (id, {reason, is_emergency}) =>
+    apiRequest(`/caregiver/bookings/${id}/no-start-reason`, 'POST', {
+      reason,
+      is_emergency: !!is_emergency,
+    }),
+
   createDispute: (id, payload) =>
     apiRequest(`/bookings/${id}/dispute`, 'POST', payload),
 

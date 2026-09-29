@@ -29,6 +29,7 @@ import {
   filterActiveBookings,
   getOfferRemainingMs,
   isOfferExpired,
+  getServiceWindowState,
 } from '../utils/bookingTime';
 import {
   stopLiveTracking,
@@ -407,6 +408,7 @@ const BookingsScreen = ({navigation, route}) => {
           bookings.map(booking => {
             const isNew = booking.status === 'PROVIDER_ASSIGNED';
             const expired = isNew && isOfferExpired(booking, nowTs);
+            const windowState = getServiceWindowState(booking, nowTs);
             const statusMeta = getStatusMeta(booking.status);
             return (
               <View key={booking.id} style={styles.card}>
@@ -489,25 +491,52 @@ const BookingsScreen = ({navigation, route}) => {
                     />
                   </View>
                 )}
-                {!isNew && booking.can_start && (
-                  <View style={styles.actionRow}>
+                {!isNew && windowState.showStart && (
+                  <View style={styles.actionCol}>
                     <AppButton
                       title="Start"
                       icon="play"
                       onPress={() => handleStart(booking.id)}
-                      disabled={starting || startBooking.isPending}
+                      disabled={
+                        !windowState.canStart ||
+                        starting ||
+                        startBooking.isPending
+                      }
+                    />
+                    {!windowState.canStart && windowState.startNotYet && (
+                      <Text style={styles.windowHint}>
+                        You can start when the service time begins.
+                      </Text>
+                    )}
+                  </View>
+                )}
+                {!isNew && windowState.canReportNoStart && (
+                  <View style={styles.actionRow}>
+                    <AppButton
+                      title="Explain why you didn't start"
+                      icon="alert-circle-outline"
+                      onPress={() =>
+                        navigation?.navigate('NoStartReason', {
+                          bookingId: booking.id,
+                        })
+                      }
                       style={styles.flexBtn}
                     />
                   </View>
                 )}
-                {!isNew && booking.can_complete && (
-                  <View style={styles.actionRow}>
+                {!isNew && windowState.showEnd && (
+                  <View style={styles.actionCol}>
                     <AppButton
                       title="End"
                       icon="checkmark-done"
                       onPress={() => handleComplete(booking.id)}
-                      style={styles.flexBtn}
+                      disabled={!windowState.canComplete}
                     />
+                    {!windowState.canComplete && (
+                      <Text style={styles.windowHint}>
+                        You can end the service when the booked time is over.
+                      </Text>
+                    )}
                   </View>
                 )}
               </View>
@@ -669,6 +698,8 @@ const styles = StyleSheet.create({
   },
   statusText: {fontSize: 11, fontWeight: '700', textAlign: 'right'},
   actionRow: {flexDirection: 'row', gap: 10, marginTop: 14},
+  actionCol: {marginTop: 14},
+  windowHint: {marginTop: 6, fontSize: 12, color: '#6B7280', textAlign: 'center'},
   flexBtn: {flex: 1},
   modalBackdrop: {
     flex: 1,

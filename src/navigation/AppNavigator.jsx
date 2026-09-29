@@ -24,6 +24,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import EditProfile from '../screens/EditProfile';
 import BookingsScreen from '../screens/BookingsScreen';
 import BookingDetailsScreen from '../screens/BookingDetailsScreen';
+import NoStartReasonScreen from '../screens/NoStartReasonScreen';
 import InboxScreen from '../screens/InboxScreen';
 import SupportChatScreen from '../screens/SupportChatScreen';
 import WalletScreen from '../screens/WalletScreen';
@@ -184,6 +185,7 @@ function AppNavigator() {
               options={{gestureEnabled: false}}
             />
             <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
+            <Stack.Screen name="NoStartReason" component={NoStartReasonScreen} />
             <Stack.Screen name="EditProfile" component={EditProfile} />
             <Stack.Screen
               name="CaregiverProfile"

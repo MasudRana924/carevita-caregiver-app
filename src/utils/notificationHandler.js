@@ -64,10 +64,17 @@ const shouldOpenWallet = (type, action, screen) =>
   type === 'WITHDRAWAL_UPDATED' ||
   screen === 'wallet';
 
+const shouldOpenNoStartReason = (type, action, screen) =>
+  action === 'REPORT_NO_START' ||
+  type === 'SERVICE_NOT_STARTED' ||
+  screen === 'no_start_reason';
+
 const shouldOpenBooking = (type, action, screen) =>
   action === 'START_BOOKING' ||
+  action === 'END_BOOKING' ||
   type === 'PAYMENT_RECEIVED' ||
   type === 'SERVICE_START_REMINDER' ||
+  type === 'SERVICE_END_DUE' ||
   type === 'REVIEW_RECEIVED' ||
   type === 'BOOKING_CREATED' ||
   type === 'BOOKING_CANCELLED' ||
@@ -114,6 +121,15 @@ export const handleNotificationClick = (rawData, navigation) => {
 
   if (shouldOpenWallet(type, action, screen)) {
     goToWallet(navigation);
+    return;
+  }
+
+  if (shouldOpenNoStartReason(type, action, screen)) {
+    if (bookingId) {
+      navigateRoot(navigation, 'NoStartReason', {bookingId});
+    } else {
+      navigateRoot(navigation, 'Bookings');
+    }
     return;
   }
 

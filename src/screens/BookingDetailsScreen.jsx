@@ -29,7 +29,11 @@ import AppButton, { AppButtonBar } from '../components/common/AppButton';
 import OfferCountdown from '../components/booking/OfferCountdown';
 import LiveTrackingBanner from '../components/booking/LiveTrackingBanner';
 import useNowTick from '../hooks/useNowTick';
-import { getOfferRemainingMs, isOfferExpired } from '../utils/bookingTime';
+import {
+  getOfferRemainingMs,
+  isOfferExpired,
+  getServiceWindowState,
+} from '../utils/bookingTime';
 import { showError } from '../context/ErrorModalContext';
 import { showAlert } from '../context/AlertModalContext';
 import {
@@ -86,7 +90,12 @@ const BookingDetailsScreen = ({ navigation, route }) => {
   const offerExpiredHandled = useRef(false);
 
   const canRespondStatus = booking?.status === 'PROVIDER_ASSIGNED';
-  const nowTs = useNowTick(canRespondStatus);
+  const nowTs = useNowTick(
+    ['PROVIDER_ASSIGNED', 'PAYMENT_PAID', 'SERVICE_IN_PROGRESS', 'IN_PROGRESS'].includes(
+      booking?.status,
+    ),
+  );
+  const windowState = getServiceWindowState(booking, nowTs);
   const offerBooking = useMemo(() => {
     if (!booking) {
       return null;
@@ -103,6 +112,15 @@ const BookingDetailsScreen = ({ navigation, route }) => {
   useEffect(() => {
     offerExpiredHandled.current = false;
   }, [bookingId, booking?.offer_expires_at, routeOfferExpiresAt]);
+
+  const windowKey = `${windowState.canStart}|${windowState.canComplete}|${windowState.canReportNoStart}`;
+  const lastWindowKey = useRef(windowKey);
+  useEffect(() => {
+    if (lastWindowKey.current !== windowKey) {
+      lastWindowKey.current = windowKey;
+      refetch();
+    }
+  }, [windowKey, refetch]);
 
   useEffect(() => {
     if (
@@ -179,8 +197,14 @@ const BookingDetailsScreen = ({ navigation, route }) => {
     STATUS_STYLES[booking?.status] || { bg: '#F0F2F5', text: '#8190A7' };
   const statusLabel = (booking?.status || '').replace(/_/g, ' ');
   const waitingForPay = booking?.status === 'PROVIDER_ACCEPTED';
-  const canStart = booking?.can_start === true;
-  const canComplete = booking?.can_complete === true;
+  const {
+    showStart,
+    canStart,
+    startNotYet,
+    showEnd,
+    canComplete,
+    canReportNoStart,
+  } = windowState;
   const paidOrDone = [
     'PAYMENT_PAID',
     'SERVICE_IN_PROGRESS',
@@ -213,6 +237,10 @@ const BookingDetailsScreen = ({ navigation, route }) => {
     booking?.family_member?.photo || booking?.family_member_photo;
 
   const handleStart = () => {
+    if (!canStart) {
+      showError('You can start when the service time begins.');
+      return;
+    }
     // Direct flow (no confirm Alert): permission → GPS → start API → socket watch
     // Local `starting` covers GPS/permission before mutateAsync sets isPending
     (async () => {
@@ -233,6 +261,10 @@ const BookingDetailsScreen = ({ navigation, route }) => {
   };
 
   const handleComplete = () => {
+    if (!canComplete) {
+      showError('You can end the service when the booked time is over.');
+      return;
+    }
     showAlert('End service', 'Mark this booking as completed?', [
       { text: 'Not now', style: 'cancel' },
       {
@@ -486,26 +518,48 @@ const BookingDetailsScreen = ({ navigation, route }) => {
           canComplete) && (
             <LiveTrackingBanner forceVisible />
           )}
-        {canStart && (
+        {showStart && (
           <View style={styles.startBanner}>
-            <Icon name="play-circle" size={22} color="#008178" />
+            <Icon
+              name={canStart ? 'play-circle' : 'time-outline'}
+              size={22}
+              color="#008178"
+            />
             <View style={styles.startBannerText}>
               <Text style={styles.startTitle}>Payment received</Text>
               <Text style={styles.startSub}>
-                The family paid. You can start this booking now. Location
-                permission is required.
+                {canStart
+                  ? 'The family paid. You can start this booking now. Location permission is required.'
+                  : startNotYet
+                    ? 'You can start when the service time begins.'
+                    : 'Start is not available for this booking right now.'}
               </Text>
             </View>
           </View>
         )}
-        {canComplete && (
+        {canReportNoStart && (
+          <View style={[styles.startBanner, styles.warnBanner]}>
+            <Icon name="alert-circle-outline" size={22} color="#DC2626" />
+            <View style={styles.startBannerText}>
+              <Text style={[styles.startTitle, styles.warnTitle]}>
+                Service was not started
+              </Text>
+              <Text style={styles.startSub}>
+                The booked time has ended. Tell the family why you did not
+                start, and say if it was an emergency.
+              </Text>
+            </View>
+          </View>
+        )}
+        {showEnd && (
           <View style={styles.startBanner}>
             <Icon name="time" size={22} color="#008178" />
             <View style={styles.startBannerText}>
               <Text style={styles.startTitle}>Service in progress</Text>
               <Text style={styles.startSub}>
-                Tap End when the booking is finished. Earnings go to your
-                wallet.
+                {canComplete
+                  ? 'The booked time is over. Tap End to finish. Earnings go to your wallet.'
+                  : 'You can end the service when the booked time is over.'}
               </Text>
             </View>
           </View>
@@ -557,8 +611,9 @@ const BookingDetailsScreen = ({ navigation, route }) => {
 
       {(canRespondStatus ||
         canCancel ||
-        canStart ||
-        canComplete ||
+        showStart ||
+        showEnd ||
+        canReportNoStart ||
         canDispute) && (
           <AppButtonBar>
             {canRespondStatus && (
@@ -581,18 +636,28 @@ const BookingDetailsScreen = ({ navigation, route }) => {
                 />
               </>
             )}
-            {canStart && (
+            {showStart && (
               <AppButton
                 title="Start"
                 onPress={handleStart}
-                disabled={starting || startBooking.isPending}
+                disabled={!canStart || starting || startBooking.isPending}
                 style={styles.flexBtn}
               />
             )}
-            {canComplete && (
+            {canReportNoStart && (
+              <AppButton
+                title="Explain why"
+                onPress={() =>
+                  navigation?.navigate('NoStartReason', { bookingId })
+                }
+                style={styles.flexBtn}
+              />
+            )}
+            {showEnd && (
               <AppButton
                 title="End"
                 onPress={handleComplete}
+                disabled={!canComplete || completeBooking.isPending}
                 style={styles.flexBtn}
               />
             )}
@@ -731,6 +796,8 @@ const styles = StyleSheet.create({
   startBannerText: { flex: 1 },
   startTitle: { fontSize: 15, fontWeight: '700', color: '#008178' },
   startSub: { marginTop: 3, fontSize: 13, color: '#4A5568' },
+  warnBanner: { backgroundColor: '#FEECEC' },
+  warnTitle: { color: '#DC2626' },
   heroCard: {
     backgroundColor: '#F6F6F6',
     borderRadius: 16,
