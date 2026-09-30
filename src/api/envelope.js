@@ -111,18 +111,9 @@ export const normalizeEnvelope = (payload, status) => {
 export const getAcceptConflictMessage = error => {
   const message = error?.message || '';
   if (isConflict(error)) {
-    const lower = message.toLowerCase();
-    if (lower.includes('overlap') || lower.includes('time slot')) {
-      return message || 'Caregiver already has a booking in this time slot';
-    }
-    if (lower.includes('outside') || lower.includes('availability')) {
-      return (
-        message || 'Requested time is outside caregiver weekly availability'
-      );
-    }
     return (
       message ||
-      'This booking overlaps another booking or is outside your weekly availability.'
+      'Caregiver is not active on this day, or already has a booking in this time slot.'
     );
   }
   return message || 'Failed to accept booking';

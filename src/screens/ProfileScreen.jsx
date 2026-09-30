@@ -41,8 +41,8 @@ const getSettings = navigation => [
   {
     id: 'hours',
     name: 'Weekly availability',
-    subtitle: 'Set hours bookings can start',
-    icon: 'time-outline',
+    subtitle: 'Choose the days you work',
+    icon: 'calendar-outline',
     onPress: () => navigation?.navigate('Availability'),
   },
   {

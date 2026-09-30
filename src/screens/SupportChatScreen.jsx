@@ -50,11 +50,12 @@ import {
   newestServerMessage,
   oldestServerMessage,
 } from '../utils/supportChat';
+import ChatWallpaper from '../components/chat/ChatWallpaper';
 
 const TEAL = '#0B8A80';
 const INK = '#111B21';
 const MUTED = '#667781';
-const WALL = '#EFE7DE';
+const WALL = '#F7E9D2';
 const OUTGOING = '#D9FDD3';
 const INCOMING = '#FFFFFF';
 const READ_BLUE = '#53BDEB';
@@ -483,6 +484,7 @@ const SupportChatScreen = ({navigation}) => {
         paddingTop={Math.max(insets.top, 8)}
         onBack={() => navigation.goBack()}
       />
+      <ChatWallpaper>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -617,6 +619,7 @@ const SupportChatScreen = ({navigation}) => {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      </ChatWallpaper>
 
       <AttachSheet
         visible={attachOpen}
@@ -997,6 +1000,11 @@ const styles = StyleSheet.create({
   bubble: {
     maxWidth: '78%',
     borderRadius: 16,
+    shadowColor: '#0B141A',
+    shadowOpacity: 0.12,
+    shadowRadius: 1,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 1,
     paddingHorizontal: 8,
     paddingTop: 6,
     paddingBottom: 4,
@@ -1097,7 +1105,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 8,
     paddingTop: 6,
-    backgroundColor: '#F6F1EA',
+    backgroundColor: 'transparent',
     gap: 6,
   },
   attachBtn: {
