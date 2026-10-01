@@ -19,7 +19,7 @@ import Header from '../components/common/Header';
 import SearchableDropdown from '../components/common/SearchableDropdown';
 import AppInput from '../components/common/AppInput';
 import AppButton, {AppButtonBar} from '../components/common/AppButton';
-import Toast from '../components/common/Toast';
+import StatusModal from '../components/common/StatusModal';
 import DateOfBirthPicker from '../components/common/DateOfBirthPicker';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
 import {getThanasByDistrict} from '../data/bangladeshThanas';
@@ -31,13 +31,17 @@ import useAccountRefresh from '../hooks/useAccountRefresh';
 import {
   GENDER_OPTIONS,
   formatDob,
+  genderLabel,
   normalizeGenderValue,
   normalizeYmd,
 } from '../utils/account';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => ({
+  value: group,
+  label: group,
+}));
 const MAX_NAME = 255;
 const MAX_ADDRESS = 500;
 const MAX_EMERGENCY = 20;
@@ -179,7 +183,11 @@ const EditProfile = ({navigation}) => {
   const [errors, setErrors] = useState({});
   const [dobOpen, setDobOpen] = useState(false);
   const [bloodOpen, setBloodOpen] = useState(false);
-  const [toast, setToast] = useState({visible: false, message: '', type: 'error'});
+  const [genderOpen, setGenderOpen] = useState(false);
+  const [status, setStatus] = useState({visible: false, title: '', message: ''});
+
+  const showError = (message, title = 'Could not save') =>
+    setStatus({visible: true, title, message});
 
   useEffect(() => {
     let active = true;
@@ -198,11 +206,10 @@ const EditProfile = ({navigation}) => {
         setInitialAccount(seeded);
         setAccountForm(seeded);
       } else {
-        setToast({
-          visible: true,
-          message: accountResult.reason?.message || 'Could not load your account',
-          type: 'error',
-        });
+        showError(
+          accountResult.reason?.message || 'Please check your connection and try again.',
+          'Could not load your account',
+        );
       }
       const profile =
         proResult.status === 'fulfilled' ? proResult.value?.data?.data : null;
@@ -263,9 +270,6 @@ const EditProfile = ({navigation}) => {
     clearError(key);
   };
 
-  const showToast = (message, type = 'error') =>
-    setToast({visible: true, message, type});
-
   const validate = () => {
     const next = {};
     const name = accountForm.name.trim();
@@ -299,7 +303,7 @@ const EditProfile = ({navigation}) => {
     if (field) {
       setErrors(prev => ({...prev, [field]: message}));
     }
-    showToast(message);
+    showError(message);
   };
 
   const handleSave = async () => {
@@ -338,7 +342,7 @@ const EditProfile = ({navigation}) => {
       queryClient.invalidateQueries({queryKey: queryKeys.caregiverProfile.all});
       navigation.navigate({
         name: 'Main',
-        params: {screen: 'Profile', params: {toast: 'Profile updated'}},
+        params: {screen: 'Profile', params: {successMessage: 'Profile updated'}},
         merge: true,
       });
     } finally {
@@ -396,22 +400,15 @@ const EditProfile = ({navigation}) => {
           <FieldError message={errors.name} />
 
           <FieldLabel icon="male-female-outline" label="Gender" />
-          <View style={styles.segment}>
-            {GENDER_OPTIONS.map(option => {
-              const active = accountForm.gender === option.value;
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  activeOpacity={0.85}
-                  onPress={() => setAccountField('gender', active ? '' : option.value)}
-                  style={[styles.segmentItem, active && styles.segmentItemActive]}>
-                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <TouchableOpacity style={styles.selectorField} onPress={() => setGenderOpen(true)}>
+            <View style={styles.selectorContent}>
+              <Text
+                style={[styles.selectorValue, !accountForm.gender && styles.selectorPlaceholder]}>
+                {accountForm.gender ? genderLabel(accountForm.gender) : 'Select gender'}
+              </Text>
+              <Icon name="chevron-down" size={20} color="#8A97A6" />
+            </View>
+          </TouchableOpacity>
           <FieldError message={errors.gender} />
 
           <FieldLabel icon="calendar-outline" label="Date of birth" />
@@ -585,11 +582,12 @@ const EditProfile = ({navigation}) => {
         </AppButtonBar>
       </KeyboardAvoidingView>
 
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={() => setToast(prev => ({...prev, visible: false}))}
+      <StatusModal
+        visible={status.visible}
+        type="error"
+        title={status.title}
+        message={status.message}
+        onClose={() => setStatus(prev => ({...prev, visible: false}))}
       />
 
       <DateOfBirthPicker
@@ -599,48 +597,58 @@ const EditProfile = ({navigation}) => {
         onChange={value => setAccountField('date_of_birth', value)}
       />
 
-      <Modal
+      <OptionSheet
+        visible={genderOpen}
+        title="Select Gender"
+        options={GENDER_OPTIONS}
+        value={accountForm.gender}
+        onClose={() => setGenderOpen(false)}
+        onSelect={value => setAccountField('gender', value)}
+      />
+
+      <OptionSheet
         visible={bloodOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setBloodOpen(false)}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setBloodOpen(false)}>
-          <SafeAreaView style={styles.bottomSheetContainer} edges={['bottom']}>
-            <View style={styles.bottomSheet}>
-              <View style={styles.bottomSheetHandle} />
-              <Text style={styles.bottomSheetTitle}>Select Blood Group</Text>
-              <ScrollView style={styles.optionsList}>
-                {BLOOD_GROUPS.map(group => (
-                  <TouchableOpacity
-                    key={group}
-                    style={styles.optionItem}
-                    onPress={() => {
-                      setProField('blood_group', group);
-                      setBloodOpen(false);
-                    }}>
-                    <Text
-                      style={[
-                        styles.optionText,
-                        proForm.blood_group === group && styles.optionTextActive,
-                      ]}>
-                      {group}
-                    </Text>
-                    {proForm.blood_group === group && (
-                      <Icon name="checkmark" size={20} color={TEAL} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </SafeAreaView>
-        </TouchableOpacity>
-      </Modal>
+        title="Select Blood Group"
+        options={BLOOD_GROUPS}
+        value={proForm.blood_group}
+        onClose={() => setBloodOpen(false)}
+        onSelect={value => setProField('blood_group', value)}
+      />
     </SafeAreaView>
   );
 };
+
+const OptionSheet = ({visible, title, options, value, onClose, onSelect}) => (
+  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+      <SafeAreaView style={styles.bottomSheetContainer} edges={['bottom']}>
+        <View style={styles.bottomSheet}>
+          <View style={styles.bottomSheetHandle} />
+          <Text style={styles.bottomSheetTitle}>{title}</Text>
+          <ScrollView style={styles.optionsList}>
+            {options.map(option => {
+              const active = value === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={styles.optionItem}
+                  onPress={() => {
+                    onSelect(option.value);
+                    onClose();
+                  }}>
+                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                    {option.label}
+                  </Text>
+                  {active && <Icon name="checkmark" size={20} color={TEAL} />}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </TouchableOpacity>
+  </Modal>
+);
 
 const SectionTitle = ({title}) => <Text style={styles.sectionTitle}>{title}</Text>;
 
@@ -688,20 +696,6 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     fontWeight: '500',
   },
-  segment: {flexDirection: 'row', gap: 8, marginBottom: 8},
-  segmentItem: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E3E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  segmentItemActive: {borderColor: TEAL, backgroundColor: '#E7F6F4'},
-  segmentText: {fontSize: 14, fontWeight: '600', color: '#4A5568'},
-  segmentTextActive: {color: TEAL, fontWeight: '800'},
   readOnly: {backgroundColor: '#F4F6F8'},
   readOnlyText: {color: '#8A97A6'},
   selectorField: {

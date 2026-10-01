@@ -37,13 +37,12 @@ import {
 } from '../utils/permissions';
 import useAccountRefresh from '../hooks/useAccountRefresh';
 import Header from '../components/common/Header';
-import Toast from '../components/common/Toast';
-import AppButton from '../components/common/AppButton';
+import StatusModal from '../components/common/StatusModal';
 import LogoutConfirmModal from '../components/common/LogoutConfirmModal';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
-const AVATAR = 92;
+const AVATAR = 68;
 
 const getInitials = name => {
   if (!name) {
@@ -108,18 +107,18 @@ const ProfileScreen = ({navigation, route}) => {
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingAccount, setLoadingAccount] = useState(!accountRes?.data);
-  const [toast, setToast] = useState({visible: false, message: '', type: 'success'});
+  const [status, setStatus] = useState({visible: false, type: 'success', title: '', message: ''});
 
-  const showToast = (message, type = 'success') =>
-    setToast({visible: true, message, type});
+  const showStatus = (type, title, message = '') =>
+    setStatus({visible: true, type, title, message});
 
-  const incomingToast = route?.params?.toast;
+  const incomingSuccess = route?.params?.successMessage;
   useEffect(() => {
-    if (incomingToast) {
-      setToast({visible: true, message: incomingToast, type: 'success'});
-      navigation?.setParams({toast: undefined});
+    if (incomingSuccess) {
+      showStatus('success', incomingSuccess, 'Your latest details are now saved.');
+      navigation?.setParams({successMessage: undefined});
     }
-  }, [incomingToast, navigation]);
+  }, [incomingSuccess, navigation]);
 
   const loadAll = useCallback(async () => {
     await Promise.allSettled([refreshAccount(), refetchCaregiver()]);
@@ -181,7 +180,7 @@ const ProfileScreen = ({navigation, route}) => {
   const uploadPhoto = async asset => {
     const {file, error} = prepareProfilePhoto(asset);
     if (error) {
-      showToast(error, 'error');
+      showStatus('error', 'Photo not uploaded', error);
       return;
     }
     setUploading(true);
@@ -189,9 +188,13 @@ const ProfileScreen = ({navigation, route}) => {
       await accountService.updatePhoto(file);
       await refreshAccount();
       queryClient.invalidateQueries({queryKey: queryKeys.caregiverProfile.all});
-      showToast('Profile photo updated');
+      showStatus('success', 'Profile photo updated', 'Families will see your new photo.');
     } catch (uploadError) {
-      showToast(uploadError?.message || 'Could not update photo', 'error');
+      showStatus(
+        'error',
+        'Photo not uploaded',
+        uploadError?.message || 'Could not update photo',
+      );
     } finally {
       setUploading(false);
     }
@@ -204,11 +207,12 @@ const ProfileScreen = ({navigation, route}) => {
       ? await requestCameraPermission()
       : await requestGalleryPermission();
     if (!granted) {
-      showToast(
+      showStatus(
+        'error',
+        'Permission required',
         fromCamera
           ? 'Please allow camera access to take a photo.'
           : 'Please allow photo library access to choose a photo.',
-        'error',
       );
       return;
     }
@@ -218,7 +222,7 @@ const ProfileScreen = ({navigation, route}) => {
       return;
     }
     if (result?.errorCode) {
-      showToast(result.errorMessage || 'Could not open the picker', 'error');
+      showStatus('error', 'Could not open picker', result.errorMessage || '');
       return;
     }
     const asset = result?.assets?.[0];
@@ -235,12 +239,6 @@ const ProfileScreen = ({navigation, route}) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
       <Header title="Profile" showBack={false} leftIcon="person-outline" />
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={() => setToast(prev => ({...prev, visible: false}))}
-      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -273,59 +271,62 @@ const ProfileScreen = ({navigation, route}) => {
               disabled={uploading}
               accessibilityLabel="Change profile photo"
               hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-              <Icon name="camera" size={15} color="#FFFFFF" />
+              <Icon name="camera" size={13} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.profileName} numberOfLines={1}>
-            {loadingAccount && !account.name ? 'Loading...' : displayName}
-          </Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName} numberOfLines={1}>
+              {loadingAccount && !account.name ? 'Loading...' : displayName}
+            </Text>
 
-          <View style={styles.chipsRow}>
-            <View style={[styles.chip, isEkycVerified ? styles.chipOk : styles.chipWarn]}>
-              <Icon
-                name={isEkycVerified ? 'shield-checkmark' : 'shield-outline'}
-                size={13}
-                color={isEkycVerified ? TEAL : '#D97706'}
-              />
-              <Text
-                style={[
-                  styles.chipText,
-                  isEkycVerified ? styles.chipTextOk : styles.chipTextWarn,
-                ]}>
-                {isEkycVerified ? 'Verified' : 'Not verified'}
-              </Text>
-            </View>
-            {!needsCaregiverSetup ? (
-              <View style={[styles.chip, isAvailable ? styles.chipOk : styles.chipMuted]}>
-                <View style={[styles.dot, isAvailable ? styles.dotOn : styles.dotOff]} />
+            <View style={styles.chipsRow}>
+              <View style={[styles.chip, isEkycVerified ? styles.chipOk : styles.chipWarn]}>
+                <Icon
+                  name={isEkycVerified ? 'shield-checkmark' : 'shield-outline'}
+                  size={12}
+                  color={isEkycVerified ? TEAL : '#D97706'}
+                />
                 <Text
                   style={[
                     styles.chipText,
-                    isAvailable ? styles.chipTextOk : styles.chipTextMuted,
+                    isEkycVerified ? styles.chipTextOk : styles.chipTextWarn,
                   ]}>
-                  {isAvailable ? 'Available' : 'Unavailable'}
+                  {isEkycVerified ? 'Verified' : 'Not verified'}
                 </Text>
               </View>
-            ) : null}
-            {Number.isFinite(rating) && rating > 0 ? (
-              <View style={[styles.chip, styles.chipStar]}>
-                <Icon name="star" size={13} color="#F59E0B" />
-                <Text style={[styles.chipText, styles.chipTextStar]}>
-                  {rating.toFixed(1)}
-                  {reviewCount ? ` (${reviewCount})` : ''}
-                </Text>
-              </View>
-            ) : null}
+              {!needsCaregiverSetup ? (
+                <View style={[styles.chip, isAvailable ? styles.chipOk : styles.chipMuted]}>
+                  <View style={[styles.dot, isAvailable ? styles.dotOn : styles.dotOff]} />
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isAvailable ? styles.chipTextOk : styles.chipTextMuted,
+                    ]}>
+                    {isAvailable ? 'Available' : 'Unavailable'}
+                  </Text>
+                </View>
+              ) : null}
+              {Number.isFinite(rating) && rating > 0 ? (
+                <View style={[styles.chip, styles.chipStar]}>
+                  <Icon name="star" size={12} color="#F59E0B" />
+                  <Text style={[styles.chipText, styles.chipTextStar]}>
+                    {rating.toFixed(1)}
+                    {reviewCount ? ` (${reviewCount})` : ''}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
-          <AppButton
-            title="Edit Profile"
-            icon="create-outline"
-            variant="outline"
-            onPress={() => navigation?.navigate('EditProfile')}
+          <TouchableOpacity
+            activeOpacity={0.8}
             style={styles.editButton}
-          />
+            onPress={() => navigation?.navigate('EditProfile')}
+            accessibilityLabel="Edit profile"
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+            <Icon name="create-outline" size={20} color={TEAL} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.detailsCard}>
@@ -410,6 +411,14 @@ const ProfileScreen = ({navigation, route}) => {
         onCancel={() => setShowLogoutModal(false)}
         onConfirm={confirmLogout}
       />
+
+      <StatusModal
+        visible={status.visible}
+        type={status.type}
+        title={status.title}
+        message={status.message}
+        onClose={() => setStatus(prev => ({...prev, visible: false}))}
+      />
     </SafeAreaView>
   );
 };
@@ -431,11 +440,14 @@ const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: PAGE_BG},
   scrollContent: {paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32},
   profileCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    gap: 14,
+    backgroundColor: '#F6F8F8',
+    borderRadius: 18,
     padding: 14,
   },
+  profileInfo: {flex: 1, minWidth: 0},
   avatarWrap: {width: AVATAR, height: AVATAR},
   avatar: {
     width: AVATAR,
@@ -451,7 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: AVATAR / 2,
     backgroundColor: '#E8F3F1',
   },
-  avatarText: {fontSize: 28, fontWeight: '800', color: '#FFFFFF'},
+  avatarText: {fontSize: 22, fontWeight: '800', color: '#FFFFFF'},
   avatarScrim: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: AVATAR / 2,
@@ -463,9 +475,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
@@ -474,25 +486,23 @@ const styles = StyleSheet.create({
   },
   editBadgeDisabled: {backgroundColor: '#9AA5B1'},
   profileName: {
-    marginTop: 12,
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
     color: '#15202B',
   },
   chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: 6,
-    marginTop: 8,
+    marginTop: 6,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   chipOk: {backgroundColor: '#E8F3F1'},
   chipWarn: {backgroundColor: '#FFF4E5'},
@@ -506,7 +516,16 @@ const styles = StyleSheet.create({
   dot: {width: 7, height: 7, borderRadius: 4},
   dotOn: {backgroundColor: '#22C55E'},
   dotOff: {backgroundColor: '#9AA5B1'},
-  editButton: {marginTop: 14, alignSelf: 'stretch'},
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D6E6E3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   detailsCard: {
     marginTop: 12,
     backgroundColor: '#F6F8F8',
