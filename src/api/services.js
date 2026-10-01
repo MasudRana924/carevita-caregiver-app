@@ -386,6 +386,10 @@ export const caregiverService = {
     return apiRequest('/caregiver/profile', 'PUT', formData, true);
   },
 
+  /** Professional fields only; account fields go through accountService. */
+  updateProfessionalProfile: fields =>
+    apiRequest('/caregiver/profile', 'PUT', fields),
+
   getWallet: (params = {}) => {
     const {page, limit, offset} = params;
     return apiRequest(`/caregiver/wallet${toQuery({page, limit, offset})}`, 'GET');
@@ -417,6 +421,24 @@ export const caregiverService = {
     }),
 
   getEkycStatus: () => apiRequest('/caregiver/ekyc/status', 'GET'),
+};
+
+/** Account details shared with the user app: photo, name, gender, DOB, address… */
+export const accountService = {
+  getMe: () => apiRequest('/user/me', 'GET'),
+
+  /** Send only the changed fields. Does not touch photo, email or phone. */
+  updateMe: fields => apiRequest('/user/me', 'PUT', fields),
+
+  updatePhoto: asset => {
+    const form = new FormData();
+    form.append('photo', {
+      uri: asset.uri,
+      name: asset.name || 'avatar.jpg',
+      type: asset.mime || 'image/jpeg',
+    });
+    return apiRequest('/user/me/photo', 'PUT', form, true);
+  },
 };
 
 export const inboxService = {
@@ -643,4 +665,5 @@ export default {
   privacyService,
   conversationService,
   bookingChatService,
+  accountService,
 };

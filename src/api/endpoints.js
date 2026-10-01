@@ -25,6 +25,11 @@ export const ENDPOINTS = {
     PHOTO: "/auth/profile/photo",
   },
 
+  ACCOUNT: {
+    ME: "/user/me",
+    PHOTO: "/user/me/photo",
+  },
+
   CAREGIVER: {
     PROFILE: "/caregiver/profile",
     BOOKINGS: "/caregiver/bookings/my",

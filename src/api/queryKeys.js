@@ -14,6 +14,11 @@ export const queryKeys = {
     current: () => ['userProfile', 'current'],
   },
 
+  account: {
+    all: ['account'],
+    me: () => ['account', 'me'],
+  },
+
   caregiverProfile: {
     all: ['caregiverProfile'],
     current: () => ['caregiverProfile', 'current'],

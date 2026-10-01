@@ -9,259 +9,356 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {launchImageLibrary} from 'react-native-image-picker';
 import Loader from '../components/common/Loader';
 import Header from '../components/common/Header';
 import SearchableDropdown from '../components/common/SearchableDropdown';
 import AppInput from '../components/common/AppInput';
 import AppButton, {AppButtonBar} from '../components/common/AppButton';
 import Toast from '../components/common/Toast';
+import DateOfBirthPicker from '../components/common/DateOfBirthPicker';
 import {bangladeshDistricts} from '../data/bangladeshLocations';
 import {getThanasByDistrict} from '../data/bangladeshThanas';
-import {requestGalleryPermission} from '../utils/permissions';
 import {useAuth} from '../context/AuthContext';
 import {useCaregiverProfile} from '../api/queries';
-import {useUpdateCaregiverProfile} from '../api/mutations';
-import {showError} from '../context/ErrorModalContext';
+import {accountService, caregiverService, unwrapData} from '../api/services';
+import {queryKeys} from '../api/queryKeys';
+import useAccountRefresh from '../hooks/useAccountRefresh';
+import {
+  GENDER_OPTIONS,
+  formatDob,
+  normalizeGenderValue,
+  normalizeYmd,
+} from '../utils/account';
 
 const TEAL = '#0B8A80';
 const PAGE_BG = '#FFFFFF';
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const GENDERS = [
-  {value: 'Female', label: 'Female'},
-  {value: 'Male', label: 'Male'},
-  {value: 'Other', label: 'Other'},
-];
+const MAX_NAME = 255;
+const MAX_ADDRESS = 500;
+const MAX_EMERGENCY = 20;
 
-const normalizeGender = value => {
-  const raw = String(value || '').trim().toUpperCase();
-  if (raw === 'FEMALE' || raw === 'F') {
-    return 'Female';
-  }
-  if (raw === 'MALE' || raw === 'M') {
-    return 'Male';
-  }
-  if (raw === 'OTHER') {
-    return 'Other';
-  }
-  if (value === 'Female' || value === 'Male' || value === 'Other') {
-    return value;
-  }
-  return '';
+const EMPTY_ACCOUNT = {
+  name: '',
+  gender: '',
+  date_of_birth: '',
+  address: '',
+  emergency_contact: '',
 };
 
-/** UI text → API multipart string: "Dhaka" | "Dhaka,Mirpur" */
-const formatServiceAreasForApi = value =>
+const EMPTY_PRO = {
+  district: '',
+  thana: '',
+  bio: '',
+  experience_years: '',
+  hourly_rate: '',
+  education: '',
+  blood_group: '',
+  service_areas: '',
+};
+
+// Checked in order so specific keys win over generic words like "name".
+const ACCOUNT_ERROR_KEYS = [
+  ['date_of_birth', ['date_of_birth', 'date of birth', 'birth']],
+  ['emergency_contact', ['emergency']],
+  ['gender', ['gender']],
+  ['address', ['address']],
+  ['name', ['name']],
+];
+
+const PRO_ERROR_KEYS = [
+  ['hourly_rate', ['hourly_rate', 'hourly rate', 'rate']],
+  ['experience_years', ['experience']],
+  ['blood_group', ['blood']],
+  ['service_areas', ['service_area', 'service area']],
+  ['district', ['district']],
+  ['thana', ['thana']],
+  ['education', ['education']],
+  ['bio', ['bio']],
+];
+
+const toText = value =>
+  value === undefined || value === null ? '' : String(value);
+
+const accountFormFrom = account => ({
+  name: toText(account?.name),
+  gender: normalizeGenderValue(account?.gender),
+  date_of_birth: normalizeYmd(account?.date_of_birth),
+  address: toText(account?.address),
+  emergency_contact: toText(account?.emergency_contact),
+});
+
+const proFormFrom = profile => ({
+  district: toText(profile?.district),
+  thana: toText(profile?.thana),
+  bio: toText(profile?.bio),
+  experience_years: toText(profile?.experience_years),
+  hourly_rate: toText(profile?.hourly_rate),
+  education: toText(profile?.education),
+  blood_group: toText(profile?.blood_group),
+  service_areas: Array.isArray(profile?.service_areas)
+    ? profile.service_areas.join(', ')
+    : toText(profile?.service_areas),
+});
+
+const splitAreas = value =>
   String(value || '')
     .split(',')
     .map(item => item.trim())
-    .filter(Boolean)
-    .join(',');
+    .filter(Boolean);
 
-const EditProfile = ({navigation}) => {
-  const {completeCaregiverProfile, caregiverProfile, user, updateUser} =
-    useAuth();
-  const {data: profileRes, refetch} = useCaregiverProfile();
-  const updateMutation = useUpdateCaregiverProfile();
+const toNumberOrNull = value => {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return null;
+  }
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : raw;
+};
 
-  const existing = useMemo(
-    () => profileRes?.data || caregiverProfile || {},
-    [profileRes?.data, caregiverProfile],
-  );
-
-  const [photo, setPhoto] = useState(null);
-  const [toast, setToast] = useState({
-    visible: false,
-    message: '',
-    type: 'success',
+/** Only changed account fields; cleared optional fields are sent as null. */
+const diffAccount = (form, initial) => {
+  const patch = {};
+  Object.keys(EMPTY_ACCOUNT).forEach(key => {
+    const next = String(form[key] || '').trim();
+    const prev = String(initial[key] || '').trim();
+    if (next !== prev) {
+      patch[key] = next || (key === 'name' ? '' : null);
+    }
   });
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState(null);
-  const [form, setForm] = useState({
-    name: '',
-    district: '',
-    thana: '',
-    bio: '',
-    experience_years: '',
-    hourly_rate: '',
-    education: '',
-    blood_group: '',
-    date_of_birth: '',
-    gender: '',
-    service_areas: '',
-  });
+  return patch;
+};
 
-  useEffect(() => {
-    const resolvedName =
-      existing.name ||
-      existing.full_name ||
-      user?.name ||
-      '';
-    if (!existing?.id && !existing?.district && !resolvedName) {
+const diffPro = (form, initial) => {
+  const patch = {};
+  Object.keys(EMPTY_PRO).forEach(key => {
+    const next = String(form[key] || '').trim();
+    const prev = String(initial[key] || '').trim();
+    if (key === 'service_areas') {
+      if (splitAreas(next).join(',') !== splitAreas(prev).join(',')) {
+        patch.service_areas = splitAreas(next);
+      }
       return;
     }
-    setForm({
-      name: resolvedName,
-      district: existing.district || '',
-      thana: existing.thana || '',
-      bio: existing.bio || '',
-      experience_years:
-        existing.experience_years !== undefined &&
-        existing.experience_years !== null
-          ? String(existing.experience_years)
-          : '',
-      hourly_rate:
-        existing.hourly_rate !== undefined && existing.hourly_rate !== null
-          ? String(existing.hourly_rate)
-          : '',
-      education: existing.education || '',
-      blood_group: existing.blood_group || '',
-      date_of_birth: existing.date_of_birth
-        ? String(existing.date_of_birth).split('T')[0]
-        : '',
-      gender: normalizeGender(existing.gender),
-      service_areas: Array.isArray(existing.service_areas)
-        ? existing.service_areas.join(', ')
-        : existing.service_areas || '',
-    });
-    if (existing.profile_photo) {
-      setPhoto({uri: existing.profile_photo, remote: true});
+    if (next === prev) {
+      return;
     }
-  }, [existing, user?.name]);
+    if (key === 'experience_years' || key === 'hourly_rate') {
+      patch[key] = toNumberOrNull(next);
+    } else {
+      patch[key] = next;
+    }
+  });
+  return patch;
+};
+
+const matchErrorField = (message, table) => {
+  const text = String(message || '').toLowerCase();
+  const hit = table.find(([, words]) => words.some(word => text.includes(word)));
+  return hit ? hit[0] : null;
+};
+
+const EditProfile = ({navigation}) => {
+  const {completeCaregiverProfile} = useAuth();
+  const queryClient = useQueryClient();
+  const refreshAccount = useAccountRefresh();
+  const {refetch: refetchCaregiver} = useCaregiverProfile({enabled: false});
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [account, setAccount] = useState(null);
+  const [hasProSection, setHasProSection] = useState(false);
+  const [initialAccount, setInitialAccount] = useState(EMPTY_ACCOUNT);
+  const [initialPro, setInitialPro] = useState(EMPTY_PRO);
+  const [accountForm, setAccountForm] = useState(EMPTY_ACCOUNT);
+  const [proForm, setProForm] = useState(EMPTY_PRO);
+  const [errors, setErrors] = useState({});
+  const [dobOpen, setDobOpen] = useState(false);
+  const [bloodOpen, setBloodOpen] = useState(false);
+  const [toast, setToast] = useState({visible: false, message: '', type: 'error'});
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const [accountResult, proResult] = await Promise.allSettled([
+        refreshAccount(),
+        refetchCaregiver(),
+      ]);
+      if (!active) {
+        return;
+      }
+      if (accountResult.status === 'fulfilled' && accountResult.value?.id) {
+        const fresh = accountResult.value;
+        const seeded = accountFormFrom(fresh);
+        setAccount(fresh);
+        setInitialAccount(seeded);
+        setAccountForm(seeded);
+      } else {
+        setToast({
+          visible: true,
+          message: accountResult.reason?.message || 'Could not load your account',
+          type: 'error',
+        });
+      }
+      const profile =
+        proResult.status === 'fulfilled' ? proResult.value?.data?.data : null;
+      const proExists =
+        Boolean(profile?.id || profile?.user_id) &&
+        accountResult.value?.caregiver_profile_id !== null;
+      setHasProSection(proExists);
+      if (proExists) {
+        const seededPro = proFormFrom(profile);
+        setInitialPro(seededPro);
+        setProForm(seededPro);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [refreshAccount, refetchCaregiver]);
 
   const thanas = useMemo(
-    () => getThanasByDistrict(form.district),
-    [form.district],
+    () => getThanasByDistrict(proForm.district),
+    [proForm.district],
   );
 
-  const updateField = (key, value) => {
-    setForm(prev => ({
+  const accountPatch = useMemo(
+    () => diffAccount(accountForm, initialAccount),
+    [accountForm, initialAccount],
+  );
+  const proPatch = useMemo(
+    () => (hasProSection ? diffPro(proForm, initialPro) : {}),
+    [hasProSection, proForm, initialPro],
+  );
+  const accountChanged = Object.keys(accountPatch).length > 0;
+  const proChanged = Object.keys(proPatch).length > 0;
+  const hasChanges = accountChanged || proChanged;
+
+  const clearError = key =>
+    setErrors(prev => {
+      if (!prev[key]) {
+        return prev;
+      }
+      const next = {...prev};
+      delete next[key];
+      return next;
+    });
+
+  const setAccountField = (key, value) => {
+    setAccountForm(prev => ({...prev, [key]: value}));
+    clearError(key);
+  };
+
+  const setProField = (key, value) => {
+    setProForm(prev => ({
       ...prev,
       [key]: value,
       ...(key === 'district' ? {thana: ''} : {}),
     }));
+    clearError(key);
   };
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message, type = 'error') =>
     setToast({visible: true, message, type});
-  };
 
-  const openModal = type => {
-    setModalType(type);
-    setModalVisible(true);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-    setModalType(null);
-  };
-
-  const handleSelect = value => {
-    if (modalType === 'blood_group') {
-      updateField('blood_group', value);
-    } else if (modalType === 'gender') {
-      updateField('gender', value);
+  const validate = () => {
+    const next = {};
+    const name = accountForm.name.trim();
+    if (!name) {
+      next.name = 'Name cannot be empty';
+    } else if (name.length > MAX_NAME) {
+      next.name = `Name must be at most ${MAX_NAME} characters`;
     }
-    closeModal();
+    if (accountForm.address.trim().length > MAX_ADDRESS) {
+      next.address = `Address must be at most ${MAX_ADDRESS} characters`;
+    }
+    const emergency = accountForm.emergency_contact.trim();
+    if (emergency && !/^\+?[0-9\s-]+$/.test(emergency)) {
+      next.emergency_contact = 'Enter a valid phone number';
+    }
+    if (hasProSection && proChanged) {
+      if (!proForm.district.trim()) {
+        next.district = 'Please select a district';
+      }
+      if (!proForm.thana.trim()) {
+        next.thana = 'Please select a thana';
+      }
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
-  const handleImagePick = async () => {
-    try {
-      const granted = await requestGalleryPermission();
-      if (!granted) {
-        showError(
-          'Please allow photo library access to update your profile photo.',
-          'Permission required',
-        );
-        return;
-      }
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        quality: 0.8,
-        selectionLimit: 1,
-      });
-      if (result.didCancel) {
-        return;
-      }
-      if (result.errorCode) {
-        showError(result.errorMessage || 'Failed to open image picker');
-        return;
-      }
-      if (result.assets?.[0]?.uri) {
-        setPhoto(result.assets[0]);
-      }
-    } catch (error) {
-      showError('Failed to open image picker');
+  const reportApiError = (error, table) => {
+    const message = error?.message || 'Could not save your profile';
+    const field = matchErrorField(message, table);
+    if (field) {
+      setErrors(prev => ({...prev, [field]: message}));
     }
+    showToast(message);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) {
-      showError('Please enter your name', 'Required');
+    if (!hasChanges || saving || !validate()) {
       return;
     }
-    if (!form.district.trim() || !form.thana.trim()) {
-      showError('Please select district and thana', 'Required');
-      return;
-    }
-
-    // Same shape as backend FormData sample — all text as strings
-    const fields = {
-      name: form.name.trim(),
-      district: form.district.trim(),
-      thana: form.thana.trim(),
-      bio: form.bio.trim() || '',
-      experience_years: String(form.experience_years.trim() ?? ''),
-      hourly_rate: String(form.hourly_rate.trim() ?? ''),
-      education: form.education.trim() || '',
-      blood_group: form.blood_group || '',
-      date_of_birth: form.date_of_birth.trim() || '',
-      gender: normalizeGender(form.gender) || '',
-      // "Dhaka" or "Dhaka,Mirpur"
-      service_areas: formatServiceAreasForApi(form.service_areas) || '',
-    };
-
-    // Only send a newly picked local photo (not existing remote http URL)
-    const imageUri =
-      photo?.uri && !photo.remote && !String(photo.uri).startsWith('http')
-        ? photo.uri
-        : null;
-
-    const photoAsset = imageUri
-      ? {
-          uri: imageUri,
-          type: photo?.type || 'image/jpeg',
-          fileName: photo?.fileName || 'profile.jpg',
-        }
-      : null;
-
+    setSaving(true);
     try {
-      const response = await updateMutation.mutateAsync({
-        fields,
-        photoAsset,
-      });
-      const saved = response?.data || fields;
-      completeCaregiverProfile(saved);
-      if (fields.name) {
-        await updateUser({...(user || {}), name: fields.name});
+      if (accountChanged) {
+        try {
+          await accountService.updateMe(accountPatch);
+          setInitialAccount({...accountForm});
+        } catch (error) {
+          reportApiError(error, ACCOUNT_ERROR_KEYS);
+          return;
+        }
       }
-      await refetch();
-      showToast(response?.message || 'Profile updated successfully');
-      navigation?.goBack();
-    } catch (error) {
-      showError(error?.message || 'Failed to update profile');
+      if (proChanged) {
+        try {
+          await caregiverService.updateProfessionalProfile(proPatch);
+          setInitialPro({...proForm});
+        } catch (error) {
+          reportApiError(error, PRO_ERROR_KEYS);
+          return;
+        }
+      }
+
+      await refreshAccount().catch(() => {});
+      if (proChanged) {
+        const res = await refetchCaregiver();
+        const profile = unwrapData(res?.data);
+        if (profile?.id || profile?.user_id) {
+          completeCaregiverProfile(profile);
+        }
+      }
+      queryClient.invalidateQueries({queryKey: queryKeys.caregiverProfile.all});
+      navigation.navigate({
+        name: 'Main',
+        params: {screen: 'Profile', params: {toast: 'Profile updated'}},
+        merge: true,
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const saving = updateMutation.isPending;
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+        <Header title="Edit Profile" onBack={() => navigation?.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={TEAL} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
       <Loader visible={saving} overlay />
       <Header title="Edit Profile" onBack={() => navigation?.goBack()} />
       <KeyboardAvoidingView
@@ -272,136 +369,217 @@ const EditProfile = ({navigation}) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.photoCard}
-            onPress={handleImagePick}>
-            <View style={styles.photoCircle}>
-              {photo?.uri ? (
-                <Image source={{uri: photo.uri}} style={styles.photo} />
-              ) : (
-                <Icon name="camera-outline" size={26} color={TEAL} />
-              )}
-              <View style={styles.pencilBadge}>
-                <Icon name="pencil" size={10} color="#FFFFFF" />
+          <View style={styles.photoWrap}>
+            {account?.profile_photo ? (
+              <Image source={{uri: account.profile_photo}} style={styles.photo} />
+            ) : (
+              <View style={[styles.photo, styles.photoFallback]}>
+                <Icon name="person" size={36} color={TEAL} />
               </View>
-            </View>
-          </TouchableOpacity>
+            )}
+            <Text style={styles.photoHint}>
+              Change your photo from the camera icon on your Profile.
+            </Text>
+          </View>
+
+          <SectionTitle title="Account details" />
 
           <AppInput
             label="Name *"
             icon="person-outline"
-            value={form.name}
-            onChangeText={text => updateField('name', text)}
+            value={accountForm.name}
+            onChangeText={text => setAccountField('name', text)}
             placeholder="Enter full name"
             autoCapitalize="words"
+            maxLength={MAX_NAME}
           />
-
-          <SearchableDropdown
-            label="District *"
-            data={bangladeshDistricts}
-            value={form.district}
-            onSelect={value => updateField('district', value)}
-            placeholder="Select district"
-            containerStyle={styles.dropdown}
-          />
-
-          <SearchableDropdown
-            label="Thana *"
-            data={thanas}
-            value={form.thana}
-            onSelect={value => updateField('thana', value)}
-            placeholder={
-              form.district ? 'Select thana' : 'Select district first'
-            }
-            containerStyle={styles.dropdown}
-          />
-
-          <AppInput
-            label="Hourly rate (BDT)"
-            icon="cash-outline"
-            value={form.hourly_rate}
-            onChangeText={text =>
-              updateField('hourly_rate', text.replace(/[^0-9.]/g, ''))
-            }
-            placeholder="e.g. 250"
-            keyboardType="numeric"
-          />
-
-          <AppInput
-            label="Bio"
-            icon="document-text-outline"
-            value={form.bio}
-            onChangeText={text => updateField('bio', text)}
-            placeholder="Short introduction about your caregiving experience"
-            multiline
-          />
-
-          <AppInput
-            label="Experience (years)"
-            icon="briefcase-outline"
-            value={form.experience_years}
-            onChangeText={text =>
-              updateField('experience_years', text.replace(/[^0-9]/g, ''))
-            }
-            placeholder="e.g. 5"
-            keyboardType="numeric"
-          />
-
-          <AppInput
-            label="Service areas"
-            icon="map-outline"
-            value={form.service_areas}
-            onChangeText={text => updateField('service_areas', text)}
-            placeholder="Dhaka or Dhaka,Mirpur"
-          />
-
-          <AppInput
-            label="Education"
-            icon="school-outline"
-            value={form.education}
-            onChangeText={text => updateField('education', text)}
-            placeholder="e.g. HSC, caregiving certificate"
-          />
-
-          <FieldLabel icon="water-outline" label="Blood group" />
-          <TouchableOpacity
-            style={styles.selectorField}
-            onPress={() => openModal('blood_group')}>
-            <View style={styles.selectorContent}>
-              <Text style={styles.selectorValue}>
-                {form.blood_group || 'Select blood group'}
-              </Text>
-              <Icon name="chevron-down" size={20} color="#8A97A6" />
-            </View>
-          </TouchableOpacity>
-
-          <AppInput
-            label="Date of birth"
-            icon="calendar-outline"
-            value={form.date_of_birth}
-            onChangeText={text => updateField('date_of_birth', text)}
-            placeholder="YYYY-MM-DD"
-          />
+          <FieldError message={errors.name} />
 
           <FieldLabel icon="male-female-outline" label="Gender" />
-          <TouchableOpacity
-            style={styles.selectorField}
-            onPress={() => openModal('gender')}>
+          <View style={styles.segment}>
+            {GENDER_OPTIONS.map(option => {
+              const active = accountForm.gender === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  activeOpacity={0.85}
+                  onPress={() => setAccountField('gender', active ? '' : option.value)}
+                  style={[styles.segmentItem, active && styles.segmentItemActive]}>
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <FieldError message={errors.gender} />
+
+          <FieldLabel icon="calendar-outline" label="Date of birth" />
+          <TouchableOpacity style={styles.selectorField} onPress={() => setDobOpen(true)}>
             <View style={styles.selectorContent}>
-              <Text style={styles.selectorValue}>
-                {form.gender || 'Select gender'}
+              <Text
+                style={[
+                  styles.selectorValue,
+                  !accountForm.date_of_birth && styles.selectorPlaceholder,
+                ]}>
+                {formatDob(accountForm.date_of_birth) || 'Select date of birth'}
               </Text>
-              <Icon name="chevron-down" size={20} color="#8A97A6" />
+              <Icon name="calendar-outline" size={18} color="#8A97A6" />
             </View>
           </TouchableOpacity>
+          <FieldError message={errors.date_of_birth} />
+
+          <AppInput
+            label="Address"
+            icon="home-outline"
+            value={accountForm.address}
+            onChangeText={text => setAccountField('address', text)}
+            placeholder="House, road, area"
+            multiline
+            maxLength={MAX_ADDRESS}
+          />
+          <FieldError message={errors.address} />
+
+          <AppInput
+            label="Emergency contact"
+            icon="call-outline"
+            value={accountForm.emergency_contact}
+            onChangeText={text => setAccountField('emergency_contact', text)}
+            placeholder="01XXXXXXXXX"
+            keyboardType="phone-pad"
+            maxLength={MAX_EMERGENCY}
+          />
+          <FieldError message={errors.emergency_contact} />
+
+          <AppInput
+            label="Email"
+            icon="mail-outline"
+            value={toText(account?.email)}
+            editable={false}
+            placeholder="Not set"
+            inputRowStyle={styles.readOnly}
+            inputStyle={styles.readOnlyText}
+            rightIcon="lock-closed-outline"
+          />
+          <AppInput
+            label="Phone"
+            icon="phone-portrait-outline"
+            value={toText(account?.phone)}
+            editable={false}
+            placeholder="Not set"
+            inputRowStyle={styles.readOnly}
+            inputStyle={styles.readOnlyText}
+            rightIcon="lock-closed-outline"
+          />
+
+          {hasProSection ? (
+            <>
+              <SectionTitle title="Professional details" />
+
+              <SearchableDropdown
+                label="District *"
+                data={bangladeshDistricts}
+                value={proForm.district}
+                onSelect={value => setProField('district', value)}
+                placeholder="Select district"
+                containerStyle={styles.dropdown}
+              />
+              <FieldError message={errors.district} />
+
+              <SearchableDropdown
+                label="Thana *"
+                data={thanas}
+                value={proForm.thana}
+                onSelect={value => setProField('thana', value)}
+                placeholder={proForm.district ? 'Select thana' : 'Select district first'}
+                containerStyle={styles.dropdown}
+              />
+              <FieldError message={errors.thana} />
+
+              <AppInput
+                label="Hourly rate (BDT)"
+                icon="cash-outline"
+                value={proForm.hourly_rate}
+                onChangeText={text => setProField('hourly_rate', text.replace(/[^0-9.]/g, ''))}
+                placeholder="e.g. 250"
+                keyboardType="numeric"
+              />
+              <FieldError message={errors.hourly_rate} />
+
+              <AppInput
+                label="Bio"
+                icon="document-text-outline"
+                value={proForm.bio}
+                onChangeText={text => setProField('bio', text)}
+                placeholder="Short introduction about your caregiving experience"
+                multiline
+              />
+              <FieldError message={errors.bio} />
+
+              <AppInput
+                label="Experience (years)"
+                icon="briefcase-outline"
+                value={proForm.experience_years}
+                onChangeText={text =>
+                  setProField('experience_years', text.replace(/[^0-9]/g, ''))
+                }
+                placeholder="e.g. 5"
+                keyboardType="numeric"
+              />
+              <FieldError message={errors.experience_years} />
+
+              <AppInput
+                label="Service areas"
+                icon="map-outline"
+                value={proForm.service_areas}
+                onChangeText={text => setProField('service_areas', text)}
+                placeholder="Dhaka, Mirpur"
+              />
+              <FieldError message={errors.service_areas} />
+
+              <AppInput
+                label="Education"
+                icon="school-outline"
+                value={proForm.education}
+                onChangeText={text => setProField('education', text)}
+                placeholder="e.g. HSC, caregiving certificate"
+              />
+              <FieldError message={errors.education} />
+
+              <FieldLabel icon="water-outline" label="Blood group" />
+              <TouchableOpacity style={styles.selectorField} onPress={() => setBloodOpen(true)}>
+                <View style={styles.selectorContent}>
+                  <Text
+                    style={[
+                      styles.selectorValue,
+                      !proForm.blood_group && styles.selectorPlaceholder,
+                    ]}>
+                    {proForm.blood_group || 'Select blood group'}
+                  </Text>
+                  <Icon name="chevron-down" size={20} color="#8A97A6" />
+                </View>
+              </TouchableOpacity>
+              <FieldError message={errors.blood_group} />
+            </>
+          ) : account?.caregiver_profile_id === null ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.setupCard}
+              onPress={() => navigation?.navigate('CaregiverProfile', {mode: 'setup'})}>
+              <Icon name="alert-circle-outline" size={20} color="#D97706" />
+              <Text style={styles.setupText}>
+                Complete your caregiver profile to add your rate, area and experience.
+              </Text>
+              <Icon name="chevron-forward" size={18} color="#D97706" />
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
 
         <AppButtonBar>
           <AppButton
-            title="Save changes"
+            title="Save"
             onPress={handleSave}
-            disabled={saving}
+            disabled={!hasChanges || saving}
             style={styles.flexBtn}
           />
         </AppButtonBar>
@@ -414,58 +592,47 @@ const EditProfile = ({navigation}) => {
         onHide={() => setToast(prev => ({...prev, visible: false}))}
       />
 
+      <DateOfBirthPicker
+        visible={dobOpen}
+        value={accountForm.date_of_birth}
+        onClose={() => setDobOpen(false)}
+        onChange={value => setAccountField('date_of_birth', value)}
+      />
+
       <Modal
-        visible={modalVisible}
+        visible={bloodOpen}
         transparent
         animationType="slide"
-        onRequestClose={closeModal}>
+        onRequestClose={() => setBloodOpen(false)}>
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={closeModal}>
+          onPress={() => setBloodOpen(false)}>
           <SafeAreaView style={styles.bottomSheetContainer} edges={['bottom']}>
             <View style={styles.bottomSheet}>
               <View style={styles.bottomSheetHandle} />
-              <Text style={styles.bottomSheetTitle}>
-                {modalType === 'blood_group' ? 'Select Blood Group' : 'Select Gender'}
-              </Text>
+              <Text style={styles.bottomSheetTitle}>Select Blood Group</Text>
               <ScrollView style={styles.optionsList}>
-                {modalType === 'blood_group' &&
-                  BLOOD_GROUPS.map(group => (
-                    <TouchableOpacity
-                      key={group}
-                      style={styles.optionItem}
-                      onPress={() => handleSelect(group)}>
-                      <Text
-                        style={[
-                          styles.optionText,
-                          form.blood_group === group && styles.optionTextActive,
-                        ]}>
-                        {group}
-                      </Text>
-                      {form.blood_group === group && (
-                        <Icon name="checkmark" size={20} color={TEAL} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                {modalType === 'gender' &&
-                  GENDERS.map(item => (
-                    <TouchableOpacity
-                      key={item.value}
-                      style={styles.optionItem}
-                      onPress={() => handleSelect(item.value)}>
-                      <Text
-                        style={[
-                          styles.optionText,
-                          form.gender === item.value && styles.optionTextActive,
-                        ]}>
-                        {item.label}
-                      </Text>
-                      {form.gender === item.value && (
-                        <Icon name="checkmark" size={20} color={TEAL} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                {BLOOD_GROUPS.map(group => (
+                  <TouchableOpacity
+                    key={group}
+                    style={styles.optionItem}
+                    onPress={() => {
+                      setProField('blood_group', group);
+                      setBloodOpen(false);
+                    }}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        proForm.blood_group === group && styles.optionTextActive,
+                      ]}>
+                      {group}
+                    </Text>
+                    {proForm.blood_group === group && (
+                      <Icon name="checkmark" size={20} color={TEAL} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </ScrollView>
             </View>
           </SafeAreaView>
@@ -475,6 +642,8 @@ const EditProfile = ({navigation}) => {
   );
 };
 
+const SectionTitle = ({title}) => <Text style={styles.sectionTitle}>{title}</Text>;
+
 const FieldLabel = ({icon, label}) => (
   <View style={styles.labelRow}>
     <Icon name={icon} size={14} color="#8A97A6" />
@@ -482,47 +651,27 @@ const FieldLabel = ({icon, label}) => (
   </View>
 );
 
+const FieldError = ({message}) =>
+  message ? <Text style={styles.fieldError}>{message}</Text> : null;
+
 export default EditProfile;
 
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: PAGE_BG},
   flex: {flex: 1},
+  center: {flex: 1, alignItems: 'center', justifyContent: 'center'},
   scrollContent: {paddingHorizontal: 16, paddingBottom: 24},
-  photoCard: {
-    // backgroundColor: '#E7F6F3',
-    // borderRadius: 26,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 18,
-    alignSelf: 'center',
+  photoWrap: {alignItems: 'center', paddingVertical: 12},
+  photo: {width: 88, height: 88, borderRadius: 44, backgroundColor: '#E8F3F1'},
+  photoFallback: {alignItems: 'center', justifyContent: 'center'},
+  photoHint: {marginTop: 8, fontSize: 12, color: '#8A97A6', textAlign: 'center'},
+  sectionTitle: {
+    marginTop: 14,
+    marginBottom: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#15202B',
   },
-  photoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photo: {width: 100, height: 100, borderRadius: 50},
-  pencilBadge: {
-    position: 'absolute',
-    right: -2,
-    bottom: -1,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: TEAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#E7F6F3',
-  },
-  photoCopy: {flex: 1},
-  photoTitle: {fontSize: 15, fontWeight: '800', color: '#15202B'},
-  photoHint: {marginTop: 3, fontSize: 12, color: '#6F7F8C'},
   dropdown: {marginBottom: 8},
   labelRow: {
     flexDirection: 'row',
@@ -531,11 +680,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#15202B',
+  label: {fontSize: 13, fontWeight: '700', color: '#15202B'},
+  fieldError: {
+    marginTop: -2,
+    marginBottom: 8,
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '500',
   },
+  segment: {flexDirection: 'row', gap: 8, marginBottom: 8},
+  segmentItem: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E3E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  segmentItemActive: {borderColor: TEAL, backgroundColor: '#E7F6F4'},
+  segmentText: {fontSize: 14, fontWeight: '600', color: '#4A5568'},
+  segmentTextActive: {color: TEAL, fontWeight: '800'},
+  readOnly: {backgroundColor: '#F4F6F8'},
+  readOnlyText: {color: '#8A97A6'},
   selectorField: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -549,20 +717,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 14,
   },
-  selectorValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#15202B',
+  selectorValue: {fontSize: 15, fontWeight: '600', color: '#15202B'},
+  selectorPlaceholder: {color: '#9AA5B1', fontWeight: '500'},
+  setupCard: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFF4E5',
   },
+  setupText: {flex: 1, fontSize: 13, color: '#92400E', fontWeight: '600'},
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  bottomSheetContainer: {
-    paddingHorizontal: 15,
-    paddingBottom: 20,
-  },
+  bottomSheetContainer: {paddingHorizontal: 15, paddingBottom: 20},
   bottomSheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
@@ -586,9 +758,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 8,
   },
-  optionsList: {
-    paddingHorizontal: 20,
-  },
+  optionsList: {paddingHorizontal: 20},
   optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -597,13 +767,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  optionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  optionTextActive: {
-    color: TEAL,
-  },
+  optionText: {fontSize: 16, fontWeight: '600', color: '#374151'},
+  optionTextActive: {color: TEAL},
   flexBtn: {flex: 1},
 });

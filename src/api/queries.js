@@ -14,6 +14,7 @@ import {
   notificationPreferenceService,
   privacyService,
   conversationService,
+  accountService,
 } from './services';
 import {queryKeys} from './queryKeys';
 
@@ -21,6 +22,15 @@ export const useUserProfile = (options = {}) => {
   return useQuery({
     queryKey: queryKeys.userProfile.current(),
     queryFn: () => authService.getAuthProfile(),
+    ...options,
+  });
+};
+
+export const useMyAccount = (options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.account.me(),
+    queryFn: () => accountService.getMe(),
+    staleTime: 0,
     ...options,
   });
 };
@@ -195,6 +205,7 @@ export const useConversationUnreadCount = (options = {}) => {
 
 export default {
   useUserProfile,
+  useMyAccount,
   useCaregiverProfile,
   useBookings,
   useBookingDetails,
