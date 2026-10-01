@@ -9,12 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Loader from '../components/common/Loader';
+import EditProfileSkeleton from '../components/home/EditProfileSkeleton';
 import Header from '../components/common/Header';
 import SearchableDropdown from '../components/common/SearchableDropdown';
 import AppInput from '../components/common/AppInput';
@@ -303,7 +303,8 @@ const EditProfile = ({navigation}) => {
     if (field) {
       setErrors(prev => ({...prev, [field]: message}));
     }
-    showError(message);
+    // iOS drops a modal presented while the saving loader modal is still dismissing.
+    setTimeout(() => showError(message), 350);
   };
 
   const handleSave = async () => {
@@ -354,9 +355,9 @@ const EditProfile = ({navigation}) => {
     return (
       <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <Header title="Edit Profile" onBack={() => navigation?.goBack()} />
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={TEAL} />
-        </View>
+        <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={false}>
+          <EditProfileSkeleton />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -667,7 +668,6 @@ export default EditProfile;
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: PAGE_BG},
   flex: {flex: 1},
-  center: {flex: 1, alignItems: 'center', justifyContent: 'center'},
   scrollContent: {paddingHorizontal: 16, paddingBottom: 24},
   photoWrap: {alignItems: 'center', paddingVertical: 12},
   photo: {width: 88, height: 88, borderRadius: 44, backgroundColor: '#E8F3F1'},

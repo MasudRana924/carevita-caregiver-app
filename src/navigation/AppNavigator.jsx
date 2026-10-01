@@ -13,6 +13,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 import {useAuth} from '../context/AuthContext';
 import {useInboxUnreadCount} from '../api/queries';
+import {TAB_BAR_HEIGHT, TAB_BAR_OFFSET} from '../hooks/useTabBarSpace';
 
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -47,7 +48,9 @@ function FloatingTabBar(props) {
   const tabBarWidth = Math.round(windowWidth * 0.9);
 
   return (
-    <View pointerEvents="box-none" style={[styles.tabBarHost, {bottom: insets.bottom + 16}]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.tabBarHost, {bottom: insets.bottom + TAB_BAR_OFFSET}]}>
       <View style={[styles.tabBarShell, styles.glassEffect, {width: tabBarWidth}]}>
         <BottomTabBar {...props} style={styles.tabBarInner} />
       </View>
@@ -243,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabBarShell: {
-    height: 70,
+    height: TAB_BAR_HEIGHT,
     borderRadius: 35,
     backgroundColor: 'rgba(243, 248, 246, 0.9)',
     borderWidth: 1,

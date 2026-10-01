@@ -8,7 +8,6 @@ import {
   Pressable,
   Image,
   Modal,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -36,7 +35,9 @@ import {
   requestGalleryPermission,
 } from '../utils/permissions';
 import useAccountRefresh from '../hooks/useAccountRefresh';
+import useTabBarSpace from '../hooks/useTabBarSpace';
 import Header from '../components/common/Header';
+import Loader from '../components/common/Loader';
 import StatusModal from '../components/common/StatusModal';
 import LogoutConfirmModal from '../components/common/LogoutConfirmModal';
 
@@ -98,6 +99,7 @@ const ProfileScreen = ({navigation, route}) => {
   const {logout, user, isEkycVerified} = useAuth();
   const queryClient = useQueryClient();
   const refreshAccount = useAccountRefresh();
+  const tabBarSpace = useTabBarSpace();
   const {data: accountRes} = useMyAccount({enabled: false});
   const {data: caregiverData, refetch: refetchCaregiver} = useCaregiverProfile();
   const {data: supportUnreadData} = useConversationUnreadCount();
@@ -184,20 +186,23 @@ const ProfileScreen = ({navigation, route}) => {
       return;
     }
     setUploading(true);
+    let result;
     try {
       await accountService.updatePhoto(file);
       await refreshAccount();
       queryClient.invalidateQueries({queryKey: queryKeys.caregiverProfile.all});
-      showStatus('success', 'Profile photo updated', 'Families will see your new photo.');
+      result = ['success', 'Profile photo updated', 'Families will see your new photo.'];
     } catch (uploadError) {
-      showStatus(
+      result = [
         'error',
         'Photo not uploaded',
         uploadError?.message || 'Could not update photo',
-      );
+      ];
     } finally {
       setUploading(false);
     }
+    // iOS drops a modal presented while the loader modal is still dismissing.
+    setTimeout(() => showStatus(...result), 350);
   };
 
   const pickPhoto = async source => {
@@ -237,11 +242,12 @@ const ProfileScreen = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+      <Loader visible={uploading} overlay />
       <Header title="Profile" showBack={false} leftIcon="person-outline" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, {paddingBottom: tabBarSpace}]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -259,11 +265,6 @@ const ProfileScreen = ({navigation, route}) => {
                 <Text style={styles.avatarText}>{getInitials(account.name)}</Text>
               </View>
             )}
-            {uploading ? (
-              <View style={styles.avatarScrim}>
-                <ActivityIndicator color="#FFFFFF" />
-              </View>
-            ) : null}
             <TouchableOpacity
               activeOpacity={0.85}
               style={[styles.editBadge, uploading && styles.editBadgeDisabled]}
@@ -464,13 +465,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F3F1',
   },
   avatarText: {fontSize: 22, fontWeight: '800', color: '#FFFFFF'},
-  avatarScrim: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: AVATAR / 2,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   editBadge: {
     position: 'absolute',
     right: 0,

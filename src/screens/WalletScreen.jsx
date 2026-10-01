@@ -14,6 +14,7 @@ import Loader from '../components/common/Loader';
 import WalletSkeleton from '../components/wallet/WalletSkeleton';
 import {useWallet, useWithdrawals} from '../api/queries';
 import {unwrapList} from '../api/envelope';
+import useTabBarSpace from '../hooks/useTabBarSpace';
 
 const formatAmount = value => {
   const num = Number(value);
@@ -58,6 +59,7 @@ const getWithdrawalMeta = item => {
 
 const WalletScreen = ({navigation, route}) => {
   const showBack = route?.params?.showBack === true;
+  const tabBarSpace = useTabBarSpace();
   const [showBalance, setShowBalance] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
 
@@ -96,7 +98,9 @@ const WalletScreen = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={showBack ? ['bottom', 'left', 'right'] : ['left', 'right']}>
       <Header
         title="Wallet"
         showBack={showBack}
@@ -108,10 +112,8 @@ const WalletScreen = ({navigation, route}) => {
       {isLoading ? (
         <WalletSkeleton />
       ) : (
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
+      <>
+      <View style={styles.stickyCard}>
         <View style={styles.balanceCard}>
           <LinearGradient
             colors={['#0A8F82', '#067A6E', '#045F56']}
@@ -174,7 +176,15 @@ const WalletScreen = ({navigation, route}) => {
             </TouchableOpacity>
           </LinearGradient>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={[
+          styles.content,
+          !showBack && {paddingBottom: tabBarSpace},
+        ]}
+        showsVerticalScrollIndicator={false}>
         {withdrawals.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Withdrawals</Text>
@@ -285,6 +295,7 @@ const WalletScreen = ({navigation, route}) => {
           })
         )}
       </ScrollView>
+      </>
       )}
     </SafeAreaView>
   );
@@ -295,10 +306,10 @@ export default WalletScreen;
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: '#FFFFFF'},
   flex: {flex: 1},
-  content: {paddingHorizontal: 16, paddingBottom: 28},
+  content: {paddingHorizontal: 16, paddingTop: 14, paddingBottom: 28},
+  stickyCard: {paddingHorizontal: 16, paddingBottom: 8, backgroundColor: '#FFFFFF'},
   balanceCard: {
     borderRadius: 22,
-    marginBottom: 22,
     overflow: 'hidden',
   },
   balanceGradient: {

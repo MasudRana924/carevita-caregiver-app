@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HomeHeader from '../components/home/HomeHeader';
 import Loader from '../components/common/Loader';
+import useTabBarSpace from '../hooks/useTabBarSpace';
 import AppInput from '../components/common/AppInput';
 import AppButton from '../components/common/AppButton';
 import { useAuth } from '../context/AuthContext';
@@ -159,6 +160,7 @@ const getStatusMeta = status => {
 
 const HomeScreen = ({ navigation }) => {
   const { completeCaregiverProfile } = useAuth();
+  const tabBarSpace = useTabBarSpace();
   const profileQuery = useCaregiverProfile();
   const assignedQuery = useBookings({ status: 'PROVIDER_ASSIGNED', limit: 20 });
   const allQuery = useBookings({ limit: 20 });
@@ -384,7 +386,7 @@ const HomeScreen = ({ navigation }) => {
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, {paddingBottom: tabBarSpace}]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>

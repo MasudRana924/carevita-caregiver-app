@@ -18,6 +18,7 @@ import {useAcceptBooking, useRejectBooking, useStartBooking, useCompleteBooking}
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import BookingSkeleton from '../components/home/BookingSkeleton';
 import Loader from '../components/common/Loader';
+import useTabBarSpace from '../hooks/useTabBarSpace';
 import Header from '../components/common/Header';
 import Toast from '../components/common/Toast';
 import AppInput from '../components/common/AppInput';
@@ -170,6 +171,7 @@ const countByStatus = (list, key) => {
 };
 
 const BookingsScreen = ({navigation, route}) => {
+  const tabBarSpace = useTabBarSpace();
   const initialStatus = route?.params?.status || '';
   const [status, setStatus] = useState(initialStatus);
   const [rejectId, setRejectId] = useState(null);
@@ -347,7 +349,7 @@ const BookingsScreen = ({navigation, route}) => {
     completeBooking.isPending;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <Loader visible={busy} overlay />
       <Toast
         visible={toast.visible}
@@ -398,7 +400,7 @@ const BookingsScreen = ({navigation, route}) => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, {paddingBottom: tabBarSpace}]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />

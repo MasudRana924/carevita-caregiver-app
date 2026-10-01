@@ -12,6 +12,7 @@ import {useNotifications, useInboxUnreadCount} from '../api/queries';
 import {useMarkAllInboxRead} from '../api/mutations';
 import Header from '../components/common/Header';
 import Loader from '../components/common/Loader';
+import useTabBarSpace from '../hooks/useTabBarSpace';
 import NotificationSkeleton from '../components/home/NotificationSkeleton';
 import {apiRequest} from '../services/api';
 import {unwrapList} from '../api/envelope';
@@ -23,6 +24,7 @@ import {
 import {showError} from '../context/ErrorModalContext';
 
 const InboxScreen = ({navigation}) => {
+  const tabBarSpace = useTabBarSpace();
   const {data: notificationsData, isLoading, refetch} = useNotifications({
     page: 1,
     limit: 20,
@@ -123,7 +125,7 @@ const InboxScreen = ({navigation}) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <Loader visible={markAll.isPending} overlay />
       <Header
         title="Inbox"
@@ -151,7 +153,7 @@ const InboxScreen = ({navigation}) => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, {paddingBottom: tabBarSpace}]}
         showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <NotificationSkeleton />
