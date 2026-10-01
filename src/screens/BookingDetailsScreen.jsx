@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,18 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useBookingDetails, useBookingDisputes } from '../api/queries';
+import { queryKeys } from '../api/queryKeys';
+import { PersonAvatar } from '../components/chat/ChatParts';
+import {
+  bookingChatStore,
+  endBookingChat,
+  messagePreview,
+  useBookingChatUnread,
+} from '../utils/bookingChat';
 import {
   useAcceptBooking,
   useRejectBooking,
@@ -39,6 +49,7 @@ import { showAlert } from '../context/AlertModalContext';
 import {
   stopLiveTracking,
   resumeLiveTrackingIfNeeded,
+  ensureRealtimeSocket,
 } from '../services/liveTrackingService';
 import {
   runStartBookingFlow,
@@ -59,7 +70,12 @@ const STATUS_STYLES = {
 };
 
 const BookingDetailsScreen = ({ navigation, route }) => {
-  const { bookingId, offerExpiresAt: routeOfferExpiresAt } = route.params || {};
+  const {
+    bookingId,
+    offerExpiresAt: routeOfferExpiresAt,
+    openChat,
+  } = route.params || {};
+  const queryClient = useQueryClient();
   const { data: bookingData, isLoading, refetch } = useBookingDetails(bookingId);
   const acceptBooking = useAcceptBooking();
   const rejectBooking = useRejectBooking();
@@ -88,6 +104,56 @@ const BookingDetailsScreen = ({ navigation, route }) => {
     type: 'error',
   });
   const offerExpiredHandled = useRef(false);
+
+  const canChat = booking?.can_chat === true;
+  const chat = canChat ? booking?.chat || null : null;
+  const chatUnread = useBookingChatUnread(bookingId);
+  const serverUnread = chat?.unread_count;
+  const canChatRef = useRef(canChat);
+  canChatRef.current = canChat;
+
+  useEffect(() => {
+    if (!bookingId) {
+      return;
+    }
+    if (!canChat) {
+      bookingChatStore.clear(bookingId);
+      return;
+    }
+    ensureRealtimeSocket().catch(() => {});
+    if (serverUnread != null && !bookingChatStore.isFocused(bookingId)) {
+      bookingChatStore.setUnread(bookingId, serverUnread);
+    }
+  }, [bookingId, canChat, serverUnread]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (canChatRef.current) {
+        refetch();
+      }
+    }, [refetch]),
+  );
+
+  const openChatScreen = useCallback(() => {
+    navigation?.navigate('BookingChat', { bookingId });
+  }, [bookingId, navigation]);
+
+  useEffect(() => {
+    if (!openChat || !bookingId) {
+      return;
+    }
+    navigation?.setParams({ openChat: undefined });
+    const cached = queryClient.getQueryData(queryKeys.bookings.detail(bookingId));
+    if (cached?.data?.can_chat === true) {
+      openChatScreen();
+      return;
+    }
+    refetch().then(result => {
+      if (result?.data?.data?.can_chat === true && navigation?.isFocused()) {
+        openChatScreen();
+      }
+    });
+  }, [openChat, bookingId, navigation, openChatScreen, queryClient, refetch]);
 
   const canRespondStatus = booking?.status === 'PROVIDER_ASSIGNED';
   const nowTs = useNowTick(
@@ -246,10 +312,16 @@ const BookingDetailsScreen = ({ navigation, route }) => {
     (async () => {
       setStarting(true);
       try {
-        await runStartBookingFlow({
+        const response = await runStartBookingFlow({
           bookingId,
           startBookingMutate: vars => startBooking.mutateAsync(vars),
         });
+        const started = response?.data;
+        if (started?.id) {
+          queryClient.setQueryData(queryKeys.bookings.detail(bookingId), prev =>
+            prev?.data ? { ...prev, data: { ...prev.data, ...started } } : prev,
+          );
+        }
         refetch();
       } catch (error) {
         const info = explainStartError(error);
@@ -265,30 +337,35 @@ const BookingDetailsScreen = ({ navigation, route }) => {
       showError('You can end the service when the booked time is over.');
       return;
     }
-    showAlert('End service', 'Mark this booking as completed?', [
-      { text: 'Not now', style: 'cancel' },
-      {
-        text: 'End',
-        onPress: async () => {
-          try {
-            await stopLiveTracking();
-            const response = await completeBooking.mutateAsync(bookingId);
-            const earning =
-              response?.data?.caregiver_earning ??
-              response?.caregiver_earning;
-            showAlert(
-              'Completed',
-              earning != null
-                ? `Service completed. ৳${earning} is now in your wallet.`
-                : 'Service completed. Earnings settled to your wallet.',
-            );
-            refetch();
-          } catch (error) {
-            showError(error?.message || 'Failed to complete booking');
-          }
+    showAlert(
+      'End service',
+      'Ending the service will close the chat and delete all messages.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'End',
+          onPress: async () => {
+            try {
+              await stopLiveTracking();
+              const response = await completeBooking.mutateAsync(bookingId);
+              endBookingChat(queryClient, bookingId);
+              const earning =
+                response?.data?.caregiver_earning ??
+                response?.caregiver_earning;
+              showAlert(
+                'Completed',
+                earning != null
+                  ? `Service completed. ৳${earning} is now in your wallet.`
+                  : 'Service completed. Earnings settled to your wallet.',
+              );
+              refetch();
+            } catch (error) {
+              showError(error?.message || 'Failed to complete booking');
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleAccept = () => {
@@ -609,6 +686,15 @@ const BookingDetailsScreen = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
+      {canChat && (
+        <ChatCard
+          chat={chat}
+          unread={chatUnread}
+          fallbackName={customerName}
+          onPress={openChatScreen}
+        />
+      )}
+
       {(canRespondStatus ||
         canCancel ||
         showStart ||
@@ -741,9 +827,71 @@ const BookingDetailsScreen = ({ navigation, route }) => {
   );
 };
 
+function ChatCard({ chat, unread, fallbackName, onPress }) {
+  const name = chat?.counterpart?.name || fallbackName || 'Customer';
+  const last = chat?.last_message;
+  const preview = last
+    ? `${String(last.sender_role || '').toUpperCase() === 'CAREGIVER' ? 'You: ' : ''}${
+        messagePreview(last) || 'Attachment'
+      }`
+    : `Send ${name} an update`;
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={styles.chatCard}
+      accessibilityLabel="Chat with customer">
+      <PersonAvatar photo={chat?.counterpart?.photo} name={name} size={44} />
+      <View style={styles.chatCopy}>
+        <Text style={styles.chatTitle} numberOfLines={1}>
+          Chat with customer · {name}
+        </Text>
+        <Text
+          style={[styles.chatPreview, unread > 0 && styles.chatPreviewUnread]}
+          numberOfLines={1}>
+          {preview}
+        </Text>
+      </View>
+      {unread > 0 ? (
+        <View style={styles.chatBadge}>
+          <Text style={styles.chatBadgeText}>{unread > 99 ? '99+' : unread}</Text>
+        </View>
+      ) : (
+        <Icon name="chatbubble-ellipses-outline" size={22} color="#008178" />
+      )}
+    </TouchableOpacity>
+  );
+}
+
 export default BookingDetailsScreen;
 
 const styles = StyleSheet.create({
+  chatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 20,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: '#E6F4F3',
+    borderWidth: 1,
+    borderColor: '#CFE7E4',
+  },
+  chatCopy: { flex: 1, minWidth: 0 },
+  chatTitle: { fontSize: 14, fontWeight: '700', color: '#111820' },
+  chatPreview: { marginTop: 3, fontSize: 13, color: '#4A5568' },
+  chatPreviewUnread: { color: '#111820', fontWeight: '600' },
+  chatBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: '#E34242',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },

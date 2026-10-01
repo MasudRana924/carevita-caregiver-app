@@ -10,8 +10,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useBookings} from '../api/queries';
+import {endBookingChat, useBookingChatUnread} from '../utils/bookingChat';
 import {useAcceptBooking, useRejectBooking, useStartBooking, useCompleteBooking} from '../api/mutations';
 import {unwrapList, getAcceptConflictMessage} from '../api/envelope';
 import BookingSkeleton from '../components/home/BookingSkeleton';
@@ -180,6 +182,7 @@ const BookingsScreen = ({navigation, route}) => {
   });
   const expiredIdsRef = useRef(new Set());
   const nowTs = useNowTick(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (route?.params?.status !== undefined) {
@@ -265,28 +268,34 @@ const BookingsScreen = ({navigation, route}) => {
   };
 
   const handleComplete = bookingId => {
-    showAlert('End service', 'Mark this booking as completed?', [
-      {text: 'Not now', style: 'cancel'},
-      {
-        text: 'End',
-        onPress: async () => {
-          try {
-            await stopLiveTracking();
-            const response = await completeBooking.mutateAsync(bookingId);
-            const earning =
-              response?.data?.caregiver_earning ?? response?.caregiver_earning;
-            showAlert(
-              'Completed',
-              earning != null
-                ? `Service completed. ৳${earning} is now in your wallet.`
-                : 'Service completed. Earnings settled to your wallet.',
-            );
-          } catch (error) {
-            showError(error?.message || 'Failed to complete booking');
-          }
+    showAlert(
+      'End service',
+      'Ending the service will close the chat and delete all messages.',
+      [
+        {text: 'Not now', style: 'cancel'},
+        {
+          text: 'End',
+          onPress: async () => {
+            try {
+              await stopLiveTracking();
+              const response = await completeBooking.mutateAsync(bookingId);
+              endBookingChat(queryClient, bookingId);
+              const earning =
+                response?.data?.caregiver_earning ??
+                response?.caregiver_earning;
+              showAlert(
+                'Completed',
+                earning != null
+                  ? `Service completed. ৳${earning} is now in your wallet.`
+                  : 'Service completed. Earnings settled to your wallet.',
+              );
+            } catch (error) {
+              showError(error?.message || 'Failed to complete booking');
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleAccept = (bookingId, booking) => {
@@ -469,6 +478,18 @@ const BookingsScreen = ({navigation, route}) => {
                 </View>
                 </TouchableOpacity>
 
+                {booking.can_chat === true && (
+                  <BookingChatChip
+                    bookingId={booking.id}
+                    onPress={() =>
+                      navigation?.navigate('BookingDetails', {
+                        bookingId: booking.id,
+                        openChat: true,
+                      })
+                    }
+                  />
+                )}
+
                 {isNew && (
                   <View style={styles.actionRow}>
                     <AppButton
@@ -579,10 +600,47 @@ const BookingsScreen = ({navigation, route}) => {
   );
 };
 
+function BookingChatChip({bookingId, onPress}) {
+  const unread = useBookingChatUnread(bookingId);
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.chatChip}>
+      <Icon name="chatbubble-ellipses-outline" size={16} color={TEAL} />
+      <Text style={styles.chatChipText}>Chat with customer</Text>
+      {unread > 0 ? (
+        <View style={styles.chatChipBadge}>
+          <Text style={styles.chatChipBadgeText}>{unread > 99 ? '99+' : unread}</Text>
+        </View>
+      ) : null}
+    </TouchableOpacity>
+  );
+}
+
 export default BookingsScreen;
 
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: PAGE_BG},
+  chatChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#E6F4F3',
+  },
+  chatChipText: {fontSize: 13, fontWeight: '600', color: TEAL},
+  chatChipBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    backgroundColor: '#E34242',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatChipBadgeText: {color: '#FFFFFF', fontSize: 11, fontWeight: '700'},
   header: {
     paddingHorizontal: 16,
     paddingTop: 8,

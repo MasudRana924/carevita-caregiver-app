@@ -184,7 +184,7 @@ export function mergeMessages(current, incoming) {
   return sortMessages([...serverById.values(), ...pending]);
 }
 
-export function buildChatRows(messages) {
+export function buildChatRows(messages, isOwn = isOwnMessage) {
   const chronological = sortMessages(messages);
   const rows = [];
   let lastDay = null;
@@ -201,9 +201,9 @@ export function buildChatRows(messages) {
       lastDay = key;
     }
 
-    const own = isOwnMessage(message);
+    const own = isOwn(message);
     const next = chronological[index + 1];
-    const nextOwn = next ? isOwnMessage(next) : true;
+    const nextOwn = next ? isOwn(next) : true;
     const nextDay = next ? dayKey(next.created_at || next.localCreatedAt) : null;
     rows.push({
       type: 'message',

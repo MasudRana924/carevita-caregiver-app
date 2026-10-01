@@ -25,6 +25,7 @@ let activeBookingId = null;
 let lastCoords = null;
 let appStateSub = null;
 let listeners = new Set();
+const socketListeners = new Set();
 
 const notify = () => {
   const snapshot = getTrackingState();
@@ -214,6 +215,7 @@ const connectSocket = async bookingId => {
       console.warn('Socket connect error:', error?.message || error);
       notify();
     });
+    socketListeners.forEach(({event, handler}) => socket.on(event, handler));
   } catch (error) {
     console.warn('Socket init failed:', error?.message || error);
     socket = null;
@@ -308,6 +310,37 @@ export const prepareStartLocation = async () => {
   return getCurrentCoords();
 };
 
+/**
+ * Other features (booking chat) share this socket. Listeners added here are
+ * re-bound every time the socket is recreated, since disconnectSocket()
+ * removes all listeners.
+ */
+export const addRealtimeListener = (event, handler) => {
+  const entry = {event, handler};
+  socketListeners.add(entry);
+  if (socket) {
+    socket.on(event, handler);
+  }
+  return () => {
+    socketListeners.delete(entry);
+    if (socket) {
+      socket.off(event, handler);
+    }
+  };
+};
+
+export const getRealtimeSocket = () => socket;
+
+export const isRealtimeConnected = () => Boolean(socket?.connected);
+
+/** Connects the shared socket without GPS when tracking could not start. */
+export const ensureRealtimeSocket = async () => {
+  if (!socket) {
+    await connectSocket(activeBookingId);
+  }
+  return socket;
+};
+
 export default {
   ensureLocationPermission,
   getCurrentLocation,
@@ -318,4 +351,8 @@ export default {
   getPersistedTrackingBookingId,
   getTrackingState,
   subscribeTracking,
+  addRealtimeListener,
+  getRealtimeSocket,
+  isRealtimeConnected,
+  ensureRealtimeSocket,
 };

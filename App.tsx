@@ -25,6 +25,13 @@ import {
   supportChatEvents,
   unreadCountFromQuery,
 } from './src/utils/supportChat';
+import {
+  bookingChatEvents,
+  bookingChatStore,
+  isBookingChatPush,
+  registerBookingChatSocket,
+} from './src/utils/bookingChat';
+import {isRealtimeConnected} from './src/services/liveTrackingService';
 import {queryKeys} from './src/api/queryKeys';
 import {setPendingReview} from './src/utils/homeAlerts';
 import {parseRatingValue} from './src/utils/bookingTime';
@@ -100,6 +107,25 @@ function AppContent() {
       payload => {
         const data = parseNotificationData(payload?.data);
         const type = String(data?.type || data?.event || '').toUpperCase();
+        if (isBookingChatPush(data)) {
+          const chatBookingId = data?.booking_id;
+          if (bookingChatStore.isFocused(chatBookingId)) {
+            if (!isRealtimeConnected()) {
+              bookingChatEvents.emit('refresh', chatBookingId);
+            }
+            return;
+          }
+          bookingChatStore.bumpUnread(chatBookingId, data?.message_id);
+          const sender = payload?.title || 'Customer';
+          const text = payload?.body || 'New message';
+          setBanner({
+            visible: true,
+            title: `${sender}: ${text}`,
+            body: text,
+            data: payload?.data || data,
+          });
+          return;
+        }
         if (isSupportChatPush(data)) {
           if (supportChatEvents.isFocused()) {
             supportChatEvents.emitRefresh();
@@ -165,6 +191,8 @@ function AppContent() {
     );
     return unsubscribe;
   }, [applyEkycPush]);
+
+  useEffect(() => registerBookingChatSocket(queryClient), []);
 
   useEffect(() => {
     return notificationService.setEkycPushHandler((type, data) => {

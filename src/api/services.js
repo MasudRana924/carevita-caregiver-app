@@ -497,6 +497,51 @@ export const conversationService = {
   markAsRead: () => apiRequest('/conversations/me/read', 'PUT'),
 };
 
+/** Caregiver ↔ customer chat, only while the booking is SERVICE_IN_PROGRESS. */
+export const bookingChatService = {
+  getSummary: bookingId => apiRequest(`/bookings/${bookingId}/chat`, 'GET'),
+
+  /**
+   * Latest page: no cursor (also marks incoming as read). Older: before=<oldest id>.
+   * Newer: after=<newest id>. data is always oldest → newest.
+   */
+  getMessages: (bookingId, params = {}) => {
+    const {limit = 30, before, after} = params;
+    return apiRequest(
+      `/bookings/${bookingId}/chat/messages${toQuery({limit, before, after})}`,
+      'GET',
+    );
+  },
+
+  sendText: (bookingId, {message, clientMessageId}) =>
+    apiRequest(`/bookings/${bookingId}/chat/messages`, 'POST', {
+      message,
+      client_message_id: clientMessageId,
+    }),
+
+  sendFile: (bookingId, {file, message, clientMessageId, onProgress}) => {
+    const form = new FormData();
+    form.append('file', {
+      uri: file.uri,
+      name: file.name || 'upload',
+      type: file.mime || 'application/octet-stream',
+    });
+    if (message) {
+      form.append('message', String(message));
+    }
+    if (clientMessageId) {
+      form.append('client_message_id', String(clientMessageId));
+    }
+    return uploadFormData(
+      `/bookings/${bookingId}/chat/messages`,
+      form,
+      onProgress,
+    );
+  },
+
+  markAsRead: bookingId => apiRequest(`/bookings/${bookingId}/chat/read`, 'PUT'),
+};
+
 /** @deprecated Use inboxService — kept so existing imports keep working */
 export const notificationService = {
   getNotifications: params => inboxService.getInbox(params),
@@ -597,4 +642,5 @@ export default {
   pushTokenService,
   privacyService,
   conversationService,
+  bookingChatService,
 };

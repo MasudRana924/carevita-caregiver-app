@@ -1,3 +1,5 @@
+import {isBookingChatPush} from './bookingChat';
+
 const TAB_SCREENS = ['Home', 'Bookings', 'Inbox', 'Wallet', 'Profile'];
 
 const getBookingId = data =>
@@ -116,6 +118,15 @@ export const handleNotificationClick = (rawData, navigation) => {
 
   if (isSupportChatPush(data)) {
     navigateRoot(navigation, 'SupportChat');
+    return;
+  }
+
+  if (isBookingChatPush(data)) {
+    if (bookingId) {
+      navigateRoot(navigation, 'BookingDetails', {bookingId, openChat: true});
+    } else {
+      navigateRoot(navigation, 'Bookings');
+    }
     return;
   }
 

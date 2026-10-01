@@ -49,6 +49,9 @@ export const ENDPOINTS = {
     CANCEL: (id) => `/bookings/${id}/cancel`,
     DISPUTE: (id) => `/bookings/${id}/dispute`,
     DISPUTES: (id) => `/bookings/${id}/disputes`,
+    CHAT: (id) => `/bookings/${id}/chat`,
+    CHAT_MESSAGES: (id) => `/bookings/${id}/chat/messages`,
+    CHAT_READ: (id) => `/bookings/${id}/chat/read`,
   },
 
   HOSPITALS: {
