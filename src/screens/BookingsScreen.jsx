@@ -515,7 +515,12 @@ const BookingsScreen = ({navigation, route}) => {
                   </View>
                 )}
                 {!isNew && windowState.showStart && (
-                  <View style={styles.actionCol}>
+                  <View style={styles.actionFooter}>
+                    <Text style={styles.windowHint} numberOfLines={2}>
+                      {!windowState.canStart && windowState.startNotYet
+                        ? 'You can start when the service time begins.'
+                        : 'Ready to start the service'}
+                    </Text>
                     <AppButton
                       title="Start"
                       icon="play"
@@ -525,12 +530,9 @@ const BookingsScreen = ({navigation, route}) => {
                         starting ||
                         startBooking.isPending
                       }
+                      style={styles.compactBtn}
+                      textStyle={styles.compactBtnText}
                     />
-                    {!windowState.canStart && windowState.startNotYet && (
-                      <Text style={styles.windowHint}>
-                        You can start when the service time begins.
-                      </Text>
-                    )}
                   </View>
                 )}
                 {!isNew && windowState.canReportNoStart && (
@@ -548,18 +550,20 @@ const BookingsScreen = ({navigation, route}) => {
                   </View>
                 )}
                 {!isNew && windowState.showEnd && (
-                  <View style={styles.actionCol}>
+                  <View style={styles.actionFooter}>
+                    <Text style={styles.windowHint} numberOfLines={2}>
+                      {windowState.canComplete
+                        ? 'Service time is over'
+                        : 'You can end the service when the booked time is over.'}
+                    </Text>
                     <AppButton
                       title="End"
                       icon="checkmark-done"
                       onPress={() => handleComplete(booking.id)}
                       disabled={!windowState.canComplete}
+                      style={styles.compactBtn}
+                      textStyle={styles.compactBtnText}
                     />
-                    {!windowState.canComplete && (
-                      <Text style={styles.windowHint}>
-                        You can end the service when the booked time is over.
-                      </Text>
-                    )}
                   </View>
                 )}
               </View>
@@ -680,11 +684,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     paddingLeft: 10,
     paddingRight: 5,
     marginRight: 8,
   },
-  chipActive: {backgroundColor: TEAL},
+  chipActive: {backgroundColor: TEAL, borderColor: TEAL},
   chipText: {fontSize: 12, fontWeight: '600', color: '#5E6B76'},
   chipTextActive: {color: '#FFFFFF'},
   count: {
@@ -711,12 +717,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {fontSize: 14, color: '#8A97A6', marginTop: 6},
   card: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F5F5F5',
+    borderColor: '#E9EEF2',
+
   },
   newHeader: {
     flexDirection: 'row',
@@ -758,8 +765,18 @@ const styles = StyleSheet.create({
   },
   statusText: {fontSize: 11, fontWeight: '700', textAlign: 'right'},
   actionRow: {flexDirection: 'row', gap: 10, marginTop: 14},
-  actionCol: {marginTop: 14},
-  windowHint: {marginTop: 6, fontSize: 12, color: '#6B7280', textAlign: 'center'},
+  actionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEF1F4',
+  },
+  windowHint: {flex: 1, fontSize: 12, lineHeight: 17, color: '#6B7280'},
+  compactBtn: {height: 40, borderRadius: 20, paddingHorizontal: 20, minWidth: 104},
+  compactBtnText: {fontSize: 14},
   flexBtn: {flex: 1},
   modalBackdrop: {
     flex: 1,
