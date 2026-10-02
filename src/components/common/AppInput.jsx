@@ -26,6 +26,7 @@ const AppInput = ({
   inputRowStyle,
   inputStyle,
   labelStyle,
+  error,
   style,
   ...rest
 }) => {
@@ -36,6 +37,7 @@ const AppInput = ({
         style={[
           formStyles.inputRow,
           multiline && formStyles.inputRowMultiline,
+          error ? styles.rowTight : null,
           inputRowStyle,
         ]}>
         {icon ? (
@@ -71,6 +73,7 @@ const AppInput = ({
           </TouchableOpacity>
         ) : null}
       </View>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 };
@@ -78,6 +81,13 @@ const AppInput = ({
 const styles = StyleSheet.create({
   wrap: {width: '100%'},
   multiIcon: {marginTop: 2},
+  rowTight: {marginBottom: 6},
+  error: {
+    fontSize: 12,
+    color: FORM.danger,
+    marginLeft: 8,
+    marginBottom: 12,
+  },
 });
 
 export default AppInput;

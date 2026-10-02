@@ -68,69 +68,42 @@ const AuthShell = ({
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View pointerEvents="none" style={styles.blobLarge} />
+        <View pointerEvents="none" style={styles.blobSmall} />
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
           bounces={false}>
-          <View style={styles.hero}>
-            {showBack ? (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.back}
-                onPress={() => navigation?.goBack()}>
-                <Icon name="arrow-back" size={20} color={AUTH.title} />
-              </TouchableOpacity>
-            ) : null}
+          {showBack ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.back}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+              onPress={() => {
+                if (navigation?.canGoBack?.()) {
+                  navigation.goBack();
+                }
+              }}>
+              <Icon name="arrow-back" size={22} color={AUTH.title} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.backSpacer} />
+          )}
 
-            <View style={styles.brandRow}>
-              <View style={styles.brand}>
-                <Image
-                  source={require('../../assets/auth.png')}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.tagline}>
-                  Care for a{'\n'}better tomorrow
-                </Text>
-              </View>
-              <Image
-                source={require('../../assets/welcome-caregiver.jpg')}
-                style={styles.heroImage}
-                resizeMode="contain"
-              />
-              <Icon
-                name="heart-outline"
-                size={16}
-                color={AUTH.teal}
-                style={styles.floatHeart}
-              />
-            </View>
-
-            <Text style={styles.title}>
-              {title} <Text style={styles.titleHeart}></Text>
-            </Text>
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          <View style={styles.brand}>
+            <Image
+              source={require('../../assets/auth.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.tagline}>Care for a better tomorrow</Text>
           </View>
 
-          <View style={styles.card}>
-            {children}
-            <View style={styles.leaves} pointerEvents="none">
-              <Icon name="leaf-outline" size={34} color="#C8E6DC" />
-              <Icon
-                name="leaf-outline"
-                size={42}
-                color="#D4EEE6"
-                style={styles.leafRight}
-              />
-              <Icon
-                name="heart-outline"
-                size={14}
-                color="#C8E6DC"
-                style={styles.leafHeart}
-              />
-            </View>
-          </View>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+
+          <View style={styles.form}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -142,99 +115,72 @@ export default AuthShell;
 const styles = StyleSheet.create({
   safe: {flex: 1, backgroundColor: AUTH.page},
   flex: {flex: 1},
-  scroll: {flexGrow: 1},
-  hero: {
+  scroll: {
+    flexGrow: 1,
     paddingHorizontal: 22,
-    paddingTop: 4,
-    paddingBottom: 18,
+    paddingBottom: 28,
+  },
+  blobLarge: {
+    position: 'absolute',
+    top: -80,
+    right: -46,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(14, 138, 120, 0.13)',
+  },
+  blobSmall: {
+    position: 'absolute',
+    top: 36,
+    right: -90,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(14, 138, 120, 0.08)',
   },
   back: {
     width: 36,
     height: 36,
-    // alignItems: 'center',
-    // justifyContent: 'center',
-    marginBottom: 4,
-  },
-  brandRow: {
-    minHeight: 150,
-    justifyContent: 'flex-end',
     alignItems: 'flex-start',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+    zIndex: 2,
   },
+  backSpacer: {height: 12},
   brand: {
     alignItems: 'flex-start',
-    alignSelf: 'flex-start',
     zIndex: 2,
-    maxWidth: '50%',
   },
   logo: {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
   },
   tagline: {
-    marginTop: 6,
-    fontSize: 11,
-    lineHeight: 15,
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
     color: AUTH.teal,
-    textAlign: 'left',
-  },
-  heroImage: {
-    position: 'absolute',
-    right: -18,
-    top: -8,
-    width: 230,
-    height: 190,
-  },
-  floatHeart: {
-    position: 'absolute',
-    right: 18,
-    top: 8,
   },
   title: {
-    marginTop: 8,
-    fontSize: 22,
-    lineHeight: 38,
+    marginTop: 22,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '800',
     color: AUTH.title,
-    letterSpacing: -0.6,
+    letterSpacing: -0.4,
     zIndex: 2,
   },
-  titleHeart: {
-    fontSize: 22,
-    color: AUTH.teal,
-    fontWeight: '400',
-  },
   subtitle: {
-    marginTop: 8,
-    maxWidth: '72%',
-    fontSize: 10,
-    lineHeight: 20,
+    marginTop: 6,
+    fontSize: 15,
+    lineHeight: 22,
     color: AUTH.muted,
     zIndex: 2,
   },
-  card: {
-    flexGrow: 1,
-    backgroundColor: AUTH.mint,
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    paddingHorizontal: 22,
-    paddingTop: 26,
-    paddingBottom: 28,
-    overflow: 'hidden',
-  },
-  leaves: {
-    position: 'absolute',
-    right: 12,
-    bottom: 10,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  leafRight: {
-    transform: [{rotate: '28deg'}, {scaleX: -1}],
-  },
-  leafHeart: {
-    marginBottom: 18,
-    marginLeft: 4,
+  form: {
+    marginTop: 22,
+    zIndex: 2,
   },
 });

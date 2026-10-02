@@ -129,7 +129,8 @@ export const useLogin = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({email, password}) => authService.login(email, password),
+    mutationFn: ({email, phone, password}) =>
+      authService.login({email, phone, password}),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: queryKeys.auth.all});
     },
@@ -140,8 +141,8 @@ export const useRegister = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({name, email, password}) =>
-      authService.register(name, email, password),
+    mutationFn: ({name, email, phone, password}) =>
+      authService.register({name, email, phone, password}),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: queryKeys.auth.all});
     },

@@ -229,24 +229,33 @@ const uploadFormData = (endpoint, formData, onProgress) =>
     attempt(true).catch(reject);
   });
 
+const identifierBody = ({email, phone}) => (phone ? {phone} : {email});
+
 export const authService = {
-  register: (name, email, password) =>
+  register: ({name, email, phone, password}) =>
     apiRequest('/auth/register', 'POST', {
       name,
-      email,
       password,
       role: 'CAREGIVER',
+      ...identifierBody({email, phone}),
     }),
 
-  login: (email, password) =>
-    apiRequest('/auth/login', 'POST', {email, password}),
+  login: ({email, phone, password}) =>
+    apiRequest('/auth/login', 'POST', {
+      password,
+      ...identifierBody({email, phone}),
+    }),
 
   sendOtp: email => apiRequest('/auth/send-otp', 'POST', {email}),
 
-  verifyOtp: (email, otp) =>
-    apiRequest('/auth/verify-otp', 'POST', {email, otp}),
+  verifyOtp: ({email, phone, otp}) =>
+    apiRequest('/auth/verify-otp', 'POST', {
+      otp,
+      ...identifierBody({email, phone}),
+    }),
 
-  resendOtp: email => apiRequest('/auth/resend-otp', 'POST', {email}),
+  resendOtp: ({email, phone}) =>
+    apiRequest('/auth/resend-otp', 'POST', identifierBody({email, phone})),
 
   refreshToken: refreshToken =>
     apiRequest('/auth/refresh-token', 'POST', {refreshToken}),
